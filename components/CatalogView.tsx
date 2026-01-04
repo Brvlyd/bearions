@@ -79,8 +79,8 @@ export default function CatalogView() {
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Sidebar */}
         <aside className="lg:w-64 shrink-0">
-          <div className="bg-gray-50 rounded-lg p-6">
-            <h2 className="font-bold text-lg mb-4">Categories</h2>
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <h2 className="font-bold text-lg mb-4 text-black">Categories</h2>
             <ul className="space-y-2">
               {categories.map((category) => (
                 <li key={category}>
@@ -89,7 +89,7 @@ export default function CatalogView() {
                     className={`w-full text-left px-3 py-2 rounded transition ${
                       selectedCategory === category
                         ? 'bg-black text-white'
-                        : 'hover:bg-gray-200'
+                        : 'hover:bg-gray-100 text-black'
                     }`}
                   >
                     {category}
@@ -104,10 +104,10 @@ export default function CatalogView() {
         <div className="flex-1">
           {/* Header */}
           <div className="flex items-center gap-4 mb-8">
-            <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+            <div className="w-12 h-12 bg-gray-100 border border-gray-200 rounded-full flex items-center justify-center">
               <span className="text-2xl">👕</span>
             </div>
-            <h1 className="text-2xl font-bold">{selectedCategory}</h1>
+            <h1 className="text-2xl font-bold text-black">{selectedCategory}</h1>
           </div>
 
           {/* Search and Sort */}
@@ -118,7 +118,7 @@ export default function CatalogView() {
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-3 pr-12 bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                className="w-full px-4 py-3 pr-12 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
               />
               <button
                 type="submit"
@@ -128,11 +128,11 @@ export default function CatalogView() {
               </button>
             </form>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium whitespace-nowrap">Sort By:</span>
+              <span className="text-sm font-medium whitespace-nowrap text-black">Sort By:</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-3 bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                className="px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
               >
                 <option value="featured">Featured</option>
                 <option value="price-low">Price: Low to High</option>

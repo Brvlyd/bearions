@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { authService } from '@/lib/auth'
-import { LogOut, Package, PlusCircle } from 'lucide-react'
+import { LogOut, Package, PlusCircle, BarChart3 } from 'lucide-react'
 
 export default function AdminLayout({
   children,
@@ -75,6 +75,13 @@ export default function AdminLayout({
               href="/admin/dashboard"
               className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-white/10 transition"
             >
+              <BarChart3 className="w-5 h-5" />
+              <span>Analytics</span>
+            </Link>
+            <Link
+              href="/admin/dashboard/products"
+              className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-white/10 transition"
+            >
               <Package className="w-5 h-5" />
               <span>Products</span>
             </Link>
@@ -102,7 +109,7 @@ export default function AdminLayout({
       {/* Main Content */}
       <div className="ml-64">
         <header className="bg-white border-b border-gray-200 px-8 py-4">
-          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+          <h1 className="text-2xl text-black font-bold">Admin Dashboard</h1>
         </header>
         <main className="p-8">{children}</main>
       </div>

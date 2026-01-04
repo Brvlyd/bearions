@@ -59,8 +59,8 @@ export default function AdminDashboardPage() {
     <div>
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h2 className="text-2xl font-bold mb-2">Product Management</h2>
-          <p className="text-gray-600">Manage all products in your store</p>
+          <h2 className="text-2xl font-bold mb-2 text-black">Analytics Dashboard</h2>
+          <p className="text-gray-600">Overview of your store performance</p>
         </div>
         <Link
           href="/admin/dashboard/add-product"
@@ -76,7 +76,7 @@ export default function AdminDashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Total Products</p>
-              <p className="text-3xl font-bold">{products.length}</p>
+              <p className="text-3xl font-bold text-black">{products.length}</p>
             </div>
             <Package className="w-12 h-12 text-gray-400" />
           </div>
@@ -85,7 +85,7 @@ export default function AdminDashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">In Stock</p>
-              <p className="text-3xl font-bold">
+              <p className="text-3xl font-bold text-black">
                 {products.filter(p => p.stock > 0).length}
               </p>
             </div>
@@ -96,7 +96,7 @@ export default function AdminDashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Out of Stock</p>
-              <p className="text-3xl font-bold">
+              <p className="text-3xl font-bold text-black">
                 {products.filter(p => p.stock === 0).length}
               </p>
             </div>
@@ -110,26 +110,26 @@ export default function AdminDashboardPage() {
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th className="text-left px-6 py-4 text-sm font-semibold">Product</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold">Category</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold">Price</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold">Stock</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold">Actions</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-black">Product</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-black">Category</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-black">Price</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-black">Stock</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-black">Actions</th>
             </tr>
           </thead>
           <tbody>
             {products.map((product) => (
               <tr key={product.id} className="border-b border-gray-200 hover:bg-gray-50">
                 <td className="px-6 py-4">
-                  <div className="font-medium">{product.name}</div>
+                  <div className="font-medium text-black">{product.name}</div>
                   {product.description && (
                     <div className="text-sm text-gray-500 truncate max-w-md">
                       {product.description}
                     </div>
                   )}
                 </td>
-                <td className="px-6 py-4 text-sm">{product.category}</td>
-                <td className="px-6 py-4 text-sm font-medium">
+                <td className="px-6 py-4 text-sm text-black">{product.category}</td>
+                <td className="px-6 py-4 text-sm font-medium text-black">
                   {formatPrice(product.price)}
                 </td>
                 <td className="px-6 py-4">

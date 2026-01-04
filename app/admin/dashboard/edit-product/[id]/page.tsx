@@ -6,6 +6,7 @@ import { productService } from '@/lib/products'
 import { Product } from '@/lib/supabase'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import ImageUpload from '@/components/ImageUpload'
 
 const categories = ['Tops', 'Bottoms', 'Accessories', 'Outerwear']
 
@@ -115,11 +116,11 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
       </Link>
 
       <div className="max-w-2xl">
-        <h2 className="text-2xl font-bold mb-6">Edit Product</h2>
+        <h2 className="text-2xl font-bold mb-6 text-black">Edit Product</h2>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium mb-2">
+            <label htmlFor="name" className="block text-sm font-medium mb-2 text-black">
               Product Name *
             </label>
             <input
@@ -199,7 +200,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
           </div>
 
           <div>
-            <label htmlFor="image_url" className="block text-sm font-medium mb-2">
+            <label htmlFor="image_url" className="block text-sm font-medium mb-2 text-black">
               Image URL
             </label>
             <input
@@ -210,6 +211,25 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               onChange={handleChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
             />
+            <p className="mt-2 text-sm text-gray-500">
+              Enter a direct URL to the product image (e.g., from Imgur, Cloudinary, or your server)
+            </p>
+            {formData.image_url && (
+              <div className="mt-4">
+                <p className="text-sm font-medium mb-2 text-black">Current Image:</p>
+                <div className="w-48 h-48 border border-gray-300 rounded-lg overflow-hidden bg-gray-50">
+                  <img
+                    src={formData.image_url}
+                    alt="Product preview"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = ''
+                      e.currentTarget.classList.add('hidden')
+                    }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-4 pt-4">

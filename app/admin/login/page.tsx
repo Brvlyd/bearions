@@ -28,14 +28,14 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center px-4">
+    <div className="min-h-screen bg-white flex items-center justify-center px-4">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-lg p-8 shadow-2xl">
+        <div className="bg-white border border-gray-200 rounded-lg p-8 shadow-lg">
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-black text-white flex items-center justify-center font-bold text-2xl rounded mx-auto mb-4">
               B
             </div>
-            <h1 className="text-2xl font-bold">Admin Login</h1>
+            <h1 className="text-2xl font-bold text-black">Admin Login</h1>
             <p className="text-gray-600 mt-2">Sign in to manage your store</p>
           </div>
 
@@ -47,7 +47,7 @@ export default function AdminLoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-2">
+              <label htmlFor="email" className="block text-sm font-medium mb-2 text-black">
                 Email
               </label>
               <input
@@ -62,7 +62,7 @@ export default function AdminLoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-2">
+              <label htmlFor="password" className="block text-sm font-medium mb-2 text-black">
                 Password
               </label>
               <input

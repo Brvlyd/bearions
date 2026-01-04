@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { productService } from '@/lib/products'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import ImageUpload from '@/components/ImageUpload'
 
 const categories = ['Tops', 'Bottoms', 'Accessories', 'Outerwear']
 
@@ -62,11 +63,11 @@ export default function AddProductPage() {
       </Link>
 
       <div className="max-w-2xl">
-        <h2 className="text-2xl font-bold mb-6">Add New Product</h2>
+        <h2 className="text-2xl font-bold mb-6 text-black">Add New Product</h2>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium mb-2">
+            <label htmlFor="name" className="block text-sm font-medium mb-2 text-black">
               Product Name *
             </label>
             <input
@@ -82,7 +83,7 @@ export default function AddProductPage() {
           </div>
 
           <div>
-            <label htmlFor="description" className="block text-sm font-medium mb-2">
+            <label htmlFor="description" className="block text-sm font-medium mb-2 text-black">
               Description
             </label>
             <textarea
@@ -98,7 +99,7 @@ export default function AddProductPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="price" className="block text-sm font-medium mb-2">
+              <label htmlFor="price" className="block text-sm font-medium mb-2 text-black">
                 Price (IDR) *
               </label>
               <input
@@ -115,7 +116,7 @@ export default function AddProductPage() {
             </div>
 
             <div>
-              <label htmlFor="stock" className="block text-sm font-medium mb-2">
+              <label htmlFor="stock" className="block text-sm font-medium mb-2 text-black">
                 Stock *
               </label>
               <input
@@ -132,7 +133,7 @@ export default function AddProductPage() {
           </div>
 
           <div>
-            <label htmlFor="category" className="block text-sm font-medium mb-2">
+            <label htmlFor="category" className="block text-sm font-medium mb-2 text-black">
               Category *
             </label>
             <select
@@ -150,7 +151,7 @@ export default function AddProductPage() {
           </div>
 
           <div>
-            <label htmlFor="image_url" className="block text-sm font-medium mb-2">
+            <label htmlFor="image_url" className="block text-sm font-medium mb-2 text-black">
               Image URL
             </label>
             <input
@@ -163,8 +164,24 @@ export default function AddProductPage() {
               placeholder="https://example.com/image.jpg"
             />
             <p className="mt-2 text-sm text-gray-500">
-              Enter a direct URL to the product image
+              Enter a direct URL to the product image (e.g., from Imgur, Cloudinary, or your server)
             </p>
+            {formData.image_url && (
+              <div className="mt-4">
+                <p className="text-sm font-medium mb-2 text-black">Preview:</p>
+                <div className="w-48 h-48 border border-gray-300 rounded-lg overflow-hidden bg-gray-50">
+                  <img
+                    src={formData.image_url}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = ''
+                      e.currentTarget.classList.add('hidden')
+                    }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-4 pt-4">

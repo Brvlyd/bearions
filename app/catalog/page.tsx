@@ -6,5 +6,9 @@ export const metadata = {
 }
 
 export default function CatalogPage() {
-  return <CatalogView />
+  return (
+    <div className="min-h-screen bg-white">
+      <CatalogView />
+    </div>
+  )
 }

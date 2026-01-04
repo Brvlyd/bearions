@@ -20,7 +20,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   return (
     <Link href={`/products/${product.id}`}>
       <div className="group cursor-pointer">
-        <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4 relative">
+        <div className="aspect-square bg-gray-50 border border-gray-200 rounded-lg overflow-hidden mb-4 relative">
           {product.image_url ? (
             <Image
               src={product.image_url}
@@ -39,7 +39,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             </div>
           )}
         </div>
-        <h3 className="font-semibold text-lg mb-1 group-hover:text-gray-600 transition">
+        <h3 className="font-semibold text-lg mb-1 group-hover:text-gray-600 transition text-black">
           {product.name}
         </h3>
         <p className="text-black font-bold">{formatPrice(product.price)}</p>
