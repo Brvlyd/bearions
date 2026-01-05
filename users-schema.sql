@@ -50,14 +50,28 @@ LANGUAGE plpgsql
 SECURITY DEFINER SET search_path = public
 AS $$
 BEGIN
-  INSERT INTO public.users (id, email, role)
-  VALUES (new.id, new.email, 'user');
+  INSERT INTO public.users (id, email, full_name, phone, address, role)
+  VALUES (
+    new.id, 
+    new.email, 
+    COALESCE(new.raw_user_meta_data->>'full_name', ''),
+    COALESCE(new.raw_user_meta_data->>'phone', ''),
+    COALESCE(new.raw_user_meta_data->>'address', ''),
+    'user'
+  );
   RETURN new;
+EXCEPTION
+  WHEN others THEN
+    -- Log error but don't fail the signup
+    RAISE WARNING 'Error creating user profile: %', SQLERRM;
+    RETURN new;
 END;
 $$;
 
--- Trigger untuk auto-create user profile
+-- Drop existing trigger if exists
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
+-- Trigger untuk auto-create user profile
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();

@@ -2,8 +2,9 @@
 
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
-import { ShoppingCart, User, Menu, X, LogOut } from 'lucide-react'
+import { User, Menu, X, LogOut } from 'lucide-react'
 import { authService } from '@/lib/auth'
+import CartButton from './CartButton'
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -54,6 +55,11 @@ export default function Header() {
             <Link href="/catalog" className="hover:text-gray-300 transition">
               Catalog
             </Link>
+            {isLoggedIn && (
+              <Link href="/orders" className="hover:text-gray-300 transition">
+                My Orders
+              </Link>
+            )}
             <Link href="/community" className="hover:text-gray-300 transition">
               Community
             </Link>
@@ -61,9 +67,7 @@ export default function Header() {
 
           {/* Right Side */}
           <div className="hidden md:flex items-center space-x-6">
-            <button className="hover:text-gray-300 transition">
-              <ShoppingCart className="w-5 h-5" />
-            </button>
+            <CartButton />
             <select className="bg-black border border-white/20 rounded px-3 py-1 text-sm">
               <option>English (US)</option>
               <option>Bahasa Indonesia</option>
@@ -127,8 +131,16 @@ export default function Header() {
             <Link href="/catalog" className="block hover:text-gray-300">
               Catalog
             </Link>
+            {isLoggedIn && (
+              <Link href="/orders" className="block hover:text-gray-300">
+                My Orders
+              </Link>
+            )}
             <Link href="/community" className="block hover:text-gray-300">
               Community
+            </Link>
+            <Link href="/cart" className="block hover:text-gray-300">
+              Shopping Cart
             </Link>
             {isLoggedIn ? (
               <>

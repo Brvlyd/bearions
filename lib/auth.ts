@@ -19,14 +19,49 @@ export const authService = {
   // Register new user
   async register(data: RegisterData) {
     try {
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(data.email)) {
+        throw new Error('Invalid email format')
+      }
+
+      // Validate phone if provided
+      if (data.phone) {
+        const phoneRegex = /^(\+62|62|0)[0-9]{9,12}$/
+        if (!phoneRegex.test(data.phone.replace(/[\s-]/g, ''))) {
+          throw new Error('Invalid phone number format')
+        }
+      }
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login`,
+          data: {
+            full_name: data.full_name,
+            phone: data.phone,
+            address: data.address,
+          }
+        }
       })
 
       if (authError) throw authError
 
-      // Update user profile if additional data provided
+      // Check if email confirmation is required
+      if (authData.user && !authData.session) {
+        // Email confirmation required
+        return { 
+          ...authData, 
+          needsEmailConfirmation: true,
+          message: 'Please check your email to confirm your account before logging in.'
+        }
+      }
+
+      // Wait a bit for trigger to create user row
+      await new Promise(resolve => setTimeout(resolve, 1500))
+
+      // Update user profile with additional data
       if (authData.user && (data.full_name || data.phone || data.address)) {
         const { error: updateError } = await supabase
           .from('users')
@@ -39,6 +74,21 @@ export const authService = {
 
         if (updateError) {
           console.error('Error updating user profile:', updateError)
+          // Try to insert instead of update (in case trigger failed)
+          const { error: insertError } = await supabase
+            .from('users')
+            .insert({
+              id: authData.user.id,
+              email: authData.user.email!,
+              full_name: data.full_name,
+              phone: data.phone,
+              address: data.address,
+              role: 'user'
+            })
+          
+          if (insertError) {
+            console.error('Error inserting user profile:', insertError)
+          }
         }
       }
 

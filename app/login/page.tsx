@@ -15,11 +15,30 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address')
+      return
+    }
+
+    // Validate password not empty
+    if (!password || password.length < 6) {
+      setError('Password must be at least 6 characters')
+      return
+    }
+
     setLoading(true)
 
     try {
       // Login tanpa specify role, akan auto-detect
       const result = await authService.login({ email, password })
+      
+      if (!result) {
+        setError('Login failed. Please try again.')
+        return
+      }
       
       if (result.role === 'admin') {
         router.push('/admin/dashboard')
@@ -30,7 +49,17 @@ export default function LoginPage() {
         await authService.logout()
       }
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please check your credentials.')
+      console.error('Login error:', err)
+      
+      let errorMessage = 'Login failed. Please check your credentials.'
+      
+      if (err.message?.includes('Email not confirmed')) {
+        errorMessage = 'Please verify your email before logging in. Check your inbox (and spam folder) for the confirmation link.'
+      } else if (err.message?.includes('Invalid login credentials')) {
+        errorMessage = 'Invalid email or password. Please try again.'
+      }
+      
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

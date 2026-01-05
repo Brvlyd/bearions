@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Product } from '@/lib/supabase'
 import { productService } from '@/lib/products'
-import { ArrowLeft } from 'lucide-react'
+import { cartService } from '@/lib/cart'
+import { supabase } from '@/lib/supabase'
+import { ArrowLeft, ShoppingCart, Plus, Minus } from 'lucide-react'
 import ImageCarousel from '@/components/ImageCarousel'
 
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -14,6 +16,11 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const [images, setImages] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [productId, setProductId] = useState<string>('')
+  const [quantity, setQuantity] = useState(1)
+  const [selectedSize, setSelectedSize] = useState<string>('')
+  const [selectedColor, setSelectedColor] = useState<string>('')
+  const [addingToCart, setAddingToCart] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   useEffect(() => {
     params.then(p => setProductId(p.id))
@@ -54,6 +61,53 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       currency: 'IDR',
       minimumFractionDigits: 0,
     }).format(price)
+  }
+
+  const handleAddToCart = async () => {
+    if (!product) return
+
+    try {
+      setAddingToCart(true)
+      setMessage(null)
+
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setMessage({ type: 'error', text: 'Please login to add items to cart' })
+        return
+      }
+
+      await cartService.addToCart(
+        user.id,
+        product.id,
+        quantity,
+        selectedSize || undefined,
+        selectedColor || undefined
+      )
+
+      setMessage({ type: 'success', text: 'Product added to cart!' })
+      
+      // Reset selections after adding
+      setTimeout(() => {
+        setMessage(null)
+      }, 3000)
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message || 'Failed to add to cart' })
+    } finally {
+      setAddingToCart(false)
+    }
+  }
+
+  const incrementQuantity = () => {
+    if (product && quantity < product.stock) {
+      setQuantity(quantity + 1)
+    }
+  }
+
+  const decrementQuantity = () => {
+    if (quantity > 1) {
+      setQuantity(quantity - 1)
+    }
   }
 
   if (loading) {
@@ -107,6 +161,12 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
           {/* Product Info */}
           <div className="flex flex-col">
+            {message && (
+              <div className={`mb-4 p-4 rounded-lg ${message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+                {message.text}
+              </div>
+            )}
+
             <div className="mb-4">
               <span className="inline-block px-3 py-1 bg-gray-100 text-sm rounded text-black">
                 {product.category}
@@ -122,18 +182,88 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               </div>
             )}
 
-            <div className="mb-8">
+            <div className="mb-6">
               <h2 className="text-lg font-semibold mb-2 text-black">Availability</h2>
               <p className={`text-lg font-semibold ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {product.stock > 0 ? `In Stock (${product.stock} available)` : 'Out of Stock'}
               </p>
             </div>
 
+            {product.stock > 0 && (
+              <>
+                {/* Size Selection */}
+                <div className="mb-6">
+                  <h2 className="text-lg font-semibold mb-3 text-black">Size</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {['S', 'M', 'L', 'XL', 'XXL'].map((size) => (
+                      <button
+                        key={size}
+                        onClick={() => setSelectedSize(size)}
+                        className={`px-6 py-2 border-2 rounded-lg font-semibold transition ${
+                          selectedSize === size
+                            ? 'border-black bg-black text-white'
+                            : 'border-gray-300 text-black hover:border-black'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Color Selection */}
+                <div className="mb-6">
+                  <h2 className="text-lg font-semibold mb-3 text-black">Color</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {['Black', 'White', 'Navy', 'Gray', 'Beige'].map((color) => (
+                      <button
+                        key={color}
+                        onClick={() => setSelectedColor(color)}
+                        className={`px-6 py-2 border-2 rounded-lg font-semibold transition ${
+                          selectedColor === color
+                            ? 'border-black bg-black text-white'
+                            : 'border-gray-300 text-black hover:border-black'
+                        }`}
+                      >
+                        {color}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Quantity Selector */}
+                <div className="mb-8">
+                  <h2 className="text-lg font-semibold mb-3 text-black">Quantity</h2>
+                  <div className="flex items-center space-x-4">
+                    <button
+                      onClick={decrementQuantity}
+                      disabled={quantity <= 1}
+                      className="w-10 h-10 border-2 border-gray-300 rounded-lg flex items-center justify-center hover:border-black disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <span className="text-xl font-bold text-black w-12 text-center">{quantity}</span>
+                    <button
+                      onClick={incrementQuantity}
+                      disabled={quantity >= product.stock}
+                      className="w-10 h-10 border-2 border-gray-300 rounded-lg flex items-center justify-center hover:border-black disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                    <span className="text-sm text-gray-600">Max: {product.stock}</span>
+                  </div>
+                </div>
+              </>
+            )}
+
             {product.stock > 0 ? (
               <button
-                className="w-full bg-black text-white py-4 rounded-lg font-semibold hover:bg-gray-800 transition"
+                onClick={handleAddToCart}
+                disabled={addingToCart}
+                className="w-full bg-black text-white py-4 rounded-lg font-semibold hover:bg-gray-800 transition disabled:bg-gray-400 flex items-center justify-center space-x-2"
               >
-                Add to Cart
+                <ShoppingCart className="w-5 h-5" />
+                <span>{addingToCart ? 'Adding...' : 'Add to Cart'}</span>
               </button>
             ) : (
               <button

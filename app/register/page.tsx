@@ -29,6 +29,28 @@ export default function RegisterPage() {
     e.preventDefault()
     setError('')
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email)) {
+      setError('Please enter a valid email address (e.g., example@gmail.com)')
+      return
+    }
+
+    // Validate required fields
+    if (!formData.full_name.trim()) {
+      setError('Full name is required')
+      return
+    }
+
+    // Validate phone number (Indonesian format)
+    if (formData.phone && formData.phone.trim()) {
+      const phoneRegex = /^(\+62|62|0)[0-9]{9,12}$/
+      if (!phoneRegex.test(formData.phone.replace(/[\s-]/g, ''))) {
+        setError('Please enter a valid phone number (e.g., 08123456789 or +628123456789)')
+        return
+      }
+    }
+
     // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match')
@@ -44,7 +66,7 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
-      await authService.register({
+      const result = await authService.register({
         email: formData.email,
         password: formData.password,
         full_name: formData.full_name,
@@ -52,9 +74,15 @@ export default function RegisterPage() {
         address: formData.address
       })
 
-      alert('Registration successful! Please check your email to verify your account.')
+      if ((result as any)?.needsEmailConfirmation) {
+        alert('Registration successful! Please check your email (including spam folder) to verify your account before logging in.')
+      } else {
+        alert('Registration successful! You can now login with your credentials.')
+      }
+      
       router.push('/login')
     } catch (err: any) {
+      console.error('Registration error:', err)
       setError(err.message || 'Registration failed. Please try again.')
     } finally {
       setLoading(false)
@@ -82,7 +110,7 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="full_name" className="block text-sm font-medium mb-2 text-black">
-                Full Name
+                Full Name *
               </label>
               <input
                 id="full_name"
@@ -90,6 +118,7 @@ export default function RegisterPage() {
                 type="text"
                 value={formData.full_name}
                 onChange={handleChange}
+                required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
                 placeholder="John Doe"
               />
@@ -113,7 +142,7 @@ export default function RegisterPage() {
 
             <div>
               <label htmlFor="phone" className="block text-sm font-medium mb-2 text-black">
-                Phone
+                Phone Number
               </label>
               <input
                 id="phone"
@@ -122,8 +151,9 @@ export default function RegisterPage() {
                 value={formData.phone}
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
-                placeholder="08123456789"
+                placeholder="08123456789 or +628123456789"
               />
+              <p className="text-xs text-gray-500 mt-1">Indonesian format: 08xx-xxxx-xxxx</p>
             </div>
 
             <div>
