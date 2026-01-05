@@ -117,39 +117,42 @@ export default function ImageUpload({ currentImageUrl, onImageChange, productId 
   }
 
   return (
-    <div className="space-y-4">
+    <div>
       <label className="block text-sm font-medium mb-2 text-black">
         Product Image
       </label>
 
       {previewUrl ? (
-        <div className="relative">
-          <div className="w-full h-64 border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-50">
-            <Image
-              src={previewUrl}
-              alt="Product preview"
-              fill
-              className="object-contain"
-              onError={() => {
-                setError('Failed to load image')
-                setPreviewUrl('')
-              }}
-            />
+        <div className="space-y-3">
+          <div className="relative w-auto h-96 border-2 border-gray-300 rounded-lg bg-gray-50 px-10 py-4">
+            <div className="relative w-full h-full">
+              <Image
+                src={previewUrl}
+                alt="Product preview"
+                fill
+                className="object-contain"
+                onError={() => {
+                  setError('Failed to load image')
+                  setPreviewUrl('')
+                }}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleRemove}
+              className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 transition shadow-lg"
+              title="Remove image"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={handleRemove}
-            className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition"
-          >
-            <X className="w-5 h-5" />
-          </button>
-          <p className="mt-2 text-sm text-gray-500">
-            Click the X button to remove and upload a new image
+          <p className="text-sm text-gray-500">
+            Click the <strong>X</strong> button to remove and upload a new image
           </p>
         </div>
       ) : (
         <div
-          className={`relative border-2 border-dashed rounded-lg p-8 text-center transition ${
+          className={`relative border-2 border-dashed rounded-lg p-12 text-center transition ${
             dragActive
               ? 'border-black bg-gray-50'
               : 'border-gray-300 hover:border-gray-400'
@@ -176,7 +179,7 @@ export default function ImageUpload({ currentImageUrl, onImageChange, productId 
               </>
             ) : (
               <>
-                <ImageIcon className="w-12 h-12 text-gray-400 mb-4" />
+                <ImageIcon className="w-16 h-16 text-gray-400 mb-4" />
                 <p className="text-black font-medium mb-2">
                   Drag & drop an image here
                 </p>
@@ -184,7 +187,7 @@ export default function ImageUpload({ currentImageUrl, onImageChange, productId 
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition inline-flex items-center gap-2"
+                  className="bg-black text-white px-6 py-2.5 rounded-lg hover:bg-gray-800 transition inline-flex items-center gap-2"
                 >
                   <Upload className="w-4 h-4" />
                   Browse Files
@@ -199,12 +202,12 @@ export default function ImageUpload({ currentImageUrl, onImageChange, productId 
       )}
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded text-sm">
+        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm mt-3">
           {error}
         </div>
       )}
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
         <p className="text-sm text-blue-800">
           <strong>Tip:</strong> Images are automatically stored in Supabase Storage. 
           For best results, use square images (1:1 ratio) at least 800x800px.

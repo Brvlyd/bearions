@@ -1,110 +1,289 @@
-# 🐻 BEARIONS - Fashion E-commerce Website
+# 🐻 Bearions - Modern E-commerce Platform
 
-Website komersial tata busana modern menggunakan Next.js 15 dan Supabase.
+Website e-commerce modern untuk clothing brand Bearions, dibangun dengan Next.js 16, TypeScript, dan Supabase.
 
-## ✨ Fitur
+![Next.js](https://img.shields.io/badge/Next.js-16.1.1-black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)
+![Supabase](https://img.shields.io/badge/Supabase-Backend-green)
+
+## 🚀 Features
 
 ### User Features
-- 🏠 Landing page dengan hero section yang menarik
-- 🛍️ Halaman katalog dengan filter kategori dan pencarian
-- 🔍 Sorting produk (Featured, Price, Name)
-- 📱 Responsive design untuk semua perangkat
-- 👕 Detail produk dengan informasi lengkap
-- ✅ Akses tanpa login untuk browsing produk
+- 🛍️ **Product Catalog** - Browse products dengan kategori
+- 🎠 **Image Carousel** - Multiple images per product dengan auto-rotate
+- 🔍 **Product Search & Filter** - Cari produk dengan mudah
+- 👤 **User Authentication** - Register & login untuk user
+- 📱 **Responsive Design** - Mobile-friendly interface
+- 🏠 **Modern Landing Page** - Hero section yang menarik
 
 ### Admin Features
-- 🔐 Login page khusus admin dengan autentikasi
-- 📊 Dashboard admin dengan statistik produk
-- ➕ Tambah produk baru
-- ✏️ Edit produk existing
-- 🗑️ Hapus produk
-- 📦 Manajemen stok produk
-- 👀 Monitor semua produk yang ada
+- 🔐 **Admin Dashboard** - Kelola produk dan inventory
+- 📸 **Multi-Image Upload** - Upload multiple images dengan drag & drop
+- ✏️ **Product Management** - CRUD operations untuk products
+- 🎯 **Role-Based Access** - Admin dan user terpisah
+- 📊 **Stock Management** - Track inventory real-time
+- 🖼️ **Image Reordering** - Atur urutan tampilan gambar
 
-## 🎨 Design
+## 📋 Prerequisites
 
-- **Color Scheme**: Black & White untuk estetika modern
-- **Typography**: Inter font untuk clean look
-- **UI Components**: Custom designed dengan Tailwind CSS
-- **Icons**: Lucide React icons
+Sebelum setup, pastikan kamu punya:
 
-## 🚀 Setup
+- **Node.js** (versi 18 atau lebih baru)
+- **npm** / **yarn** / **pnpm**
+- **Git** untuk clone repository
+- **Akun Supabase** (gratis) - [supabase.com](https://supabase.com)
 
-### 1. Install Dependencies
+## 🛠️ Setup di Device Baru
+
+### 1. Clone Repository
 
 ```bash
-npm install
+git clone https://github.com/Brvlyd/bearions.git
+cd bearions
 ```
 
-### 2. Setup Supabase
+### 2. Install Dependencies
 
-1. Buat project baru di [Supabase](https://supabase.com)
-2. Jalankan SQL script di `database-schema.sql` di Supabase SQL Editor
-3. Copy kredensial Supabase Anda
+Pilih salah satu package manager:
 
-### 3. Environment Variables
+```bash
+```bash
+# Menggunakan npm
+npm install
 
-Copy `.env.local.example` ke `.env.local` dan isi dengan kredensial Supabase Anda:
+# Atau menggunakan yarn
+yarn install
+
+# Atau menggunakan pnpm
+pnpm install
+```
+
+### 3. Setup Supabase
+
+#### a. Buat Project Baru di Supabase
+1. Login ke [supabase.com](https://supabase.com)
+2. Klik "New Project"
+3. Isi nama project, database password, dan region
+4. Tunggu project selesai dibuat (~2 menit)
+
+#### b. Dapatkan Credentials
+1. Buka project yang baru dibuat
+2. Klik **Settings** → **API**
+3. Copy:
+   - **Project URL** (contoh: https://xxx.supabase.co)
+   - **anon/public key**
+
+#### c. Create Storage Bucket
+1. Buka **Storage** di sidebar
+2. Klik **New bucket**
+3. Nama bucket: `product-images`
+4. **Public bucket**: ✅ Centang
+5. Klik **Create bucket**
+
+#### d. Run SQL Schemas
+1. Buka **SQL Editor** di sidebar
+2. Klik **New query**
+3. Copy & paste isi file berikut secara berurutan:
+   - `database-schema.sql` → Run
+   - `users-schema.sql` → Run
+   - `product-images-schema.sql` → Run
+
+### 4. Environment Variables
+
+Buat file `.env.local` di root folder:
+
+```bash
+# Copy dari .env.example (jika ada)
+cp .env.example .env.local
+```
+
+Edit `.env.local` dan isi dengan credentials Supabase:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=your-project-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 ```
 
-### 4. Buat Admin User
+**⚠️ PENTING**: Ganti dengan credentials project kamu!
 
-Di Supabase:
+### 5. Update Next.js Config
 
-1. Buka Authentication → Users
-2. Buat user baru dengan email dan password
-3. Copy User ID
-4. Jalankan SQL:
+Edit `next.config.ts` dan ganti hostname Supabase dengan project kamu:
 
-```sql
-INSERT INTO admins (id, email) VALUES ('user-id-dari-step-3', 'admin@email.com');
+```typescript
+images: {
+  remotePatterns: [
+    {
+      protocol: 'https',
+      hostname: 'your-project.supabase.co', // Ganti ini!
+      pathname: '/storage/v1/object/public/**',
+    },
+  ],
+},
 ```
 
-### 5. Run Development Server
+### 6. Run Development Server
 
 ```bash
 npm run dev
 ```
 
-Buka [http://localhost:3000](http://localhost:3000)
+Buka browser dan akses: **http://localhost:3000**
 
-## 📁 Struktur Project
+## 🎯 Setup Admin Account
+
+Setelah database sudah jalan, buat admin account:
+
+### 1. Signup Dulu di Aplikasi
+1. Buka http://localhost:3000/register
+2. Register dengan email & password
+3. Verify email (kalau diminta)
+
+### 2. Tambahkan ke Admins Table
+1. Buka **Supabase Dashboard**
+2. Klik **Authentication** → **Users**
+3. Copy **User ID** dari user yang baru dibuat
+4. Buka **SQL Editor**
+5. Run query ini:
+
+```sql
+INSERT INTO admins (id, email, role, full_name)
+VALUES (
+  'paste-user-id-disini',
+  'admin@bearions.com',
+  'admin',
+  'Admin Name'
+);
+```
+
+Sekarang bisa login sebagai admin di `/login`!
+
+## 📁 Project Structure
 
 ```
 bearions/
-├── app/
-│   ├── admin/
-│   │   ├── login/           # Admin login page
-│   │   └── dashboard/       # Admin dashboard
-│   │       ├── add-product/ # Tambah produk
-│   │       └── edit-product/# Edit produk
-│   ├── catalog/             # Halaman katalog user
-│   ├── products/[id]/       # Detail produk
-│   ├── community/           # Halaman community
-│   ├── contact/             # Halaman contact
-│   └── page.tsx            # Landing page
-├── components/
-│   ├── Header.tsx          # Navigation header
-│   ├── ProductCard.tsx     # Product card component
-│   └── CatalogView.tsx     # Catalog view component
-├── lib/
-│   ├── supabase.ts         # Supabase client
-│   ├── auth.ts             # Authentication functions
-│   └── products.ts         # Product CRUD functions
-└── database-schema.sql     # Database schema
+├── app/                          # Next.js App Router
+│   ├── admin/                   # Admin pages
+│   │   ├── dashboard/          # Admin dashboard
+│   │   ├── login/              # Admin login (redirect)
+│   │   └── layout.tsx          # Admin layout with auth
+│   ├── catalog/                # Product catalog
+│   ├── login/                  # User & admin login
+│   ├── register/               # User registration
+│   ├── products/[id]/          # Product detail
+│   └── profile/                # User profile
+├── components/                  # React components
+│   ├── Header.tsx              # Navigation
+│   ├── ProductCard.tsx         # Product card with carousel
+│   ├── ImageCarousel.tsx       # Auto-rotating carousel
+│   ├── MultiImageUpload.tsx    # Multi-image uploader
+│   └── CatalogView.tsx         # Catalog view
+├── lib/                         # Utilities & services
+│   ├── supabase.ts             # Supabase client
+│   ├── auth.ts                 # Authentication service
+│   └── products.ts             # Product service
+├── public/                      # Static assets
+├── database-schema.sql          # Main database schema
+├── users-schema.sql            # Users & auth schema
+├── product-images-schema.sql   # Multi-image schema
+└── package.json                # Dependencies
 ```
 
-## 🔒 Authentication
+## 🔐 Authentication
 
-- Admin harus login untuk akses dashboard
-- User dapat browse tanpa login
-- Session management dengan Supabase Auth
+- **Admin**: Login di `/login` (auto-detect role)
+- **User**: Register di `/register`, login di `/login`
+- **Session**: Managed oleh Supabase Auth
 - Row Level Security (RLS) policies untuk database security
+
+## 🎨 Tech Stack
+
+- **Framework**: Next.js 16 (App Router, Turbopack)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Database**: Supabase (PostgreSQL)
+- **Storage**: Supabase Storage
+- **Authentication**: Supabase Auth
+- **Icons**: Lucide React
+
+## 📱 Available Scripts
+
+```bash
+# Development
+npm run dev          # Start dev server (localhost:3000)
+
+# Production
+npm run build        # Build untuk production
+npm run start        # Start production server
+
+# Linting
+npm run lint         # Run ESLint
+```
+
+## 🌐 Deployment
+
+### Deploy ke Vercel (Recommended)
+
+1. Push code ke GitHub
+2. Buka [vercel.com](https://vercel.com)
+3. Import repository
+4. Add environment variables:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+5. Deploy!
+
+**Catatan**: Jangan lupa set environment variables di platform deployment!
+
+## 🐛 Troubleshooting
+
+### Image tidak muncul
+- ✅ Cek hostname di `next.config.ts`
+- ✅ Cek bucket `product-images` sudah public
+- ✅ Restart dev server setelah update config
+
+### Login gagal
+- ✅ Cek SQL schema sudah dijalankan
+- ✅ Cek email sudah verified (kalau enabled)
+- ✅ Cek user/admin sudah ada di database
+
+### Build error
+- ✅ Cek Node.js version (minimal 18)
+- ✅ Delete folder `.next` dan `node_modules`
+- ✅ Run `npm install` ulang
+
+### Database error
+- ✅ Cek Supabase project masih aktif
+- ✅ Cek credentials di `.env.local` benar
+- ✅ Cek RLS policies sudah di-setup
+
+## 📚 Documentation
+
+- [AUTH_SETUP.md](AUTH_SETUP.md) - Authentication system guide
+- [MULTI_IMAGE_SETUP.md](MULTI_IMAGE_SETUP.md) - Multi-image feature guide
+- [FEATURES.md](FEATURES.md) - Complete feature list
+
+## 🎯 Quick Start Checklist
+
+- [ ] Clone repository
+- [ ] Install dependencies (`npm install`)
+- [ ] Create Supabase project
+- [ ] Create storage bucket `product-images`
+- [ ] Run all SQL schemas
+- [ ] Create `.env.local` dengan credentials
+- [ ] Update `next.config.ts` hostname
+- [ ] Run `npm run dev`
+- [ ] Create admin account
+- [ ] Test upload product dengan images
+- [ ] Test carousel di product detail
+
+## 📞 Contact
+
+- **Developer**: Brvlyd
+- **Repository**: [github.com/Brvlyd/bearions](https://github.com/Brvlyd/bearions)
+
+---
+
+Made with ❤️ using Next.js & Supabase
 
 ## 🗄️ Database Schema
 

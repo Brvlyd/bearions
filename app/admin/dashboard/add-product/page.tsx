@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { productService } from '@/lib/products'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import ImageUpload from '@/components/ImageUpload'
+import MultiImageUpload from '@/components/MultiImageUpload'
 
 const categories = ['Tops', 'Bottoms', 'Accessories', 'Outerwear']
 
@@ -18,7 +18,8 @@ export default function AddProductPage() {
     price: '',
     stock: '',
     category: 'Tops',
-    image_url: ''
+    image_url: '',
+    images: [] as string[]
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,14 +27,19 @@ export default function AddProductPage() {
     setLoading(true)
 
     try {
-      await productService.createProduct({
+      const product = await productService.createProduct({
         name: formData.name,
         description: formData.description || null,
         price: parseFloat(formData.price),
         stock: parseInt(formData.stock),
         category: formData.category,
-        image_url: formData.image_url || null
+        image_url: formData.images[0] || null // Use first image as main
       })
+
+      // Save additional images to product_images table
+      if (formData.images.length > 0 && product.id) {
+        await productService.saveProductImages(product.id, formData.images)
+      }
 
       alert('Product created successfully!')
       router.push('/admin/dashboard')
@@ -77,7 +83,7 @@ export default function AddProductPage() {
               value={formData.name}
               onChange={handleChange}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
               placeholder="e.g., Bearion Absolute Tees"
             />
           </div>
@@ -92,7 +98,7 @@ export default function AddProductPage() {
               value={formData.description}
               onChange={handleChange}
               rows={4}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
               placeholder="Product description..."
             />
           </div>
@@ -110,7 +116,7 @@ export default function AddProductPage() {
                 value={formData.price}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
                 placeholder="380000"
               />
             </div>
@@ -126,7 +132,7 @@ export default function AddProductPage() {
                 value={formData.stock}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
                 placeholder="100"
               />
             </div>
@@ -150,39 +156,10 @@ export default function AddProductPage() {
             </select>
           </div>
 
-          <div>
-            <label htmlFor="image_url" className="block text-sm font-medium mb-2 text-black">
-              Image URL
-            </label>
-            <input
-              id="image_url"
-              name="image_url"
-              type="url"
-              value={formData.image_url}
-              onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-              placeholder="https://example.com/image.jpg"
-            />
-            <p className="mt-2 text-sm text-gray-500">
-              Enter a direct URL to the product image (e.g., from Imgur, Cloudinary, or your server)
-            </p>
-            {formData.image_url && (
-              <div className="mt-4">
-                <p className="text-sm font-medium mb-2 text-black">Preview:</p>
-                <div className="w-48 h-48 border border-gray-300 rounded-lg overflow-hidden bg-gray-50">
-                  <img
-                    src={formData.image_url}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = ''
-                      e.currentTarget.classList.add('hidden')
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
+          <MultiImageUpload
+            onImagesChange={(urls) => setFormData({ ...formData, images: urls })}
+            initialImages={formData.images}
+          />
 
           <div className="flex gap-4 pt-4">
             <button

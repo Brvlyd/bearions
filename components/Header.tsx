@@ -1,11 +1,41 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
-import { ShoppingCart, User, Menu, X } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ShoppingCart, User, Menu, X, LogOut } from 'lucide-react'
+import { authService } from '@/lib/auth'
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [userRole, setUserRole] = useState<'admin' | 'user' | null>(null)
+
+  useEffect(() => {
+    checkAuth()
+  }, [])
+
+  const checkAuth = async () => {
+    try {
+      const user = await authService.getCurrentUser()
+      if (user) {
+        setIsLoggedIn(true)
+        setUserRole(user.role)
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error)
+    }
+  }
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout()
+      setIsLoggedIn(false)
+      setUserRole(null)
+      window.location.href = '/'
+    } catch (error) {
+      console.error('Logout failed:', error)
+    }
+  }
 
   return (
     <header className="bg-black text-white border-b border-white/10">
@@ -38,13 +68,42 @@ export default function Header() {
               <option>English (US)</option>
               <option>Bahasa Indonesia</option>
             </select>
-            <Link 
-              href="/admin/login" 
-              className="hover:text-gray-300 transition flex items-center space-x-1"
-            >
-              <User className="w-4 h-4" />
-              <span>Sign in</span>
-            </Link>
+            
+            {isLoggedIn ? (
+              <>
+                <Link 
+                  href={userRole === 'admin' ? '/admin/dashboard' : '/profile'}
+                  className="hover:text-gray-300 transition flex items-center space-x-1"
+                >
+                  <User className="w-4 h-4" />
+                  <span>{userRole === 'admin' ? 'Dashboard' : 'Profile'}</span>
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="hover:text-gray-300 transition flex items-center space-x-1"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Logout</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <Link 
+                  href="/login" 
+                  className="hover:text-gray-300 transition flex items-center space-x-1"
+                >
+                  <User className="w-4 h-4" />
+                  <span>Sign in</span>
+                </Link>
+                <Link
+                  href="/register"
+                  className="border border-white px-4 py-2 rounded hover:bg-white hover:text-black transition"
+                >
+                  Sign up
+                </Link>
+              </>
+            )}
+            
             <Link
               href="/contact"
               className="border border-white px-4 py-2 rounded hover:bg-white hover:text-black transition"
@@ -71,9 +130,28 @@ export default function Header() {
             <Link href="/community" className="block hover:text-gray-300">
               Community
             </Link>
-            <Link href="/admin/login" className="block hover:text-gray-300">
-              Sign in
-            </Link>
+            {isLoggedIn ? (
+              <>
+                <Link 
+                  href={userRole === 'admin' ? '/admin/dashboard' : '/profile'}
+                  className="block hover:text-gray-300"
+                >
+                  {userRole === 'admin' ? 'Dashboard' : 'Profile'}
+                </Link>
+                <button onClick={handleLogout} className="block hover:text-gray-300 w-full text-left">
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="block hover:text-gray-300">
+                  Sign in
+                </Link>
+                <Link href="/register" className="block hover:text-gray-300">
+                  Sign up
+                </Link>
+              </>
+            )}
             <Link href="/contact" className="block hover:text-gray-300">
               Contact Us
             </Link>

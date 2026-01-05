@@ -6,7 +6,7 @@ import { productService } from '@/lib/products'
 import { Product } from '@/lib/supabase'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import ImageUpload from '@/components/ImageUpload'
+import MultiImageUpload from '@/components/MultiImageUpload'
 
 const categories = ['Tops', 'Bottoms', 'Accessories', 'Outerwear']
 
@@ -22,7 +22,8 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     price: '',
     stock: '',
     category: 'Tops',
-    image_url: ''
+    image_url: '',
+    images: [] as string[]
   })
 
   useEffect(() => {
@@ -39,6 +40,11 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     try {
       setLoading(true)
       const data = await productService.getProductById(productId)
+      
+      // Load product images
+      const images = await productService.getProductImages(productId)
+      const imageUrls = images.map((img: any) => img.image_url)
+      
       setProduct(data)
       setFormData({
         name: data.name,
@@ -46,7 +52,8 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         price: data.price.toString(),
         stock: data.stock.toString(),
         category: data.category,
-        image_url: data.image_url || ''
+        image_url: data.image_url || '',
+        images: imageUrls.length > 0 ? imageUrls : (data.image_url ? [data.image_url] : [])
       })
     } catch (error) {
       console.error('Error loading product:', error)
@@ -68,8 +75,13 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         price: parseFloat(formData.price),
         stock: parseInt(formData.stock),
         category: formData.category,
-        image_url: formData.image_url || null
+        image_url: formData.images[0] || null // Use first image as main
       })
+
+      // Save/update product images
+      if (formData.images.length > 0) {
+        await productService.saveProductImages(productId, formData.images)
+      }
 
       alert('Product updated successfully!')
       router.push('/admin/dashboard')
@@ -130,7 +142,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               value={formData.name}
               onChange={handleChange}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
             />
           </div>
 
@@ -144,7 +156,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               value={formData.description}
               onChange={handleChange}
               rows={4}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
             />
           </div>
 
@@ -161,7 +173,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 value={formData.price}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
               />
             </div>
 
@@ -176,7 +188,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 value={formData.stock}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
               />
             </div>
           </div>
@@ -199,38 +211,11 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             </select>
           </div>
 
-          <div>
-            <label htmlFor="image_url" className="block text-sm font-medium mb-2 text-black">
-              Image URL
-            </label>
-            <input
-              id="image_url"
-              name="image_url"
-              type="url"
-              value={formData.image_url}
-              onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-            />
-            <p className="mt-2 text-sm text-gray-500">
-              Enter a direct URL to the product image (e.g., from Imgur, Cloudinary, or your server)
-            </p>
-            {formData.image_url && (
-              <div className="mt-4">
-                <p className="text-sm font-medium mb-2 text-black">Current Image:</p>
-                <div className="w-48 h-48 border border-gray-300 rounded-lg overflow-hidden bg-gray-50">
-                  <img
-                    src={formData.image_url}
-                    alt="Product preview"
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = ''
-                      e.currentTarget.classList.add('hidden')
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
+          <MultiImageUpload
+            productId={productId}
+            onImagesChange={(urls) => setFormData({ ...formData, images: urls })}
+            initialImages={formData.images}
+          />
 
           <div className="flex gap-4 pt-4">
             <button

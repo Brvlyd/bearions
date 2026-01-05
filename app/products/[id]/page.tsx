@@ -2,15 +2,16 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import Link from 'next/link'
 import { Product } from '@/lib/supabase'
 import { productService } from '@/lib/products'
 import { ArrowLeft } from 'lucide-react'
+import ImageCarousel from '@/components/ImageCarousel'
 
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const [product, setProduct] = useState<Product | null>(null)
+  const [images, setImages] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [productId, setProductId] = useState<string>('')
 
@@ -29,6 +30,17 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       setLoading(true)
       const data = await productService.getProductById(productId)
       setProduct(data)
+      
+      // Load product images
+      const productImages = await productService.getProductImages(productId)
+      const imageUrls = productImages.map((img: any) => img.image_url)
+      
+      // Use images from product_images table, or fallback to main image_url
+      if (imageUrls.length > 0) {
+        setImages(imageUrls)
+      } else if (data.image_url) {
+        setImages([data.image_url])
+      }
     } catch (error) {
       console.error('Error loading product:', error)
     } finally {
@@ -79,43 +91,40 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           <span>Back</span>
         </button>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          {/* Product Image */}
-          <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative">
-            {product.image_url ? (
-              <Image
-                src={product.image_url}
-                alt={product.name}
-                fill
-                className="object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-400">
-                No Image
-              </div>
-            )}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
+          {/* Product Image Carousel */}
+          <div className="w-full max-w-xl mx-auto">
+            <div className="aspect-square bg-white rounded-lg overflow-hidden relative">
+              {images.length > 0 ? (
+                <ImageCarousel images={images} alt={product.name} autoPlay={true} interval={3000} />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                  No Image
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Product Info */}
           <div className="flex flex-col">
             <div className="mb-4">
-              <span className="inline-block px-3 py-1 bg-gray-100 text-sm rounded">
+              <span className="inline-block px-3 py-1 bg-gray-100 text-sm rounded text-black">
                 {product.category}
               </span>
             </div>
-            <h1 className="text-4xl font-bold mb-4">{product.name}</h1>
-            <p className="text-3xl font-bold mb-6">{formatPrice(product.price)}</p>
+            <h1 className="text-4xl font-bold mb-4 text-black">{product.name}</h1>
+            <p className="text-3xl font-bold mb-6 text-black">{formatPrice(product.price)}</p>
             
             {product.description && (
               <div className="mb-6">
-                <h2 className="text-lg font-semibold mb-2">Description</h2>
-                <p className="text-gray-600">{product.description}</p>
+                <h2 className="text-lg font-semibold mb-2 text-black">Description</h2>
+                <p className="text-black">{product.description}</p>
               </div>
             )}
 
             <div className="mb-8">
-              <h2 className="text-lg font-semibold mb-2">Availability</h2>
-              <p className={`text-lg ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <h2 className="text-lg font-semibold mb-2 text-black">Availability</h2>
+              <p className={`text-lg font-semibold ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {product.stock > 0 ? `In Stock (${product.stock} available)` : 'Out of Stock'}
               </p>
             </div>

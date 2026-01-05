@@ -94,5 +94,49 @@ export const productService = {
       .eq('id', id)
 
     if (error) throw error
+  },
+
+  // Save product images (admin only)
+  async saveProductImages(productId: string, imageUrls: string[]) {
+    // Delete existing images first
+    await supabase
+      .from('product_images')
+      .delete()
+      .eq('product_id', productId)
+
+    // Insert new images with order
+    const images = imageUrls.map((url, index) => ({
+      product_id: productId,
+      image_url: url,
+      display_order: index
+    }))
+
+    const { error } = await supabase
+      .from('product_images')
+      .insert(images)
+
+    if (error) throw error
+  },
+
+  // Get product images
+  async getProductImages(productId: string) {
+    const { data, error } = await supabase
+      .from('product_images')
+      .select('*')
+      .eq('product_id', productId)
+      .order('display_order', { ascending: true })
+
+    if (error) throw error
+    return data
+  },
+
+  // Delete product image
+  async deleteProductImage(imageId: string) {
+    const { error } = await supabase
+      .from('product_images')
+      .delete()
+      .eq('id', imageId)
+
+    if (error) throw error
   }
 }
