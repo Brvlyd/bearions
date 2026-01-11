@@ -3,10 +3,12 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { authService } from '@/lib/auth'
+import { useLanguage } from '@/lib/i18n'
 import Link from 'next/link'
 
 export default function RegisterPage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -32,13 +34,13 @@ export default function RegisterPage() {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(formData.email)) {
-      setError('Please enter a valid email address (e.g., example@gmail.com)')
+      setError(t('register.errorInvalidEmail') || 'Please enter a valid email')
       return
     }
 
     // Validate required fields
     if (!formData.full_name.trim()) {
-      setError('Full name is required')
+      setError(t('register.errorNameRequired') || 'Full name is required')
       return
     }
 
@@ -46,20 +48,20 @@ export default function RegisterPage() {
     if (formData.phone && formData.phone.trim()) {
       const phoneRegex = /^(\+62|62|0)[0-9]{9,12}$/
       if (!phoneRegex.test(formData.phone.replace(/[\s-]/g, ''))) {
-        setError('Please enter a valid phone number (e.g., 08123456789 or +628123456789)')
+        setError(t('register.errorInvalidPhone') || 'Invalid phone number')
         return
       }
     }
 
     // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match')
+      setError(t('register.errorPasswordMatch') || 'Passwords do not match')
       return
     }
 
     // Validate password length
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters')
+      setError(t('register.errorPasswordLength') || 'Password too short')
       return
     }
 
@@ -75,30 +77,30 @@ export default function RegisterPage() {
       })
 
       if ((result as any)?.needsEmailConfirmation) {
-        alert('Registration successful! Please check your email (including spam folder) to verify your account before logging in.')
+        alert(t('register.successEmailConfirm') || 'Registration successful! Please verify your email.')
       } else {
-        alert('Registration successful! You can now login with your credentials.')
+        alert(t('register.successLogin') || 'Registration successful!')
       }
       
       router.push('/login')
     } catch (err: any) {
       console.error('Registration error:', err)
-      setError(err.message || 'Registration failed. Please try again.')
+      setError(err.message || t('register.errorFailed') || 'Registration failed')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-white flex items-center justify-center px-4 pt-20 pb-12">
       <div className="w-full max-w-md">
         <div className="bg-white border border-gray-200 rounded-lg p-8 shadow-lg">
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-black text-white flex items-center justify-center font-bold text-2xl rounded mx-auto mb-4">
               B
             </div>
-            <h1 className="text-2xl font-bold text-black">Create Account</h1>
-            <p className="text-gray-600 mt-2">Join Bearions community</p>
+            <h1 className="text-2xl font-bold text-black">{t('register.title')}</h1>
+            <p className="text-gray-600 mt-2">{t('register.subtitle')}</p>
           </div>
 
           {error && (
@@ -110,7 +112,7 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="full_name" className="block text-sm font-medium mb-2 text-black">
-                Full Name *
+                {t('register.fullName')} *
               </label>
               <input
                 id="full_name"
@@ -119,14 +121,14 @@ export default function RegisterPage() {
                 value={formData.full_name}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
-                placeholder="John Doe"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
+                placeholder={t('register.fullNamePlaceholder')}
               />
             </div>
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium mb-2 text-black">
-                Email *
+                {t('login.email')} *
               </label>
               <input
                 id="email"
@@ -135,14 +137,14 @@ export default function RegisterPage() {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
-                placeholder="you@example.com"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
+                placeholder={t('login.emailPlaceholder')}
               />
             </div>
 
             <div>
               <label htmlFor="phone" className="block text-sm font-medium mb-2 text-black">
-                Phone Number
+                {t('register.phone')}
               </label>
               <input
                 id="phone"
@@ -150,15 +152,15 @@ export default function RegisterPage() {
                 type="tel"
                 value={formData.phone}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
-                placeholder="08123456789 or +628123456789"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
+                placeholder="08123456789"
               />
-              <p className="text-xs text-gray-500 mt-1">Indonesian format: 08xx-xxxx-xxxx</p>
+              <p className="text-xs text-gray-500 mt-1">{t('register.phoneHelp')}</p>
             </div>
 
             <div>
               <label htmlFor="address" className="block text-sm font-medium mb-2 text-black">
-                Address
+                {t('register.addressOptional')}
               </label>
               <textarea
                 id="address"
@@ -166,14 +168,14 @@ export default function RegisterPage() {
                 value={formData.address}
                 onChange={handleChange}
                 rows={2}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
-                placeholder="Your address..."
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
+                placeholder={t('register.address')}
               />
             </div>
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium mb-2 text-black">
-                Password *
+                {t('login.password')} *
               </label>
               <input
                 id="password"
@@ -182,15 +184,15 @@ export default function RegisterPage() {
                 value={formData.password}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
-                placeholder="••••••••"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
+                placeholder={t('login.passwordPlaceholder')}
               />
-              <p className="text-xs text-gray-500 mt-1">At least 6 characters</p>
+              <p className="text-xs text-gray-500 mt-1">{t('register.passwordHelp')}</p>
             </div>
 
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2 text-black">
-                Confirm Password *
+                {t('register.confirmPassword')} *
               </label>
               <input
                 id="confirmPassword"
@@ -199,29 +201,29 @@ export default function RegisterPage() {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
-                placeholder="••••••••"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
+                placeholder={t('login.passwordPlaceholder')}
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition disabled:bg-gray-400"
+              className="w-full btn-primary-animated"
             >
-              {loading ? 'Creating account...' : 'Create Account'}
+              {loading ? t('register.submitting') : t('register.submit')}
             </button>
           </form>
 
           <div className="mt-6 text-center space-y-2">
             <p className="text-sm text-gray-600">
-              Already have an account?{' '}
+              {t('register.haveAccount')}{' '}
               <Link href="/login" className="text-black font-semibold hover:underline">
-                Sign in
+                {t('register.signInLink')}
               </Link>
             </p>
             <Link href="/" className="text-sm text-gray-600 hover:text-black block">
-              ← Back to store
+              {t('login.backToStore')}
             </Link>
           </div>
         </div>

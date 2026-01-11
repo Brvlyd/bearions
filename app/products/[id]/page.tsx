@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLanguage } from '@/lib/i18n'
 import Link from 'next/link'
 import { Product } from '@/lib/supabase'
 import { productService } from '@/lib/products'
@@ -12,6 +13,7 @@ import ImageCarousel from '@/components/ImageCarousel'
 
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
+  const { t } = useLanguage()
   const [product, setProduct] = useState<Product | null>(null)
   const [images, setImages] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
@@ -73,7 +75,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       // Get current user
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        setMessage({ type: 'error', text: 'Please login to add items to cart' })
+        setMessage({ type: 'error', text: t('login.title') })
         return
       }
 
@@ -85,7 +87,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         selectedColor || undefined
       )
 
-      setMessage({ type: 'success', text: 'Product added to cart!' })
+      setMessage({ type: 'success', text: t('product.addToCart') + '!' })
       
       // Reset selections after adding
       setTimeout(() => {
@@ -115,7 +117,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-gray-600">{t('common.loading')}</p>
         </div>
       </div>
     )
@@ -125,9 +127,9 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Product not found</h1>
+          <h1 className="text-2xl font-bold mb-4">{t('catalog.noProducts')}</h1>
           <Link href="/catalog" className="text-black underline">
-            Back to catalog
+            {t('nav.catalog')}
           </Link>
         </div>
       </div>
@@ -135,14 +137,14 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white pt-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <button
           onClick={() => router.back()}
           className="flex items-center space-x-2 text-gray-600 hover:text-black mb-8"
         >
           <ArrowLeft className="w-5 h-5" />
-          <span>Back</span>
+          <span>{t('checkout.back')}</span>
         </button>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
@@ -238,7 +240,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                     <button
                       onClick={decrementQuantity}
                       disabled={quantity <= 1}
-                      className="w-10 h-10 border-2 border-gray-300 rounded-lg flex items-center justify-center hover:border-black disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-10 h-10 border-2 border-gray-300 rounded-lg flex items-center justify-center hover:border-black disabled:opacity-50 disabled:cursor-not-allowed btn-animate-bounce"
                     >
                       <Minus className="w-4 h-4" />
                     </button>
@@ -246,7 +248,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                     <button
                       onClick={incrementQuantity}
                       disabled={quantity >= product.stock}
-                      className="w-10 h-10 border-2 border-gray-300 rounded-lg flex items-center justify-center hover:border-black disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-10 h-10 border-2 border-gray-300 rounded-lg flex items-center justify-center hover:border-black disabled:opacity-50 disabled:cursor-not-allowed btn-animate-bounce"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
@@ -260,7 +262,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               <button
                 onClick={handleAddToCart}
                 disabled={addingToCart}
-                className="w-full bg-black text-white py-4 rounded-lg font-semibold hover:bg-gray-800 transition disabled:bg-gray-400 flex items-center justify-center space-x-2"
+                className="w-full py-4 flex items-center justify-center space-x-2 btn-primary-animated"
               >
                 <ShoppingCart className="w-5 h-5" />
                 <span>{addingToCart ? 'Adding...' : 'Add to Cart'}</span>

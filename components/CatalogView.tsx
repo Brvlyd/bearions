@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Search } from 'lucide-react'
+import { useLanguage } from '@/lib/i18n'
 import ProductCard from './ProductCard'
 import { Product } from '@/lib/supabase'
 import { productService } from '@/lib/products'
@@ -9,6 +10,18 @@ import { productService } from '@/lib/products'
 const categories = ['All Products', 'Tops', 'Bottoms', 'Accessories', 'Outerwear']
 
 export default function CatalogView() {
+  const { t, language } = useLanguage()
+
+  const getCategoryTranslation = (category: string) => {
+    const translations: Record<string, { en: string, id: string }> = {
+      'All Products': { en: 'All Products', id: 'Semua Produk' },
+      'Tops': { en: 'Tops', id: 'Atasan' },
+      'Bottoms': { en: 'Bottoms', id: 'Bawahan' },
+      'Accessories': { en: 'Accessories', id: 'Aksesoris' },
+      'Outerwear': { en: 'Outerwear', id: 'Jaket' }
+    }
+    return translations[category]?.[language] || category
+  }
   const [products, setProducts] = useState<Product[]>([])
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
   const [selectedCategory, setSelectedCategory] = useState('All Products')
@@ -80,7 +93,7 @@ export default function CatalogView() {
         {/* Sidebar */}
         <aside className="lg:w-64 shrink-0">
           <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h2 className="font-bold text-lg mb-4 text-black">Categories</h2>
+            <h2 className="font-bold text-lg mb-4 text-black">{t('catalog.filterByCategory')}</h2>
             <ul className="space-y-2">
               {categories.map((category) => (
                 <li key={category}>
@@ -92,7 +105,7 @@ export default function CatalogView() {
                         : 'hover:bg-gray-100 text-black'
                     }`}
                   >
-                    {category}
+                    {getCategoryTranslation(category)}
                   </button>
                 </li>
               ))}
@@ -107,7 +120,7 @@ export default function CatalogView() {
             <div className="w-12 h-12 bg-gray-100 border border-gray-200 rounded-full flex items-center justify-center">
               <span className="text-2xl">👕</span>
             </div>
-            <h1 className="text-2xl font-bold text-black">{selectedCategory}</h1>
+            <h1 className="text-2xl font-bold text-black">{getCategoryTranslation(selectedCategory)}</h1>
           </div>
 
           {/* Search and Sort */}
@@ -128,16 +141,16 @@ export default function CatalogView() {
               </button>
             </form>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium whitespace-nowrap text-black">Sort By:</span>
+              <span className="text-sm font-medium text-black min-w-[4.5rem]">{t('catalog.sortBy')}:</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
                 className="px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
               >
-                <option value="featured">Featured</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
-                <option value="name">Name</option>
+                <option value="featured">{t('catalog.sortNewest')}</option>
+                <option value="price-low">{t('catalog.sortPriceLow')}</option>
+                <option value="price-high">{t('catalog.sortPriceHigh')}</option>
+                <option value="name">{t('catalog.sortNameAZ')}</option>
               </select>
             </div>
           </div>
@@ -146,11 +159,11 @@ export default function CatalogView() {
           {loading ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-              <p className="mt-4 text-gray-600">Loading products...</p>
+              <p className="mt-4 text-gray-600">{t('common.loading')}</p>
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-600 text-lg">No products found</p>
+              <p className="text-gray-600 text-lg">{t('catalog.noProducts')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

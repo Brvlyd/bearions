@@ -4,9 +4,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { authService } from '@/lib/auth'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/i18n'
 
 export default function LoginPage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -19,13 +21,13 @@ export default function LoginPage() {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
-      setError('Please enter a valid email address')
+      setError(t('login.errorInvalidEmail'))
       return
     }
 
     // Validate password not empty
     if (!password || password.length < 6) {
-      setError('Password must be at least 6 characters')
+      setError(t('login.errorPasswordLength'))
       return
     }
 
@@ -36,7 +38,7 @@ export default function LoginPage() {
       const result = await authService.login({ email, password })
       
       if (!result) {
-        setError('Login failed. Please try again.')
+        setError(t('login.errorFailed'))
         return
       }
       
@@ -45,18 +47,18 @@ export default function LoginPage() {
       } else if (result.role === 'user') {
         router.push('/catalog')
       } else {
-        setError('Unable to determine user role')
+        setError(t('login.errorRoleDetermination'))
         await authService.logout()
       }
     } catch (err: any) {
       console.error('Login error:', err)
       
-      let errorMessage = 'Login failed. Please check your credentials.'
+      let errorMessage = t('login.errorFailed')
       
       if (err.message?.includes('Email not confirmed')) {
-        errorMessage = 'Please verify your email before logging in. Check your inbox (and spam folder) for the confirmation link.'
+        errorMessage = t('login.errorEmailNotConfirmed')
       } else if (err.message?.includes('Invalid login credentials')) {
-        errorMessage = 'Invalid email or password. Please try again.'
+        errorMessage = t('login.errorInvalidCredentials')
       }
       
       setError(errorMessage)
@@ -66,15 +68,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4">
+    <div className="min-h-screen bg-white flex items-center justify-center px-4 pt-16">
       <div className="w-full max-w-md">
         <div className="bg-white border border-gray-200 rounded-lg p-8 shadow-lg">
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-black text-white flex items-center justify-center font-bold text-2xl rounded mx-auto mb-4">
               B
             </div>
-            <h1 className="text-2xl font-bold text-black">Welcome Back</h1>
-            <p className="text-gray-600 mt-2">Sign in to your account</p>
+            <h1 className="text-2xl font-bold text-black">{t('login.title')}</h1>
+            <p className="text-gray-600 mt-2">{t('login.subtitle')}</p>
           </div>
 
           {error && (
@@ -86,7 +88,7 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium mb-2 text-black">
-                Email
+                {t('login.email')}
               </label>
               <input
                 id="email"
@@ -94,14 +96,14 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
-                placeholder="you@example.com"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
+                placeholder={t('login.emailPlaceholder')}
               />
             </div>
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium mb-2 text-black">
-                Password
+                {t('login.password')}
               </label>
               <input
                 id="password"
@@ -109,30 +111,30 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
-                placeholder="••••••••"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
+                placeholder={t('login.passwordPlaceholder')}
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition disabled:bg-gray-400"
+              className="w-full btn-primary-animated"
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? t('login.submitting') : t('login.submit')}
             </button>
           </form>
 
           <div className="mt-6 text-center space-y-3">
             <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
+              {t('login.noAccount')}{' '}
               <Link href="/register" className="text-black font-semibold hover:underline">
-                Sign up
+                {t('login.signUpLink')}
               </Link>
             </p>
 
             <Link href="/" className="text-sm text-gray-600 hover:text-black block">
-              ← Back to store
+              {t('login.backToStore')}
             </Link>
           </div>
         </div>

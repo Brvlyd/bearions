@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLanguage } from '@/lib/i18n'
 import Link from 'next/link'
 import { Package, Clock, CheckCircle, XCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -10,6 +11,7 @@ import type { Order } from '@/lib/supabase'
 
 export default function OrdersPage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
@@ -114,7 +116,7 @@ export default function OrdersPage() {
       <div className="container mx-auto px-4 py-12">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-          <p className="mt-4 text-gray-600">Loading orders...</p>
+          <p className="mt-4 text-gray-600">{t('common.loading')}</p>
         </div>
       </div>
     )
@@ -125,15 +127,15 @@ export default function OrdersPage() {
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-md mx-auto text-center">
           <Package className="w-24 h-24 mx-auto text-gray-300 mb-6" />
-          <h1 className="text-2xl font-bold text-black mb-2">No orders yet</h1>
+          <h1 className="text-2xl font-bold text-black mb-2">{t('orders.empty')}</h1>
           <p className="text-gray-600 mb-8">
-            Start shopping to see your orders here!
+            {t('orders.startShoppingNow')}
           </p>
           <Link
             href="/catalog"
             className="inline-block bg-black text-white px-8 py-3 rounded-lg font-semibold hover:bg-gray-800 transition"
           >
-            Browse Products
+            {t('nav.catalog')}
           </Link>
         </div>
       </div>
@@ -141,9 +143,9 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 pt-20">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-black mb-8">My Orders</h1>
+        <h1 className="text-3xl font-bold text-black mb-8">{t('orders.title')}</h1>
 
         <div className="space-y-4">
           {orders.map((order) => (

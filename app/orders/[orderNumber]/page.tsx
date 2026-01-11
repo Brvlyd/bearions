@@ -206,7 +206,7 @@ export default function OrderDetailPage() {
               <div className="space-y-4">
                 {orderItems.map((item) => (
                   <div key={item.id} className="flex gap-4 pb-4 border-b border-gray-200 last:border-0">
-                    <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden relative flex-shrink-0">
+                    <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden relative shrink-0">
                       {item.product_image_url ? (
                         <Image
                           src={item.product_image_url}

@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react'
 import { Product } from '@/lib/supabase'
 import { productService } from '@/lib/products'
+import { useLanguage } from '@/lib/i18n'
 import { Package, TrendingUp, AlertCircle, ShoppingBag } from 'lucide-react'
 import Link from 'next/link'
 
 export default function AdminDashboardPage() {
+  const { t } = useLanguage()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -57,17 +59,9 @@ export default function AdminDashboardPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h2 className="text-2xl font-bold mb-2 text-black">Analytics Dashboard</h2>
-          <p className="text-gray-600">Overview of your store performance</p>
-        </div>
-        <Link
-          href="/admin/dashboard/add-product"
-          className="bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition"
-        >
-          Add New Product
-        </Link>
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold mb-2 text-black">{t('adminDashboard.overview')}</h2>
+        <p className="text-gray-600">{t('adminDashboard.overviewDesc')}</p>
       </div>
 
       {/* Stats */}

@@ -8,7 +8,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 export type Product = {
   id: string
   name: string
+  name_id?: string | null
   description: string | null
+  description_id?: string | null
   price: number
   stock: number
   category: string

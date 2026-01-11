@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Product } from '@/lib/supabase'
 import { productService } from '@/lib/products'
+import { useLanguage } from '@/lib/i18n'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Eye, Package, AlertCircle, Search, SlidersHorizontal, Grid, List, Pencil, Trash2, Filter } from 'lucide-react'
@@ -11,6 +12,7 @@ type ViewMode = 'tiles' | 'content'
 type SortOption = 'name-asc' | 'name-desc' | 'newest' | 'oldest' | 'stock-high' | 'stock-low'
 
 export default function MonitoringPage() {
+  const { t } = useLanguage()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
@@ -45,14 +47,14 @@ export default function MonitoringPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) return
+    if (!confirm(t('adminProducts.confirmDelete'))) return
 
     try {
       await productService.deleteProduct(id)
       setProducts(products.filter(p => p.id !== id))
     } catch (error) {
       console.error('Error deleting product:', error)
-      alert('Failed to delete product')
+      alert(t('adminProducts.deleteError'))
     }
   }
 
@@ -133,7 +135,7 @@ export default function MonitoringPage() {
             <Package className="w-12 h-12 text-blue-400" />
           </div>
         </div>
-        <div className="bg-white p-6 rounded-lg border border-yellow-200 bg-yellow-50">
+        <div className="bg-yellow-50 p-6 rounded-lg border border-yellow-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Low Stock (≤10)</p>
@@ -142,7 +144,7 @@ export default function MonitoringPage() {
             <AlertCircle className="w-12 h-12 text-yellow-500" />
           </div>
         </div>
-        <div className="bg-white p-6 rounded-lg border border-red-200 bg-red-50">
+        <div className="bg-red-50 p-6 rounded-lg border border-red-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Out of Stock</p>
@@ -171,7 +173,7 @@ export default function MonitoringPage() {
         <div className="relative">
           <button
             onClick={() => setShowCategoryFilter(!showCategoryFilter)}
-            className="p-3 bg-white border border-gray-200 rounded-full hover:bg-gray-50 transition"
+            className="p-3 bg-white border border-gray-200 rounded-full hover:bg-gray-50 btn-animate-bounce"
             title="Filter by Category"
           >
             <Filter className="w-5 h-5" />
@@ -183,7 +185,7 @@ export default function MonitoringPage() {
                 <p className="text-xs font-semibold text-gray-500 px-2 py-1">FILTER BY CATEGORY</p>
                 <button
                   onClick={() => { setCategoryFilter('all'); setShowCategoryFilter(false) }}
-                  className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${categoryFilter === 'all' ? 'bg-gray-100 font-medium' : ''}`}
+                  className={`w-full text-left px-3 py-2 rounded btn-animate ${categoryFilter === 'all' ? 'bg-gray-100 font-medium' : 'hover:bg-gray-100'}`}
                 >
                   All Categories
                 </button>
@@ -191,7 +193,7 @@ export default function MonitoringPage() {
                   <button
                     key={category}
                     onClick={() => { setCategoryFilter(category); setShowCategoryFilter(false) }}
-                    className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${categoryFilter === category ? 'bg-gray-100 font-medium' : ''}`}
+                    className={`w-full text-left px-3 py-2 rounded btn-animate ${categoryFilter === category ? 'bg-gray-100 font-medium' : 'hover:bg-gray-100'}`}
                   >
                     {category}
                   </button>
@@ -366,7 +368,7 @@ export default function MonitoringPage() {
                 <tr key={product.id} className="border-b border-gray-200 hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gray-50 rounded relative overflow-hidden flex-shrink-0">
+                      <div className="w-12 h-12 bg-gray-50 rounded relative overflow-hidden shrink-0">
                         {product.image_url ? (
                           <Image
                             src={product.image_url}

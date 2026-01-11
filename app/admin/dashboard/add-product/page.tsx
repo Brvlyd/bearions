@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { productService } from '@/lib/products'
+import { useLanguage } from '@/lib/i18n'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import MultiImageUpload from '@/components/MultiImageUpload'
@@ -11,10 +12,13 @@ const categories = ['Tops', 'Bottoms', 'Accessories', 'Outerwear']
 
 export default function AddProductPage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
+    name_id: '',
     description: '',
+    description_id: '',
     price: '',
     stock: '',
     category: 'Tops',
@@ -29,7 +33,9 @@ export default function AddProductPage() {
     try {
       const product = await productService.createProduct({
         name: formData.name,
+        name_id: formData.name_id || null,
         description: formData.description || null,
+        description_id: formData.description_id || null,
         price: parseFloat(formData.price),
         stock: parseInt(formData.stock),
         category: formData.category,
@@ -41,11 +47,11 @@ export default function AddProductPage() {
         await productService.saveProductImages(product.id, formData.images)
       }
 
-      alert('Product created successfully!')
+      alert(t('adminProduct.createSuccess'))
       router.push('/admin/dashboard')
     } catch (error: any) {
       console.error('Error creating product:', error)
-      alert('Failed to create product: ' + error.message)
+      alert(t('adminProduct.createError') + ': ' + error.message)
     } finally {
       setLoading(false)
     }
@@ -74,7 +80,7 @@ export default function AddProductPage() {
         <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
           <div>
             <label htmlFor="name" className="block text-sm font-medium mb-2 text-black">
-              Product Name *
+              Product Name (English) *
             </label>
             <input
               id="name"
@@ -83,14 +89,29 @@ export default function AddProductPage() {
               value={formData.name}
               onChange={handleChange}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
               placeholder="e.g., Bearion Absolute Tees"
             />
           </div>
 
           <div>
+            <label htmlFor="name_id" className="block text-sm font-medium mb-2 text-black">
+              Product Name (Indonesian)
+            </label>
+            <input
+              id="name_id"
+              name="name_id"
+              type="text"
+              value={formData.name_id}
+              onChange={handleChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
+              placeholder="Contoh: Kaos Bearion Absolute"
+            />
+          </div>
+
+          <div>
             <label htmlFor="description" className="block text-sm font-medium mb-2 text-black">
-              Description
+              Description (English)
             </label>
             <textarea
               id="description"
@@ -98,8 +119,23 @@ export default function AddProductPage() {
               value={formData.description}
               onChange={handleChange}
               rows={4}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
               placeholder="Product description..."
+            />
+          </div>
+
+          <div>
+            <label htmlFor="description_id" className="block text-sm font-medium mb-2 text-black">
+              Description (Indonesian)
+            </label>
+            <textarea
+              id="description_id"
+              name="description_id"
+              value={formData.description_id}
+              onChange={handleChange}
+              rows={4}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
+              placeholder="Deskripsi produk..."
             />
           </div>
 
@@ -165,13 +201,13 @@ export default function AddProductPage() {
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition disabled:bg-gray-400"
+              className="flex-1 py-3 btn-primary-animated"
             >
               {loading ? 'Creating...' : 'Create Product'}
             </button>
             <Link
               href="/admin/dashboard"
-              className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-300 transition text-center"
+              className="flex-1 py-3 text-center btn-secondary-animated"
             >
               Cancel
             </Link>

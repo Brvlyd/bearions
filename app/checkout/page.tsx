@@ -192,7 +192,7 @@ export default function CheckoutPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-12 pt-20">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
           <p className="mt-4 text-gray-600">Loading checkout...</p>
@@ -202,7 +202,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 pt-20">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <Link
@@ -342,13 +342,13 @@ export default function CheckoutPage() {
                     <div className="flex gap-2">
                       <button
                         onClick={handleAddAddress}
-                        className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition"
+                        className="btn-primary-animated px-4 py-2"
                       >
                         Save Address
                       </button>
                       <button
                         onClick={() => setShowAddressForm(false)}
-                        className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                        className="btn-secondary-animated px-4 py-2"
                       >
                         Cancel
                       </button>
@@ -357,7 +357,7 @@ export default function CheckoutPage() {
                 ) : (
                   <button
                     onClick={() => setShowAddressForm(true)}
-                    className="text-black hover:underline font-medium"
+                    className="text-black hover:underline font-medium btn-animate"
                   >
                     + Add New Address
                   </button>
@@ -366,7 +366,7 @@ export default function CheckoutPage() {
                 <button
                   onClick={() => setCurrentStep('payment')}
                   disabled={!selectedAddress}
-                  className="w-full mt-6 bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  className="w-full mt-6 py-3 btn-primary-animated"
                 >
                   Continue to Payment
                 </button>
@@ -422,13 +422,13 @@ export default function CheckoutPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setCurrentStep('shipping')}
-                    className="px-6 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                    className="btn-secondary-animated px-6 py-3"
                   >
                     Back
                   </button>
                   <button
                     onClick={() => setCurrentStep('review')}
-                    className="flex-1 bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition"
+                    className="flex-1 btn-primary-animated py-3"
                   >
                     Review Order
                   </button>
@@ -445,7 +445,7 @@ export default function CheckoutPage() {
                     <h3 className="font-semibold">Shipping Address</h3>
                     <button
                       onClick={() => setCurrentStep('shipping')}
-                      className="text-sm text-gray-600 hover:text-black"
+                      className="text-sm text-gray-600 hover:text-black btn-animate"
                     >
                       Edit
                     </button>
@@ -471,7 +471,7 @@ export default function CheckoutPage() {
                     <h3 className="font-semibold">Payment Method</h3>
                     <button
                       onClick={() => setCurrentStep('payment')}
-                      className="text-sm text-gray-600 hover:text-black"
+                      className="text-sm text-gray-600 hover:text-black btn-animate"
                     >
                       Edit
                     </button>
@@ -496,7 +496,7 @@ export default function CheckoutPage() {
                 <button
                   onClick={handlePlaceOrder}
                   disabled={processing}
-                  className="w-full bg-black text-white py-4 rounded-lg font-semibold hover:bg-gray-800 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  className="w-full py-4 btn-primary-animated"
                 >
                   {processing ? 'Processing...' : 'Place Order'}
                 </button>

@@ -221,13 +221,13 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition disabled:bg-gray-400"
+              className="flex-1 py-3 btn-primary-animated"
             >
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
             <Link
               href="/admin/dashboard"
-              className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-300 transition text-center"
+              className="flex-1 py-3 text-center btn-secondary-animated"
             >
               Cancel
             </Link>

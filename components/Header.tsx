@@ -2,17 +2,27 @@
 
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
-import { User, Menu, X, LogOut } from 'lucide-react'
+import { User, Menu, X, LogOut, Globe, ShoppingBag } from 'lucide-react'
 import { authService } from '@/lib/auth'
 import CartButton from './CartButton'
+import { useLanguage } from '@/lib/i18n'
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userRole, setUserRole] = useState<'admin' | 'user' | null>(null)
+  const [scrolled, setScrolled] = useState(false)
+  const { language, setLanguage, t } = useLanguage()
 
   useEffect(() => {
     checkAuth()
+    
+    // Detect scroll for header effect
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10)
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
   const checkAuth = async () => {
@@ -38,137 +48,211 @@ export default function Header() {
     }
   }
 
+  const toggleLanguage = () => {
+    setLanguage(language === 'en' ? 'id' : 'en')
+  }
+
   return (
-    <header className="bg-black text-white border-b border-white/10">
+    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      scrolled ? 'bg-black/95 backdrop-blur-lg shadow-lg' : 'bg-black'
+    } text-white border-b border-white/10`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-white text-black flex items-center justify-center font-bold text-xl rounded">
+          {/* Logo with hover effect */}
+          <Link href="/" className="flex items-center space-x-2 group">
+            <div className="w-10 h-10 bg-white text-black flex items-center justify-center font-bold text-xl rounded transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 group-hover:shadow-lg">
               B
             </div>
-            <span className="text-xl font-bold">BEARIONS</span>
+            <span className="text-xl font-bold transition-all duration-300 group-hover:text-gray-300">BEARIONS</span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <Link href="/catalog" className="hover:text-gray-300 transition">
-              Catalog
+          {/* Desktop Navigation with modern hover effects */}
+          <nav className="hidden md:flex items-center space-x-1">
+            <Link 
+              href="/catalog" 
+              className="px-4 py-2 rounded-lg transition-all duration-300 hover:bg-white/10 hover:scale-105 relative group"
+            >
+              <span className="relative z-10">{t('nav.catalog')}</span>
+              <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
             </Link>
             {isLoggedIn && (
-              <Link href="/orders" className="hover:text-gray-300 transition">
-                My Orders
+              <Link 
+                href="/orders" 
+                className="px-4 py-2 rounded-lg transition-all duration-300 hover:bg-white/10 hover:scale-105 relative group"
+              >
+                <span className="relative z-10">{t('nav.myOrders')}</span>
+                <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
               </Link>
             )}
-            <Link href="/community" className="hover:text-gray-300 transition">
-              Community
+            <Link 
+              href="/community" 
+              className="px-4 py-2 rounded-lg transition-all duration-300 hover:bg-white/10 hover:scale-105 relative group"
+            >
+              <span className="relative z-10">{t('nav.community')}</span>
+              <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
             </Link>
           </nav>
 
-          {/* Right Side */}
-          <div className="hidden md:flex items-center space-x-6">
-            <CartButton />
-            <select className="bg-black border border-white/20 rounded px-3 py-1 text-sm">
-              <option>English (US)</option>
-              <option>Bahasa Indonesia</option>
-            </select>
+          {/* Right Side with enhanced animations */}
+          <div className="hidden md:flex items-center space-x-3">
+            {/* Cart Button with pulse animation */}
+            <div className="relative">
+              <CartButton />
+            </div>
+            
+            {/* Language Switcher with smooth transition */}
+            <button
+              onClick={toggleLanguage}
+              className="header-btn-language text-sm group"
+              title={language === 'en' ? 'Switch to Indonesian' : 'Ganti ke English'}
+            >
+              <Globe className="w-4 h-4 transition-transform duration-300 group-hover:rotate-180" />
+              <span className="font-medium min-w-[1.5rem] text-center">{language === 'en' ? 'EN' : 'ID'}</span>
+            </button>
             
             {isLoggedIn ? (
               <>
                 <Link 
                   href={userRole === 'admin' ? '/admin/dashboard' : '/profile'}
-                  className="hover:text-gray-300 transition flex items-center space-x-1"
+                  className="header-btn-icon group"
                 >
-                  <User className="w-4 h-4" />
-                  <span>{userRole === 'admin' ? 'Dashboard' : 'Profile'}</span>
+                  <User className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
+                  <span className="font-medium">{userRole === 'admin' ? t('nav.dashboard') : t('nav.profile')}</span>
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="hover:text-gray-300 transition flex items-center space-x-1"
+                  className="header-btn-logout group"
                 >
-                  <LogOut className="w-4 h-4" />
-                  <span>Logout</span>
+                  <LogOut className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
+                  <span className="font-medium">{t('nav.logout')}</span>
                 </button>
               </>
             ) : (
               <>
                 <Link 
                   href="/login" 
-                  className="hover:text-gray-300 transition flex items-center space-x-1"
+                  className="header-btn-icon group"
                 >
-                  <User className="w-4 h-4" />
-                  <span>Sign in</span>
+                  <User className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
+                  <span className="font-medium">{t('nav.signIn')}</span>
                 </Link>
                 <Link
                   href="/register"
-                  className="border border-white px-4 py-2 rounded hover:bg-white hover:text-black transition"
+                  className="header-btn-primary font-medium"
                 >
-                  Sign up
+                  {t('nav.signUp')}
                 </Link>
               </>
             )}
             
             <Link
               href="/contact"
-              className="border border-white px-4 py-2 rounded hover:bg-white hover:text-black transition"
+              className="header-btn-primary font-medium"
             >
-              Contact Us
+              {t('nav.contact')}
             </Link>
           </div>
 
-          {/* Mobile menu button */}
+          {/* Mobile menu button with animation */}
           <button
-            className="md:hidden"
+            className="md:hidden p-2 rounded-lg transition-all duration-300 hover:bg-white/10 hover:scale-110"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
 
-        {/* Mobile Navigation */}
-        {mobileMenuOpen && (
-          <div className="md:hidden pb-4 space-y-4">
-            <Link href="/catalog" className="block hover:text-gray-300">
-              Catalog
+        {/* Mobile Navigation with slide animation */}
+        <div className={`md:hidden overflow-hidden transition-all duration-300 ${
+          mobileMenuOpen ? 'max-h-96 opacity-100 pb-4' : 'max-h-0 opacity-0'
+        }`}>
+          <div className="pt-4 space-y-2">
+            <Link 
+              href="/catalog" 
+              className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              {t('nav.catalog')}
             </Link>
             {isLoggedIn && (
-              <Link href="/orders" className="block hover:text-gray-300">
-                My Orders
+              <Link 
+                href="/orders" 
+                className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {t('nav.myOrders')}
               </Link>
             )}
-            <Link href="/community" className="block hover:text-gray-300">
-              Community
+            <Link 
+              href="/community" 
+              className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              {t('nav.community')}
             </Link>
-            <Link href="/cart" className="block hover:text-gray-300">
-              Shopping Cart
+            <Link 
+              href="/cart" 
+              className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              {t('nav.cart')}
             </Link>
+            
+            {/* Mobile Language Switcher */}
+            <button
+              onClick={toggleLanguage}
+              className="flex items-center gap-2 w-full px-4 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
+            >
+              <Globe className="w-4 h-4" />
+              <span>{language === 'en' ? 'English' : 'Bahasa Indonesia'}</span>
+            </button>
+            
             {isLoggedIn ? (
               <>
                 <Link 
                   href={userRole === 'admin' ? '/admin/dashboard' : '/profile'}
-                  className="block hover:text-gray-300"
+                  className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
+                  onClick={() => setMobileMenuOpen(false)}
                 >
-                  {userRole === 'admin' ? 'Dashboard' : 'Profile'}
+                  {userRole === 'admin' ? t('nav.dashboard') : t('nav.profile')}
                 </Link>
-                <button onClick={handleLogout} className="block hover:text-gray-300 w-full text-left">
-                  Logout
+                <button 
+                  onClick={() => {
+                    handleLogout()
+                    setMobileMenuOpen(false)
+                  }} 
+                  className="block w-full text-left px-4 py-2 rounded-lg hover:bg-red-600/20 hover:text-red-400 transition-all duration-200"
+                >
+                  {t('nav.logout')}
                 </button>
               </>
             ) : (
               <>
-                <Link href="/login" className="block hover:text-gray-300">
-                  Sign in
+                <Link 
+                  href="/login" 
+                  className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {t('nav.signIn')}
                 </Link>
-                <Link href="/register" className="block hover:text-gray-300">
-                  Sign up
+                <Link 
+                  href="/register" 
+                  className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {t('nav.signUp')}
                 </Link>
               </>
             )}
-            <Link href="/contact" className="block hover:text-gray-300">
-              Contact Us
+            <Link 
+              href="/contact" 
+              className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              {t('nav.contact')}
             </Link>
           </div>
-        )}
+        </div>
       </div>
     </header>
   )

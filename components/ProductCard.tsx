@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { Product } from '@/lib/supabase'
+import { useLanguage } from '@/lib/i18n'
 import { useState, useEffect } from 'react'
 import { productService } from '@/lib/products'
 import ImageCarousel from './ImageCarousel'
@@ -11,6 +12,21 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const { t, language } = useLanguage()
+  
+  const getProductName = () => {
+    if (language === 'id' && product.name_id) {
+      return product.name_id
+    }
+    return product.name
+  }
+  
+  const getProductDescription = () => {
+    if (language === 'id' && product.description_id) {
+      return product.description_id
+    }
+    return product.description
+  }
   const [images, setImages] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -60,20 +76,20 @@ export default function ProductCard({ product }: ProductCardProps) {
             <ImageCarousel images={images} alt={product.name} autoPlay={true} interval={3000} />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-400">
-              No Image
+              {t('common.loading')}
             </div>
           )}
           {product.stock === 0 && (
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-              <span className="text-white font-semibold">Out of Stock</span>
+              <span className="text-white font-semibold">{t('product.outOfStock')}</span>
             </div>
           )}
         </div>
         <h3 className="font-semibold text-lg mb-1 group-hover:text-gray-600 transition text-black">
-          {product.name}
+          {getProductName()}
         </h3>
         <p className="text-black font-bold">{formatPrice(product.price)}</p>
-        <p className="text-sm text-gray-500 mt-1">Stock: {product.stock}</p>
+        <p className="text-sm text-gray-500 mt-1">{t('product.stock')}: {product.stock}</p>
       </div>
     </Link>
   )

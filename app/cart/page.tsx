@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLanguage } from '@/lib/i18n'
 import Link from 'next/link'
 import { ShoppingBag, ArrowRight, AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -11,6 +12,7 @@ import type { CartItem as CartItemType } from '@/lib/supabase'
 
 export default function CartPage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [cartItems, setCartItems] = useState<CartItemType[]>([])
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
@@ -55,7 +57,7 @@ export default function CartPage() {
       }
     } catch (error) {
       console.error('Error updating quantity:', error)
-      alert('Failed to update quantity')
+      alert(t('common.edit'))
     } finally {
       setUpdating(false)
     }
@@ -70,14 +72,14 @@ export default function CartPage() {
       }
     } catch (error) {
       console.error('Error removing item:', error)
-      alert('Failed to remove item')
+      alert(t('cart.remove'))
     } finally {
       setUpdating(false)
     }
   }
 
   const handleClearCart = async () => {
-    if (!confirm('Are you sure you want to clear your cart?')) return
+    if (!confirm(t('cart.clearCart') + '?')) return
 
     try {
       setUpdating(true)
@@ -87,7 +89,7 @@ export default function CartPage() {
       }
     } catch (error) {
       console.error('Error clearing cart:', error)
-      alert('Failed to clear cart')
+      alert(t('cart.clearCart'))
     } finally {
       setUpdating(false)
     }
@@ -140,7 +142,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 pt-20">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
@@ -148,7 +150,7 @@ export default function CartPage() {
           <button
             onClick={handleClearCart}
             disabled={updating}
-            className="text-sm text-gray-600 hover:text-red-600 transition disabled:opacity-50"
+            className="text-sm text-gray-600 hover:text-red-600 disabled:opacity-50 btn-animate px-4 py-2 rounded-lg hover:bg-red-50"
           >
             Clear Cart
           </button>
@@ -165,7 +167,7 @@ export default function CartPage() {
               {/* Warnings */}
               {(hasOutOfStock || hasInsufficientStock) && (
                 <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex gap-3">
-                  <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                  <AlertCircle className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
                   <div className="text-sm text-yellow-800">
                     {hasOutOfStock && (
                       <p>Some items in your cart are out of stock.</p>
@@ -260,10 +262,10 @@ export default function CartPage() {
               {/* Checkout Button */}
               <Link
                 href="/checkout"
-                className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg font-semibold transition ${
+                className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg font-semibold ${
                   hasOutOfStock || hasInsufficientStock
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-black text-white hover:bg-gray-800'
+                    : 'btn-primary-animated'
                 }`}
                 onClick={(e) => {
                   if (hasOutOfStock || hasInsufficientStock) {

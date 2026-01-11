@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useLanguage } from '@/lib/i18n'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Minus, Plus, Trash2, Package } from 'lucide-react'
@@ -19,6 +20,7 @@ export default function CartItem({
   onRemove,
   disabled = false,
 }: CartItemProps) {
+  const { t } = useLanguage()
   const [isUpdating, setIsUpdating] = useState(false)
   const product = item.product
 
@@ -53,7 +55,7 @@ export default function CartItem({
       {/* Product Image */}
       <Link
         href={`/products/${product.id}`}
-        className="flex-shrink-0 w-24 h-24 bg-gray-100 rounded-lg overflow-hidden relative"
+        className="shrink-0 w-24 h-24 bg-gray-100 rounded-lg overflow-hidden relative"
       >
         {product.image_url ? (
           <Image
@@ -83,12 +85,12 @@ export default function CartItem({
         <div className="flex gap-4 mt-2 text-sm text-gray-600">
           {item.size && (
             <div>
-              <span className="font-medium">Size:</span> {item.size}
+              <span className="font-medium">{t('product.size')}:</span> {item.size}
             </div>
           )}
           {item.color && (
             <div>
-              <span className="font-medium">Color:</span> {item.color}
+              <span className="font-medium">{t('product.color')}:</span> {item.color}
             </div>
           )}
         </div>
@@ -105,11 +107,11 @@ export default function CartItem({
         {/* Stock Warning */}
         {product.stock < item.quantity && (
           <p className="text-sm text-red-600 mt-1">
-            Only {product.stock} items left in stock
+            {t('cart.insufficientStock', { stock: product.stock })}
           </p>
         )}
         {product.stock === 0 && (
-          <p className="text-sm text-red-600 mt-1">Out of stock</p>
+          <p className="text-sm text-red-600 mt-1">{t('cart.outOfStock')}</p>
         )}
       </div>
 
@@ -120,12 +122,12 @@ export default function CartItem({
           <button
             onClick={() => handleQuantityChange(item.quantity - 1)}
             disabled={isUpdating || disabled || item.quantity <= 1}
-            className="p-1 hover:bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed transition"
+            className="p-1 rounded disabled:opacity-50 disabled:cursor-not-allowed btn-quantity-animated"
           >
             <Minus className="w-4 h-4" />
           </button>
 
-          <span className="font-medium min-w-[2rem] text-center">
+          <span className="font-medium min-w-8 text-center">
             {item.quantity}
           </span>
 
@@ -137,7 +139,7 @@ export default function CartItem({
               item.quantity >= product.stock ||
               product.stock === 0
             }
-            className="p-1 hover:bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed transition"
+            className="p-1 rounded disabled:opacity-50 disabled:cursor-not-allowed btn-quantity-animated"
           >
             <Plus className="w-4 h-4" />
           </button>
@@ -147,8 +149,8 @@ export default function CartItem({
         <button
           onClick={handleRemove}
           disabled={isUpdating || disabled}
-          className="text-gray-500 hover:text-red-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Remove from cart"
+          className="text-gray-500 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed btn-icon-animated"
+          title={t('cart.remove')}
         >
           <Trash2 className="w-5 h-5" />
         </button>
