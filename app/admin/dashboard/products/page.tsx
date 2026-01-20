@@ -125,7 +125,7 @@ export default function MonitoringPage() {
       </div>
 
       {/* Alert Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 mb-6 lg:mb-8">
         <div className="bg-white p-6 rounded-lg border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
@@ -156,7 +156,7 @@ export default function MonitoringPage() {
       </div>
 
       {/* Search and Filter Bar */}
-      <div className="mb-6 flex flex-col md:flex-row gap-4">
+      <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:gap-4">
         {/* Search Bar */}
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -283,7 +283,7 @@ export default function MonitoringPage() {
       {/* Products Display */}
       {viewMode === 'tiles' ? (
         /* Tiles View */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
           {filteredProducts.map((product) => (
             <div key={product.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition">
               {/* Product Image */}
@@ -353,7 +353,8 @@ export default function MonitoringPage() {
       ) : (
         /* Content/List View */
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <table className="w-full">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left px-6 py-4 text-sm font-semibold text-black">Product</th>
@@ -439,6 +440,7 @@ export default function MonitoringPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 

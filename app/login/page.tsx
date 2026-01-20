@@ -1,18 +1,33 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { authService } from '@/lib/auth'
 import Link from 'next/link'
 import { useLanguage } from '@/lib/i18n'
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { t } = useLanguage()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // Check if coming from email confirmation
+  useEffect(() => {
+    const confirmed = searchParams.get('confirmed')
+    const emailParam = searchParams.get('email')
+    
+    if (confirmed === 'true') {
+      setSuccess('✅ Email berhasil dikonfirmasi! Silakan login untuk melanjutkan.')
+      if (emailParam) {
+        setEmail(decodeURIComponent(emailParam))
+      }
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -55,10 +70,10 @@ export default function LoginPage() {
       
       let errorMessage = t('login.errorFailed')
       
-      if (err.message?.includes('Email not confirmed')) {
-        errorMessage = t('login.errorEmailNotConfirmed')
+      if (err.message?.includes('EMAIL_NOT_CONFIRMED') || err.message?.includes('Email not confirmed')) {
+        errorMessage = '📧 Email belum dikonfirmasi! Silakan cek inbox email Anda dan klik link konfirmasi yang kami kirim. Jika tidak ada, cek folder spam/junk.'
       } else if (err.message?.includes('Invalid login credentials')) {
-        errorMessage = t('login.errorInvalidCredentials')
+        errorMessage = '❌ Email atau password salah. Jika Anda baru mendaftar, pastikan sudah konfirmasi email terlebih dahulu.'
       }
       
       setError(errorMessage)
@@ -78,6 +93,12 @@ export default function LoginPage() {
             <h1 className="text-2xl font-bold text-black">{t('login.title')}</h1>
             <p className="text-gray-600 mt-2">{t('login.subtitle')}</p>
           </div>
+
+          {success && (
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-6 text-sm">
+              {success}
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded mb-6 text-sm">

@@ -1,17 +1,19 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import SafeImage from './SafeImage'
+import { getImageUrl } from '@/lib/image-utils'
 
 interface ImageCarouselProps {
   images: string[]
   alt: string
   autoPlay?: boolean
   interval?: number
+  category?: string
 }
 
-export default function ImageCarousel({ images, alt, autoPlay = true, interval = 3000 }: ImageCarouselProps) {
+export default function ImageCarousel({ images, alt, autoPlay = true, interval = 3000, category }: ImageCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
 
   useEffect(() => {
@@ -47,10 +49,11 @@ export default function ImageCarousel({ images, alt, autoPlay = true, interval =
   if (images.length === 1) {
     return (
       <div className="relative w-full h-full bg-white flex items-center justify-center p-4">
-        <Image
+        <SafeImage
           src={images[0]}
           alt={alt}
           fill
+          category={category}
           className="object-contain"
         />
       </div>
@@ -62,10 +65,11 @@ export default function ImageCarousel({ images, alt, autoPlay = true, interval =
       {/* Main Image */}
       <div className="relative w-full h-full overflow-hidden flex items-center justify-center p-4">
         <div className="relative w-full h-full">
-          <Image
+          <SafeImage
             src={images[currentIndex]}
             alt={`${alt} - Image ${currentIndex + 1}`}
             fill
+            category={category}
             className="object-contain transition-all duration-700 ease-in-out"
             priority
           />

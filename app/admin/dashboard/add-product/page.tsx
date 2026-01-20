@@ -75,9 +75,9 @@ export default function AddProductPage() {
       </Link>
 
       <div className="max-w-2xl">
-        <h2 className="text-2xl font-bold mb-6 text-black">Add New Product</h2>
+        <h2 className="text-xl lg:text-2xl font-bold mb-4 lg:mb-6 text-black">Add New Product</h2>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6 space-y-4 lg:space-y-6">
           <div>
             <label htmlFor="name" className="block text-sm font-medium mb-2 text-black">
               Product Name (English) *
@@ -139,7 +139,7 @@ export default function AddProductPage() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="price" className="block text-sm font-medium mb-2 text-black">
                 Price (IDR) *

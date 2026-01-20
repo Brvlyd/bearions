@@ -142,24 +142,24 @@ export default function CartPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 pt-20">
+    <div className="container mx-auto px-4 py-8 pt-20 lg:pt-24">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-black">Shopping Cart</h1>
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 lg:mb-8">
+          <h1 className="text-2xl lg:text-3xl font-bold text-black">Shopping Cart</h1>
           <button
             onClick={handleClearCart}
             disabled={updating}
-            className="text-sm text-gray-600 hover:text-red-600 disabled:opacity-50 btn-animate px-4 py-2 rounded-lg hover:bg-red-50"
+            className="text-sm text-gray-600 hover:text-red-600 disabled:opacity-50 btn-animate px-3 lg:px-4 py-2 rounded-lg hover:bg-red-50"
           >
             Clear Cart
           </button>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Cart Items */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6">
               <h2 className="text-xl font-semibold text-black mb-4">
                 Items ({cartItems.length})
               </h2>
@@ -204,7 +204,7 @@ export default function CartPage() {
 
           {/* Order Summary */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg border border-gray-200 p-6 sticky top-4">
+            <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6 lg:sticky lg:top-20">
               <h2 className="text-xl font-semibold text-black mb-4">
                 Order Summary
               </h2>

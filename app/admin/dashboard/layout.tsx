@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useLanguage } from '@/lib/i18n'
 import Link from 'next/link'
 import { authService } from '@/lib/auth'
-import { Package, PlusCircle, BarChart3, TrendingUp, Users, ShoppingCart } from 'lucide-react'
+import { Package, PlusCircle, BarChart3, TrendingUp, Users, ShoppingCart, X } from 'lucide-react'
 import AdminHeader from '@/components/AdminHeader'
 
 export default function AdminLayout({
@@ -18,6 +18,7 @@ export default function AdminLayout({
   const { t } = useLanguage()
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     checkAdmin()
@@ -59,19 +60,37 @@ export default function AdminLayout({
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Modern Admin Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-gray-900 via-gray-900 to-black text-white shadow-2xl z-50">
+      <aside className={`fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-gray-900 via-gray-900 to-black text-white shadow-2xl z-50 transition-transform duration-300 lg:translate-x-0 ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
         {/* Logo Section */}
         <div className="p-6 border-b border-white/10">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-12 h-12 bg-white text-black flex items-center justify-center font-bold text-xl rounded-lg transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-lg">
-              B
-            </div>
-            <div>
-              <span className="text-xl font-bold block transition-all duration-300 group-hover:text-gray-300">BEARIONS</span>
-              <span className="text-xs text-gray-400">{t('adminSidebar.adminPanel')}</span>
-            </div>
-          </Link>
+          <div className="flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-3 group">
+              <div className="w-12 h-12 bg-white text-black flex items-center justify-center font-bold text-xl rounded-lg transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-lg">
+                B
+              </div>
+              <div>
+                <span className="text-xl font-bold block transition-all duration-300 group-hover:text-gray-300">BEARIONS</span>
+                <span className="text-xs text-gray-400">{t('adminSidebar.adminPanel')}</span>
+              </div>
+            </Link>
+            <button 
+              onClick={() => setSidebarOpen(false)}
+              className="lg:hidden p-2 hover:bg-white/10 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Navigation */}
@@ -171,8 +190,8 @@ export default function AdminLayout({
       <AdminHeader />
 
       {/* Main Content */}
-      <div className="ml-64 pt-16">
-        <main className="p-8">{children}</main>
+      <div className="lg:ml-64 pt-16">
+        <main className="p-4 lg:p-8">{children}</main>
       </div>
     </div>
   )

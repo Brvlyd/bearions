@@ -67,7 +67,10 @@ const translations: Translations = {
   'register.errorInvalidPhone': { en: 'Please enter a valid Indonesian phone number', id: 'Mohon masukkan nomor telepon Indonesia yang valid' },
   'register.errorPasswordMatch': { en: 'Passwords do not match', id: 'Kata sandi tidak cocok' },
   'register.errorPasswordLength': { en: 'Password must be at least 6 characters', id: 'Kata sandi minimal 6 karakter' },
-  'register.successEmailConfirm': { en: 'Please check your email to confirm your account', id: 'Silakan cek email Anda untuk mengkonfirmasi akun' },
+  'register.successEmailConfirm': { 
+    en: '✅ Registration successful!\n\n📧 Please check your email and click the confirmation link we sent.\n\n⚠️ You must confirm your email before you can login.', 
+    id: '✅ Pendaftaran berhasil!\n\n📧 Silakan cek email Anda dan klik link konfirmasi yang kami kirim.\n\n⚠️ Anda harus mengkonfirmasi email terlebih dahulu sebelum bisa login.' 
+  },
   'register.successLogin': { en: 'Account created! Redirecting to login...', id: 'Akun berhasil dibuat! Mengarahkan ke halaman login...' },
   'register.errorFailed': { en: 'Registration failed. Please try again.', id: 'Pendaftaran gagal. Silakan coba lagi.' },
   

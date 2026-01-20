@@ -28,6 +28,7 @@ export default function CatalogView() {
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState('featured')
   const [loading, setLoading] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     loadProducts()
@@ -89,10 +90,10 @@ export default function CatalogView() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex flex-col lg:flex-row gap-8">
+      <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
         {/* Sidebar */}
-        <aside className="lg:w-64 shrink-0">
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <aside className={`lg:w-64 shrink-0 ${sidebarOpen ? 'block' : 'hidden lg:block'}`}>
+          <div className="bg-white border border-gray-200 rounded-lg p-4 lg:p-6">
             <h2 className="font-bold text-lg mb-4 text-black">{t('catalog.filterByCategory')}</h2>
             <ul className="space-y-2">
               {categories.map((category) => (
@@ -115,6 +116,15 @@ export default function CatalogView() {
 
         {/* Main Content */}
         <div className="flex-1">
+          {/* Mobile Filter Toggle */}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="lg:hidden mb-4 px-4 py-2 bg-black text-white rounded-lg flex items-center gap-2"
+          >
+            <Search className="w-4 h-4" />
+            {sidebarOpen ? 'Hide Filters' : 'Show Filters'}
+          </button>
+          
           {/* Header */}
           <div className="flex items-center gap-4 mb-8">
             <div className="w-12 h-12 bg-gray-100 border border-gray-200 rounded-full flex items-center justify-center">
@@ -124,7 +134,7 @@ export default function CatalogView() {
           </div>
 
           {/* Search and Sort */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-8">
+          <div className="flex flex-col sm:flex-row gap-3 lg:gap-4 mb-8">
             <form onSubmit={handleSearch} className="flex-1 relative">
               <input
                 type="text"
@@ -141,11 +151,11 @@ export default function CatalogView() {
               </button>
             </form>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-black min-w-[4.5rem]">{t('catalog.sortBy')}:</span>
+              <span className="text-sm font-medium text-black whitespace-nowrap">{t('catalog.sortBy')}:</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
+                className="flex-1 sm:flex-none px-3 lg:px-4 py-2 lg:py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black text-sm lg:text-base"
               >
                 <option value="featured">{t('catalog.sortNewest')}</option>
                 <option value="price-low">{t('catalog.sortPriceLow')}</option>
@@ -166,7 +176,7 @@ export default function CatalogView() {
               <p className="text-gray-600 text-lg">{t('catalog.noProducts')}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
               {filteredProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}

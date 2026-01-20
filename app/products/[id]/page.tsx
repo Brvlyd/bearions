@@ -147,7 +147,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           <span>{t('checkout.back')}</span>
         </button>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
           {/* Product Image Carousel */}
           <div className="w-full max-w-xl mx-auto">
             <div className="aspect-square bg-white rounded-lg overflow-hidden relative">
@@ -174,8 +174,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                 {product.category}
               </span>
             </div>
-            <h1 className="text-4xl font-bold mb-4 text-black">{product.name}</h1>
-            <p className="text-3xl font-bold mb-6 text-black">{formatPrice(product.price)}</p>
+            <h1 className="text-2xl lg:text-4xl font-bold mb-4 text-black">{product.name}</h1>
+            <p className="text-2xl lg:text-3xl font-bold mb-6 text-black">{formatPrice(product.price)}</p>
             
             {product.description && (
               <div className="mb-6">
@@ -193,15 +193,14 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
             {product.stock > 0 && (
               <>
-                {/* Size Selection */}
                 <div className="mb-6">
-                  <h2 className="text-lg font-semibold mb-3 text-black">Size</h2>
+                  <h2 className="text-base lg:text-lg font-semibold mb-3 text-black">Size</h2>
                   <div className="flex flex-wrap gap-2">
                     {['S', 'M', 'L', 'XL', 'XXL'].map((size) => (
                       <button
                         key={size}
                         onClick={() => setSelectedSize(size)}
-                        className={`px-6 py-2 border-2 rounded-lg font-semibold transition ${
+                        className={`px-4 lg:px-6 py-2 border-2 rounded-lg font-semibold transition text-sm lg:text-base ${
                           selectedSize === size
                             ? 'border-black bg-black text-white'
                             : 'border-gray-300 text-black hover:border-black'
@@ -215,13 +214,13 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
                 {/* Color Selection */}
                 <div className="mb-6">
-                  <h2 className="text-lg font-semibold mb-3 text-black">Color</h2>
+                  <h2 className="text-base lg:text-lg font-semibold mb-3 text-black">Color</h2>
                   <div className="flex flex-wrap gap-2">
                     {['Black', 'White', 'Navy', 'Gray', 'Beige'].map((color) => (
                       <button
                         key={color}
                         onClick={() => setSelectedColor(color)}
-                        className={`px-6 py-2 border-2 rounded-lg font-semibold transition ${
+                        className={`px-4 lg:px-6 py-2 border-2 rounded-lg font-semibold transition text-sm lg:text-base ${
                           selectedColor === color
                             ? 'border-black bg-black text-white'
                             : 'border-gray-300 text-black hover:border-black'
@@ -235,8 +234,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
                 {/* Quantity Selector */}
                 <div className="mb-8">
-                  <h2 className="text-lg font-semibold mb-3 text-black">Quantity</h2>
-                  <div className="flex items-center space-x-4">
+                  <h2 className="text-base lg:text-lg font-semibold mb-3 text-black">Quantity</h2>
+                  <div className="flex items-center space-x-3 lg:space-x-4">
                     <button
                       onClick={decrementQuantity}
                       disabled={quantity <= 1}
@@ -244,7 +243,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                     >
                       <Minus className="w-4 h-4" />
                     </button>
-                    <span className="text-xl font-bold text-black w-12 text-center">{quantity}</span>
+                    <span className="text-lg lg:text-xl font-bold text-black w-12 text-center">{quantity}</span>
                     <button
                       onClick={incrementQuantity}
                       disabled={quantity >= product.stock}

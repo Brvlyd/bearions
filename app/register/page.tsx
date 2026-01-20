@@ -76,12 +76,11 @@ export default function RegisterPage() {
         address: formData.address
       })
 
-      if ((result as any)?.needsEmailConfirmation) {
-        alert(t('register.successEmailConfirm') || 'Registration successful! Please verify your email.')
-      } else {
-        alert(t('register.successLogin') || 'Registration successful!')
-      }
+      // Show success message with clear instructions
+      const successMessage = t('register.successEmailConfirm') || 
+        '✅ Pendaftaran berhasil!\n\n📧 Silakan cek email Anda dan klik link konfirmasi yang kami kirim.\n\n⚠️ Anda harus mengkonfirmasi email terlebih dahulu sebelum bisa login.'
       
+      alert(successMessage)
       router.push('/login')
     } catch (err: any) {
       console.error('Registration error:', err)

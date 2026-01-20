@@ -37,7 +37,7 @@ export const authService = {
         email: data.email,
         password: data.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/login`,
+          emailRedirectTo: `${window.location.origin}/login?confirmed=true&email=${encodeURIComponent(data.email)}`,
           data: {
             full_name: data.full_name,
             phone: data.phone,
@@ -48,51 +48,15 @@ export const authService = {
 
       if (authError) throw authError
 
-      // Check if email confirmation is required
-      if (authData.user && !authData.session) {
-        // Email confirmation required
-        return { 
-          ...authData, 
-          needsEmailConfirmation: true,
-          message: 'Please check your email to confirm your account before logging in.'
-        }
-      }
-
-      // Wait a bit for trigger to create user row
+      // Database trigger will automatically create user profile
+      // Wait a moment for trigger to complete
       await new Promise(resolve => setTimeout(resolve, 1500))
 
-      // Update user profile with additional data
-      if (authData.user && (data.full_name || data.phone || data.address)) {
-        const { error: updateError } = await supabase
-          .from('users')
-          .update({
-            full_name: data.full_name,
-            phone: data.phone,
-            address: data.address,
-          })
-          .eq('id', authData.user.id)
-
-        if (updateError) {
-          console.error('Error updating user profile:', updateError)
-          // Try to insert instead of update (in case trigger failed)
-          const { error: insertError } = await supabase
-            .from('users')
-            .insert({
-              id: authData.user.id,
-              email: authData.user.email!,
-              full_name: data.full_name,
-              phone: data.phone,
-              address: data.address,
-              role: 'user'
-            })
-          
-          if (insertError) {
-            console.error('Error inserting user profile:', insertError)
-          }
-        }
+      return { 
+        ...authData, 
+        needsEmailConfirmation: true,
+        message: 'Registration successful! Please check your email and click the confirmation link before logging in.'
       }
-
-      return authData
     } catch (error) {
       console.error('Registration error:', error)
       throw error
@@ -107,7 +71,13 @@ export const authService = {
         password: credentials.password,
       })
 
-      if (error) throw error
+      if (error) {
+        // Check for email not confirmed error
+        if (error.message.includes('Email not confirmed')) {
+          throw new Error('EMAIL_NOT_CONFIRMED: Please check your email and click the confirmation link before logging in.')
+        }
+        throw error
+      }
 
       // If role is specified, check that table
       if (role === 'admin') {

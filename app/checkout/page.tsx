@@ -202,49 +202,49 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 pt-20">
+    <div className="container mx-auto px-4 py-8 pt-20 lg:pt-24">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <Link
           href="/cart"
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-black transition mb-6"
+          className="inline-flex items-center gap-2 text-gray-600 hover:text-black transition mb-4 lg:mb-6"
         >
           <ArrowLeft className="w-5 h-5" />
           Back to Cart
         </Link>
 
-        <h1 className="text-3xl font-bold text-black mb-8">Checkout</h1>
+        <h1 className="text-2xl lg:text-3xl font-bold text-black mb-6 lg:mb-8">Checkout</h1>
 
         {/* Progress Steps */}
-        <div className="mb-8 flex items-center justify-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'shipping' ? 'bg-black text-white' : 'bg-green-500 text-white'}`}>
-              {currentStep !== 'shipping' ? <CheckCircle className="w-5 h-5" /> : '1'}
+        <div className="mb-6 lg:mb-8 flex items-center justify-center gap-2 lg:gap-4">
+          <div className="flex items-center gap-1 lg:gap-2">
+            <div className={`w-7 h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center text-sm ${currentStep === 'shipping' ? 'bg-black text-white' : 'bg-green-500 text-white'}`}>
+              {currentStep !== 'shipping' ? <CheckCircle className="w-4 h-4 lg:w-5 lg:h-5" /> : '1'}
             </div>
-            <span className="font-medium">Shipping</span>
+            <span className="font-medium text-sm lg:text-base hidden sm:inline">Shipping</span>
           </div>
-          <div className="w-12 h-0.5 bg-gray-300"></div>
-          <div className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'payment' ? 'bg-black text-white' : currentStep === 'review' ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
-              {currentStep === 'review' ? <CheckCircle className="w-5 h-5" /> : '2'}
+          <div className="w-6 lg:w-12 h-0.5 bg-gray-300"></div>
+          <div className="flex items-center gap-1 lg:gap-2">
+            <div className={`w-7 h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center text-sm ${currentStep === 'payment' ? 'bg-black text-white' : currentStep === 'review' ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
+              {currentStep === 'review' ? <CheckCircle className="w-4 h-4 lg:w-5 lg:h-5" /> : '2'}
             </div>
-            <span className="font-medium">Payment</span>
+            <span className="font-medium text-sm lg:text-base hidden sm:inline">Payment</span>
           </div>
-          <div className="w-12 h-0.5 bg-gray-300"></div>
-          <div className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'review' ? 'bg-black text-white' : 'bg-gray-300 text-gray-600'}`}>
+          <div className="w-6 lg:w-12 h-0.5 bg-gray-300"></div>
+          <div className="flex items-center gap-1 lg:gap-2">
+            <div className={`w-7 h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center text-sm ${currentStep === 'review' ? 'bg-black text-white' : 'bg-gray-300 text-gray-600'}`}>
               3
             </div>
-            <span className="font-medium">Review</span>
+            <span className="font-medium text-sm lg:text-base hidden sm:inline">Review</span>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 lg:space-y-6">
             {/* Shipping Step */}
             {currentStep === 'shipping' && (
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6">
                 <h2 className="text-xl font-semibold text-black mb-4 flex items-center gap-2">
                   <Truck className="w-6 h-6" />
                   Shipping Address
@@ -287,8 +287,8 @@ export default function CheckoutPage() {
                 {/* Add Address Form */}
                 {showAddressForm ? (
                   <div className="border border-gray-200 rounded-lg p-4 space-y-4">
-                    <h3 className="font-semibold">Add New Address</h3>
-                    <div className="grid grid-cols-2 gap-4">
+                    <h3 className="font-semibold text-sm lg:text-base">Add New Address</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
                       <input
                         type="text"
                         placeholder="Recipient Name"
