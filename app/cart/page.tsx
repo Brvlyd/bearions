@@ -112,10 +112,12 @@ export default function CartPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-12">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-          <p className="mt-4 text-gray-600">Loading cart...</p>
+      <div className="min-h-screen bg-white">
+        <div className="container mx-auto px-4 py-12 pt-24">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
+            <p className="mt-4 text-gray-600">{t('cart.loading') || 'Loading cart...'}</p>
+          </div>
         </div>
       </div>
     )
@@ -123,45 +125,48 @@ export default function CartPage() {
 
   if (cartItems.length === 0) {
     return (
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-md mx-auto text-center">
-          <ShoppingBag className="w-24 h-24 mx-auto text-gray-300 mb-6" />
-          <h1 className="text-2xl font-bold text-black mb-2">Your cart is empty</h1>
-          <p className="text-gray-600 mb-8">
-            Add some items to your cart to get started!
-          </p>
-          <Link
-            href="/catalog"
-            className="inline-block bg-black text-white px-8 py-3 rounded-lg font-semibold hover:bg-gray-800 transition"
-          >
-            Browse Products
-          </Link>
+      <div className="min-h-screen bg-white">
+        <div className="container mx-auto px-4 py-12 pt-24">
+          <div className="max-w-md mx-auto text-center">
+            <ShoppingBag className="w-24 h-24 mx-auto text-gray-300 mb-6" />
+            <h1 className="text-2xl font-bold text-black mb-2">{t('cart.empty')}</h1>
+            <p className="text-gray-600 mb-8">
+              {t('cart.emptyDescription')}
+            </p>
+            <Link
+              href="/catalog"
+              className="inline-block bg-black text-white px-8 py-3 rounded-lg font-semibold hover:bg-gray-800 transition"
+            >
+              {t('cart.browseProducts')}
+            </Link>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 pt-20 lg:pt-24">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 lg:mb-8">
-          <h1 className="text-2xl lg:text-3xl font-bold text-black">Shopping Cart</h1>
-          <button
-            onClick={handleClearCart}
-            disabled={updating}
-            className="text-sm text-gray-600 hover:text-red-600 disabled:opacity-50 btn-animate px-3 lg:px-4 py-2 rounded-lg hover:bg-red-50"
-          >
-            Clear Cart
-          </button>
-        </div>
+    <div className="min-h-screen bg-white">
+      <div className="container mx-auto px-4 py-8 pt-24 lg:pt-28">
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 lg:mb-8">
+            <h1 className="text-2xl lg:text-3xl font-bold text-black">{t('cart.title')}</h1>
+            <button
+              onClick={handleClearCart}
+              disabled={updating}
+              className="text-sm text-gray-600 hover:text-red-600 disabled:opacity-50 btn-animate px-3 lg:px-4 py-2 rounded-lg hover:bg-red-50"
+            >
+              {t('cart.clearCart')}
+            </button>
+          </div>
 
-        <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
+          <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Cart Items */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6">
               <h2 className="text-xl font-semibold text-black mb-4">
-                Items ({cartItems.length})
+                {t('cart.items')} ({cartItems.length})
               </h2>
 
               {/* Warnings */}
@@ -170,10 +175,10 @@ export default function CartPage() {
                   <AlertCircle className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
                   <div className="text-sm text-yellow-800">
                     {hasOutOfStock && (
-                      <p>Some items in your cart are out of stock.</p>
+                      <p>{t('cart.outOfStockWarning')}</p>
                     )}
                     {hasInsufficientStock && (
-                      <p>Some items have insufficient stock available.</p>
+                      <p>{t('cart.insufficientStockWarning')}</p>
                     )}
                   </div>
                 </div>
@@ -198,7 +203,7 @@ export default function CartPage() {
               href="/catalog"
               className="inline-block mt-4 text-gray-600 hover:text-black transition"
             >
-              ← Continue Shopping
+              ← {t('cart.continueShopping')}
             </Link>
           </div>
 
@@ -206,12 +211,12 @@ export default function CartPage() {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6 lg:sticky lg:top-20">
               <h2 className="text-xl font-semibold text-black mb-4">
-                Order Summary
+                {t('cart.summary')}
               </h2>
 
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-gray-600">
-                  <span>Subtotal</span>
+                  <span>{t('cart.subtotal')}</span>
                   <span>
                     {new Intl.NumberFormat('id-ID', {
                       style: 'currency',
@@ -222,10 +227,10 @@ export default function CartPage() {
                 </div>
 
                 <div className="flex justify-between text-gray-600">
-                  <span>Shipping</span>
+                  <span>{t('cart.shipping')}</span>
                   <span>
                     {shippingCost === 0
-                      ? 'Free'
+                      ? t('cart.freeShipping')
                       : new Intl.NumberFormat('id-ID', {
                           style: 'currency',
                           currency: 'IDR',
@@ -235,7 +240,7 @@ export default function CartPage() {
                 </div>
 
                 <div className="flex justify-between text-gray-600">
-                  <span>Tax (PPN 11%)</span>
+                  <span>{t('cart.tax')}</span>
                   <span>
                     {new Intl.NumberFormat('id-ID', {
                       style: 'currency',
@@ -247,7 +252,7 @@ export default function CartPage() {
 
                 <div className="border-t border-gray-200 pt-3">
                   <div className="flex justify-between text-lg font-bold text-black">
-                    <span>Total</span>
+                    <span>{t('cart.total')}</span>
                     <span>
                       {new Intl.NumberFormat('id-ID', {
                         style: 'currency',
@@ -273,20 +278,21 @@ export default function CartPage() {
                   }
                 }}
               >
-                Proceed to Checkout
+                {t('cart.checkout')}
                 <ArrowRight className="w-5 h-5" />
               </Link>
 
               {/* Security Badge */}
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <p className="text-sm text-gray-600 text-center">
-                  🔒 Secure Checkout
+                  {t('cart.secureCheckout')}
                 </p>
               </div>
             </div>
           </div>
         </div>
       </div>
+    </div>
     </div>
   )
 }
