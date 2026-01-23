@@ -84,7 +84,19 @@ export default function RegisterPage() {
       router.push('/login')
     } catch (err: any) {
       console.error('Registration error:', err)
-      setError(err.message || t('register.errorFailed') || 'Registration failed')
+      
+      let errorMessage = err.message || t('register.errorFailed') || 'Registration failed'
+      
+      // Handle specific error types
+      if (err.message?.includes('DUPLICATE_EMAIL')) {
+        errorMessage = '❌ Email sudah terdaftar! Silakan gunakan email lain atau login jika Anda sudah punya akun.'
+      } else if (err.message?.includes('DUPLICATE_PHONE')) {
+        errorMessage = '❌ Nomor telepon sudah terdaftar! Silakan gunakan nomor lain.'
+      } else if (err.message?.includes('User already registered')) {
+        errorMessage = '❌ Email sudah terdaftar! Silakan login atau gunakan email lain.'
+      }
+      
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

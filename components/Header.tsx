@@ -96,9 +96,7 @@ export default function Header() {
           {/* Right Side with enhanced animations */}
           <div className="hidden md:flex items-center space-x-3">
             {/* Cart Button with pulse animation */}
-            <div className="relative">
-              <CartButton />
-            </div>
+            <CartButton />
             
             {/* Language Switcher with smooth transition */}
             <button

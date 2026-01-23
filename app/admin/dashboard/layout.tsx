@@ -24,6 +24,11 @@ export default function AdminLayout({
     checkAdmin()
   }, [])
 
+  // Close sidebar when route changes on mobile
+  useEffect(() => {
+    setSidebarOpen(false)
+  }, [pathname])
+
   const checkAdmin = async () => {
     try {
       const admin = await authService.isAdmin()
@@ -186,8 +191,8 @@ export default function AdminLayout({
         </div>
       </aside>
 
-      {/* Admin Header */}
-      <AdminHeader />
+      {/* Admin Header - Pass sidebar state */}
+      <AdminHeader sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       {/* Main Content */}
       <div className="lg:ml-64 pt-16">

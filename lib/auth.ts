@@ -33,6 +33,31 @@ export const authService = {
         }
       }
 
+      // Check if email already exists in users table
+      const { data: existingUserByEmail } = await supabase
+        .from('users')
+        .select('email')
+        .eq('email', data.email.toLowerCase())
+        .single()
+
+      if (existingUserByEmail) {
+        throw new Error('DUPLICATE_EMAIL: Email sudah terdaftar. Silakan gunakan email lain atau login.')
+      }
+
+      // Check if phone already exists (if phone provided)
+      if (data.phone) {
+        const cleanPhone = data.phone.replace(/[\s-]/g, '')
+        const { data: existingUserByPhone } = await supabase
+          .from('users')
+          .select('phone')
+          .eq('phone', cleanPhone)
+          .single()
+
+        if (existingUserByPhone) {
+          throw new Error('DUPLICATE_PHONE: Nomor telepon sudah terdaftar. Silakan gunakan nomor lain.')
+        }
+      }
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,

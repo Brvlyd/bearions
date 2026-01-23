@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 export default function CartButton() {
   const [cartCount, setCartCount] = useState(0)
   const [userId, setUserId] = useState<string | null>(null)
+  const [isAnimating, setIsAnimating] = useState(false)
 
   useEffect(() => {
     // Get current user
@@ -44,16 +45,24 @@ export default function CartButton() {
     }
   }
 
+  const handleClick = () => {
+    setIsAnimating(true)
+    setTimeout(() => setIsAnimating(false), 300)
+  }
+
   if (!userId) return null
 
   return (
     <Link
       href="/cart"
-      className="relative p-2 hover:bg-gray-100 rounded-full transition"
+      onClick={handleClick}
+      className={`relative inline-flex p-3 rounded-full transition-all duration-300 group hover:bg-white/20 hover:shadow-lg ${
+        isAnimating ? 'scale-90' : 'scale-100'
+      }`}
     >
-      <ShoppingCart className="w-6 h-6" />
+      <ShoppingCart className="w-5 h-5 text-white group-hover:text-white transition-all duration-300 group-hover:scale-110" />
       {cartCount > 0 && (
-        <span className="absolute -top-1 -right-1 bg-black text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+        <span className="absolute -top-1 -right-1 bg-white text-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center ring-2 ring-black transition-all duration-300 group-hover:scale-110">
           {cartCount > 9 ? '9+' : cartCount}
         </span>
       )}

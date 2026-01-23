@@ -7,7 +7,7 @@ import { LogOut, Bell, Globe, Menu, X } from 'lucide-react'
 import { authService } from '@/lib/auth'
 import { useState, useEffect } from 'react'
 
-export default function AdminHeader() {
+export default function AdminHeader({ sidebarOpen, setSidebarOpen }: { sidebarOpen?: boolean, setSidebarOpen?: (open: boolean) => void }) {
   const router = useRouter()
   const pathname = usePathname()
   const { t, language, setLanguage } = useLanguage()
@@ -58,10 +58,10 @@ export default function AdminHeader() {
         <div className="flex items-center gap-2 lg:gap-4">
           {/* Mobile menu button */}
           <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            onClick={() => setSidebarOpen && setSidebarOpen(!sidebarOpen)}
             className="lg:hidden p-2 rounded-lg hover:bg-white/10 transition-colors"
           >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
           
           <div>
