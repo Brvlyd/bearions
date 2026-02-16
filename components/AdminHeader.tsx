@@ -52,7 +52,7 @@ export default function AdminHeader({ sidebarOpen, setSidebarOpen }: { sidebarOp
   }
 
   return (
-    <header className="fixed top-0 left-0 lg:left-64 right-0 h-16 bg-gradient-to-r from-gray-900 to-gray-800 border-b border-white/10 z-40">
+    <header className="fixed top-0 left-0 lg:left-64 right-0 h-16 bg-linear-to-r from-gray-900 to-gray-800 border-b border-white/10 z-40">
       <div className="h-full px-4 lg:px-8 flex items-center justify-between">
         {/* Left: Page Title */}
         <div className="flex items-center gap-2 lg:gap-4">
@@ -105,7 +105,7 @@ export default function AdminHeader({ sidebarOpen, setSidebarOpen }: { sidebarOp
 
           {/* Admin Profile */}
           <div className="flex items-center gap-2 lg:gap-3">
-            <div className="w-8 h-8 lg:w-9 lg:h-9 bg-gradient-to-br from-white to-gray-200 text-gray-900 flex items-center justify-center font-bold text-sm rounded-full ring-2 ring-white/20 hover:ring-white/40 transition-all duration-200">
+            <div className="w-8 h-8 lg:w-9 lg:h-9 bg-linear-to-br from-white to-gray-200 text-gray-900 flex items-center justify-center font-bold text-sm rounded-full ring-2 ring-white/20 hover:ring-white/40 transition-all duration-200">
               {adminName.charAt(0).toUpperCase()}
             </div>
             <div className="hidden lg:block">

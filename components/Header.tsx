@@ -73,7 +73,7 @@ export default function Header() {
               className="px-4 py-2 rounded-lg transition-all duration-300 hover:bg-white/10 hover:scale-105 relative group"
             >
               <span className="relative z-10">{t('nav.catalog')}</span>
-              <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+              <span className="absolute inset-0 bg-linear-to-rrom-white/0 via-white/5 to-white/0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
             </Link>
             {isLoggedIn && (
               <Link 
@@ -81,7 +81,7 @@ export default function Header() {
                 className="px-4 py-2 rounded-lg transition-all duration-300 hover:bg-white/10 hover:scale-105 relative group"
               >
                 <span className="relative z-10">{t('nav.myOrders')}</span>
-                <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                <span className="absolute inset-0 bg-linear-to-r from-white/0 via-white/5 to-white/0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
               </Link>
             )}
             <Link 
@@ -89,7 +89,7 @@ export default function Header() {
               className="px-4 py-2 rounded-lg transition-all duration-300 hover:bg-white/10 hover:scale-105 relative group"
             >
               <span className="relative z-10">{t('nav.community')}</span>
-              <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+              <span className="absolute inset-0 bg-linear-to-r from-white/0 via-white/5 to-white/0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
             </Link>
           </nav>
 
@@ -105,7 +105,7 @@ export default function Header() {
               title={language === 'en' ? 'Switch to Indonesian' : 'Ganti ke English'}
             >
               <Globe className="w-4 h-4 transition-transform duration-300 group-hover:rotate-180" />
-              <span className="font-medium min-w-[1.5rem] text-center">{language === 'en' ? 'EN' : 'ID'}</span>
+              <span className="font-medium min-w-6 text-center">{language === 'en' ? 'EN' : 'ID'}</span>
             </button>
             
             {isLoggedIn ? (

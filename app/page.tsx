@@ -9,7 +9,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white pt-16">
       {/* Hero Section */}
-      <section className="relative min-h-[500px] lg:h-150 bg-white text-black border-b border-gray-200">
+      <section className="relative min-h-125 lg:h-150 bg-white text-black border-b border-gray-200">
         <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center py-16 lg:py-0">
           <div className="max-w-2xl">
             <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold mb-4 lg:mb-6 text-black">

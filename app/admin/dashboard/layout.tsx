@@ -74,7 +74,7 @@ export default function AdminLayout({
       )}
 
       {/* Modern Admin Sidebar */}
-      <aside className={`fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-gray-900 via-gray-900 to-black text-white shadow-2xl z-50 transition-transform duration-300 lg:translate-x-0 ${
+      <aside className={`fixed left-0 top-0 h-full w-64 bg-linear-to-b from-gray-900 via-gray-900 to-black text-white shadow-2xl z-50 transition-transform duration-300 lg:translate-x-0 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         {/* Logo Section */}
