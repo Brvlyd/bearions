@@ -69,7 +69,7 @@ export default function Home() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center opacity-30">
+                <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
                     <div className="text-8xl">{emojis[position - 1]}</div>
                   </div>
@@ -82,11 +82,11 @@ export default function Home() {
 
       {/* Welcome Section Overlay */}
       <div className="relative z-10 h-full flex items-center justify-center">
-        <div className="text-center px-4 sm:px-6 lg:px-8 bg-white/10 rounded-3xl p-8 md:p-12 lg:p-16 max-w-3xl mx-4 shadow-sm">
-          <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold mb-4 lg:mb-6 text-black drop-shadow-lg">
+        <div className="text-center px-4 sm:px-6 lg:px-8 bg-white/10 rounded-3xl p-8 md:p-12 lg:p-16 max-w-3xl mx-4">
+          <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold mb-4 lg:mb-6 text-white drop-shadow-lg">
             {t('home.hero.title')}
           </h1>
-          <p className="text-lg md:text-xl lg:text-2xl mb-6 lg:mb-8 text-gray-800 drop-shadow-md">
+          <p className="text-lg md:text-xl lg:text-2xl mb-6 lg:mb-8 text-white drop-shadow-md">
             {t('home.hero.subtitle')}
           </p>
           <Link
