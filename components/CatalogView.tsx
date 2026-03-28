@@ -4,26 +4,20 @@ import { useState, useEffect } from 'react'
 import { Search } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n'
 import ProductCard from './ProductCard'
-import { Product } from '@/lib/supabase'
+import { Product, supabase } from '@/lib/supabase'
 import { productService } from '@/lib/products'
 
-const categories = ['All Products', 'Tops', 'Bottoms', 'Accessories', 'Outerwear']
+interface Category {
+  id: string
+  name: string
+  description?: string
+}
 
 export default function CatalogView() {
   const { t, language } = useLanguage()
-
-  const getCategoryTranslation = (category: string) => {
-    const translations: Record<string, { en: string, id: string }> = {
-      'All Products': { en: 'All Products', id: 'Semua Produk' },
-      'Tops': { en: 'Tops', id: 'Atasan' },
-      'Bottoms': { en: 'Bottoms', id: 'Bawahan' },
-      'Accessories': { en: 'Accessories', id: 'Aksesoris' },
-      'Outerwear': { en: 'Outerwear', id: 'Jaket' }
-    }
-    return translations[category]?.[language] || category
-  }
   const [products, setProducts] = useState<Product[]>([])
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [selectedCategory, setSelectedCategory] = useState('All Products')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState('featured')
@@ -32,6 +26,7 @@ export default function CatalogView() {
 
   useEffect(() => {
     loadProducts()
+    loadCategories()
   }, [])
 
   useEffect(() => {
@@ -47,6 +42,20 @@ export default function CatalogView() {
       console.error('Error loading products:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('name', { ascending: true })
+      
+      if (error) throw error
+      setCategories(data || [])
+    } catch (error) {
+      console.error('Error loading categories:', error)
     }
   }
 
@@ -96,17 +105,29 @@ export default function CatalogView() {
           <div className="bg-white border border-gray-200 rounded-lg p-4 lg:p-6">
             <h2 className="font-bold text-lg mb-4 text-black">{t('catalog.filterByCategory')}</h2>
             <ul className="space-y-2">
+              <li>
+                <button
+                  onClick={() => setSelectedCategory('All Products')}
+                  className={`w-full text-left px-3 py-2 rounded transition ${
+                    selectedCategory === 'All Products'
+                      ? 'bg-black text-white'
+                      : 'hover:bg-gray-100 text-black'
+                  }`}
+                >
+                  {language === 'id' ? 'Semua Produk' : 'All Products'}
+                </button>
+              </li>
               {categories.map((category) => (
-                <li key={category}>
+                <li key={category.id}>
                   <button
-                    onClick={() => setSelectedCategory(category)}
+                    onClick={() => setSelectedCategory(category.name)}
                     className={`w-full text-left px-3 py-2 rounded transition ${
-                      selectedCategory === category
+                      selectedCategory === category.name
                         ? 'bg-black text-white'
                         : 'hover:bg-gray-100 text-black'
                     }`}
                   >
-                    {getCategoryTranslation(category)}
+                    {category.name}
                   </button>
                 </li>
               ))}
@@ -130,7 +151,12 @@ export default function CatalogView() {
             <div className="w-12 h-12 bg-gray-100 border border-gray-200 rounded-full flex items-center justify-center">
               <span className="text-2xl">👕</span>
             </div>
-            <h1 className="text-2xl font-bold text-black">{getCategoryTranslation(selectedCategory)}</h1>
+            <h1 className="text-2xl font-bold text-black">
+              {selectedCategory === 'All Products' 
+                ? (language === 'id' ? 'Semua Produk' : 'All Products')
+                : selectedCategory
+              }
+            </h1>
           </div>
 
           {/* Search and Sort */}
@@ -141,7 +167,7 @@ export default function CatalogView() {
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-3 pr-12 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
+                className="w-full px-4 py-3 pr-12 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-gray-600"
               />
               <button
                 type="submit"

@@ -124,12 +124,12 @@ export default function CartItem({
           <button
             onClick={() => handleQuantityChange(item.quantity - 1)}
             disabled={isUpdating || disabled || item.quantity <= 1}
-            className="p-1 rounded disabled:opacity-50 disabled:cursor-not-allowed btn-quantity-animated"
+            className="p-1 rounded disabled:opacity-50 disabled:cursor-not-allowed btn-quantity-animated text-black hover:text-gray-700"
           >
-            <Minus className="w-3 h-3 sm:w-4 sm:h-4" />
+            <Minus className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
           </button>
 
-          <span className="font-medium min-w-6 sm:min-w-8 text-center text-sm sm:text-base">
+          <span className="font-bold min-w-6 sm:min-w-8 text-center text-sm sm:text-base text-black">
             {item.quantity}
           </span>
 
@@ -141,9 +141,9 @@ export default function CartItem({
               item.quantity >= product.stock ||
               product.stock === 0
             }
-            className="p-1 rounded disabled:opacity-50 disabled:cursor-not-allowed btn-quantity-animated"
+            className="p-1 rounded disabled:opacity-50 disabled:cursor-not-allowed btn-quantity-animated text-black hover:text-gray-700"
           >
-            <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
           </button>
         </div>
 

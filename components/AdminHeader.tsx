@@ -14,6 +14,7 @@ export default function AdminHeader({ sidebarOpen, setSidebarOpen }: { sidebarOp
   const [adminName, setAdminName] = useState('Admin')
   const [notifications, setNotifications] = useState(3) // Mock notifications
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [showNotifications, setShowNotifications] = useState(false)
 
   useEffect(() => {
     loadAdminInfo()
@@ -47,6 +48,9 @@ export default function AdminHeader({ sidebarOpen, setSidebarOpen }: { sidebarOp
     if (pathname.includes('/add-product')) return t('admin.addProduct')
     if (pathname.includes('/edit-product')) return t('admin.editProduct')
     if (pathname.includes('/products')) return t('adminProducts.title')
+    if (pathname.includes('/landing-page')) return 'Landing Page & Categories'
+    if (pathname.includes('/users')) return 'User Management'
+    if (pathname.includes('/orders')) return 'Orders'
     if (pathname.includes('/monitoring')) return 'Monitoring'
     return t('adminDashboard.overview')
   }
@@ -91,14 +95,85 @@ export default function AdminHeader({ sidebarOpen, setSidebarOpen }: { sidebarOp
           </button>
 
           {/* Notifications */}
-          <button className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-200 relative group">
-            <Bell className="w-4 h-4 lg:w-5 lg:h-5 text-gray-400 group-hover:text-white transition-all" />
-            {notifications > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 lg:w-5 lg:h-5 flex items-center justify-center font-bold text-[10px]">
-                {notifications}
-              </span>
+          <div className="relative">
+            <button 
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-200 relative group"
+            >
+              <Bell className="w-4 h-4 lg:w-5 lg:h-5 text-gray-400 group-hover:text-white transition-all" />
+              {notifications > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 lg:w-5 lg:h-5 flex items-center justify-center font-bold text-[10px]">
+                  {notifications}
+                </span>
+              )}
+            </button>
+
+            {/* Notifications Dropdown */}
+            {showNotifications && (
+              <>
+                {/* Backdrop */}
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setShowNotifications(false)}
+                ></div>
+                
+                {/* Dropdown */}
+                <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden">
+                  <div className="p-4 border-b border-gray-200 bg-gray-50">
+                    <h3 className="font-semibold text-black">Notifications</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">{notifications} new notifications</p>
+                  </div>
+                  
+                  <div className="max-h-96 overflow-y-auto">
+                    {/* Mock Notifications */}
+                    <div className="divide-y divide-gray-100">
+                      <div className="p-4 hover:bg-gray-50 transition cursor-pointer">
+                        <div className="flex gap-3">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-black">New Order #12345</p>
+                            <p className="text-xs text-gray-600 mt-1">Customer John placed a new order</p>
+                            <p className="text-xs text-gray-400 mt-1">2 minutes ago</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="p-4 hover:bg-gray-50 transition cursor-pointer">
+                        <div className="flex gap-3">
+                          <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-black">Product Stock Low</p>
+                            <p className="text-xs text-gray-600 mt-1">Bearion Tees stock is below 10 items</p>
+                            <p className="text-xs text-gray-400 mt-1">1 hour ago</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="p-4 hover:bg-gray-50 transition cursor-pointer">
+                        <div className="flex gap-3">
+                          <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-black">New User Registration</p>
+                            <p className="text-xs text-gray-600 mt-1">Sarah Johnson just registered</p>
+                            <p className="text-xs text-gray-400 mt-1">3 hours ago</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-3 border-t border-gray-200 bg-gray-50">
+                    <button 
+                      onClick={() => setShowNotifications(false)}
+                      className="w-full text-center text-sm text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      Mark all as read
+                    </button>
+                  </div>
+                </div>
+              </>
             )}
-          </button>
+          </div>
 
           {/* Divider - Hidden on mobile */}
           <div className="hidden sm:block h-8 w-px bg-white/10"></div>
@@ -109,7 +184,9 @@ export default function AdminHeader({ sidebarOpen, setSidebarOpen }: { sidebarOp
               {adminName.charAt(0).toUpperCase()}
             </div>
             <div className="hidden lg:block">
-              <p className="text-sm font-semibold text-white">{adminName}</p>
+              <p className="text-sm font-semibold text-white">
+                Hello, {adminName.length > 15 ? adminName.substring(0, 15) + '...' : adminName}
+              </p>
               <p className="text-xs text-gray-400">{t('admin.administrator')}</p>
             </div>
           </div>

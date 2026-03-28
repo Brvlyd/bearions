@@ -1,87 +1,102 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from "next/link";
 import { useLanguage } from '@/lib/i18n'
+import { supabase } from '@/lib/supabase'
+import { getImageUrl } from '@/lib/image-utils'
+
+interface LandingPageImage {
+  id: string
+  position: number
+  image_url: string
+}
 
 export default function Home() {
   const { t } = useLanguage()
+  const [images, setImages] = useState<LandingPageImage[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadImages()
+    
+    // Disable scrolling on mount
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+    
+    // Re-enable scrolling on unmount
+    return () => {
+      document.body.style.overflow = 'auto'
+      document.documentElement.style.overflow = 'auto'
+    }
+  }, [])
+
+  const loadImages = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('landing_page_images')
+        .select('*')
+        .order('position', { ascending: true })
+
+      if (error) throw error
+      setImages(data || [])
+    } catch (error) {
+      console.error('Error loading landing page images:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
   
   return (
-    <div className="min-h-screen bg-white pt-16">
-      {/* Hero Section */}
-      <section className="relative min-h-125 lg:h-150 bg-white text-black border-b border-gray-200">
-        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center py-16 lg:py-0">
-          <div className="max-w-2xl">
-            <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold mb-4 lg:mb-6 text-black">
-              {t('home.hero.title')}
-            </h1>
-            <p className="text-lg md:text-xl lg:text-2xl mb-6 lg:mb-8 text-gray-700">
-              {t('home.hero.subtitle')}
-            </p>
-            <p className="text-base lg:text-lg mb-6 lg:mb-8 text-gray-600">
-              {t('home.hero.subtitle')}
-            </p>
-            <Link
-              href="/catalog"
-              className="inline-block bg-black text-white px-6 py-3 lg:px-8 lg:py-4 rounded-lg font-semibold hover:bg-gray-800 transition text-base lg:text-lg"
-            >
-              {t('home.hero.cta')}
-            </Link>
-          </div>
-        </div>
-      </section>
+    <div className="h-screen bg-white overflow-hidden relative fixed inset-0">
+      {/* Three Image Grid Background */}
+      <div className="absolute inset-0 grid grid-cols-1 md:grid-cols-3 gap-0">
+        {[1, 2, 3].map((position) => {
+          const image = images.find(img => img.position === position)
+          const gradients = [
+            'from-gray-100 to-gray-200',
+            'from-gray-200 to-gray-300',
+            'from-gray-300 to-gray-400'
+          ]
+          const emojis = ['🐻', '✨', '🎁']
+          
+          return (
+            <div key={position} className={`relative overflow-hidden bg-gradient-to-br ${gradients[position - 1]}`}>
+              {image?.image_url ? (
+                <img
+                  src={getImageUrl(image.image_url)}
+                  alt={`Landing page background ${position}`}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center opacity-30">
+                  <div className="text-center">
+                    <div className="text-8xl">{emojis[position - 1]}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
 
-      {/* Features Section */}
-      <section className="py-12 lg:py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl lg:text-4xl font-bold text-center text-black mb-8 lg:mb-16">{t('home.featured.title')}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gray-100 text-black rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
-                ✨
-              </div>
-              <h3 className="text-xl font-semibold mb-3 text-black">{t('home.features.quality')}</h3>
-              <p className="text-gray-600">
-                {t('home.features.qualityDesc')}
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gray-100 text-black rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
-                🚚
-              </div>
-              <h3 className="text-xl font-semibold mb-3 text-black">{t('home.features.shipping')}</h3>
-              <p className="text-gray-600">
-                {t('home.features.shippingDesc')}
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gray-100 text-black rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
-                �
-              </div>
-              <h3 className="text-xl font-semibold mb-3 text-black">{t('home.features.returns')}</h3>
-              <p className="text-gray-600">
-                {t('home.features.returnsDesc')}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-12 lg:py-20 bg-white border-t border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold mb-4 lg:mb-6 text-black">{t('home.hero.cta')}</h2>
-          <p className="text-lg lg:text-xl text-gray-600 mb-6 lg:mb-8">
-            {t('home.featured.viewAll')}
+      {/* Welcome Section Overlay */}
+      <div className="relative z-10 h-full flex items-center justify-center">
+        <div className="text-center px-4 sm:px-6 lg:px-8 bg-white/10 rounded-3xl p-8 md:p-12 lg:p-16 max-w-3xl mx-4 shadow-sm">
+          <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold mb-4 lg:mb-6 text-black drop-shadow-lg">
+            {t('home.hero.title')}
+          </h1>
+          <p className="text-lg md:text-xl lg:text-2xl mb-6 lg:mb-8 text-gray-800 drop-shadow-md">
+            {t('home.hero.subtitle')}
           </p>
           <Link
             href="/catalog"
-            className="inline-block bg-black text-white px-6 py-3 lg:px-8 lg:py-4 rounded-lg font-semibold hover:bg-gray-800 transition text-base lg:text-lg"
+            className="inline-block bg-black/90 text-white px-6 py-3 lg:px-8 lg:py-4 rounded-lg font-semibold hover:bg-black transition text-base lg:text-lg shadow-md hover:shadow-lg"
           >
-            {t('nav.catalog')}
+            {t('home.hero.cta')}
           </Link>
         </div>
-      </section>
+      </div>
     </div>
   );
 }

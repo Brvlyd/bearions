@@ -25,6 +25,15 @@ export type Admin = {
   created_at: string
 }
 
+// Landing Page Types
+export type LandingPageImage = {
+  id: string
+  position: number
+  image_url: string
+  created_at: string
+  updated_at: string
+}
+
 // Cart Types
 export type Cart = {
   id: string

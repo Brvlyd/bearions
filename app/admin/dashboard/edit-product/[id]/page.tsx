@@ -3,12 +3,17 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { productService } from '@/lib/products'
-import { Product } from '@/lib/supabase'
+import { Product, supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import MultiImageUpload from '@/components/MultiImageUpload'
+import Notification from '@/components/Notification'
 
-const categories = ['Tops', 'Bottoms', 'Accessories', 'Outerwear']
+interface Category {
+  id: string
+  name: string
+  description?: string
+}
 
 export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
@@ -16,12 +21,14 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [product, setProduct] = useState<Product | null>(null)
+  const [categories, setCategories] = useState<Category[]>([])
+  const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info', message: string } | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     price: '',
     stock: '',
-    category: 'Tops',
+    category: '',
     image_url: '',
     images: [] as string[]
   })
@@ -31,10 +38,28 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   }, [params])
 
   useEffect(() => {
+    loadCategories()
+  }, [])
+
+  useEffect(() => {
     if (productId) {
       loadProduct()
     }
   }, [productId])
+
+  const loadCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('name', { ascending: true })
+      
+      if (error) throw error
+      setCategories(data || [])
+    } catch (error) {
+      console.error('Error loading categories:', error)
+    }
+  }
 
   const loadProduct = async () => {
     try {
@@ -57,8 +82,10 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
       })
     } catch (error) {
       console.error('Error loading product:', error)
-      alert('Failed to load product')
-      router.push('/admin/dashboard')
+      setNotification({ type: 'error', message: 'Failed to load product' })
+      setTimeout(() => {
+        router.push('/admin/dashboard')
+      }, 2000)
     } finally {
       setLoading(false)
     }
@@ -83,11 +110,13 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         await productService.saveProductImages(productId, formData.images)
       }
 
-      alert('Product updated successfully!')
-      router.push('/admin/dashboard')
+      setNotification({ type: 'success', message: 'Product updated successfully!' })
+      setTimeout(() => {
+        router.push('/admin/dashboard')
+      }, 1500)
     } catch (error: any) {
       console.error('Error updating product:', error)
-      alert('Failed to update product: ' + error.message)
+      setNotification({ type: 'error', message: 'Failed to update product: ' + error.message })
     } finally {
       setSaving(false)
     }
@@ -142,12 +171,12 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               value={formData.name}
               onChange={handleChange}
               required
-              className="w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
             />
           </div>
 
           <div>
-            <label htmlFor="description" className="block text-sm font-medium mb-2">
+            <label htmlFor="description" className="block text-sm font-medium mb-2 text-black">
               Description
             </label>
             <textarea
@@ -156,13 +185,13 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               value={formData.description}
               onChange={handleChange}
               rows={4}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="price" className="block text-sm font-medium mb-2">
+              <label htmlFor="price" className="block text-sm font-medium mb-2 text-black">
                 Price (IDR) *
               </label>
               <input
@@ -173,12 +202,12 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 value={formData.price}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
               />
             </div>
 
             <div>
-              <label htmlFor="stock" className="block text-sm font-medium mb-2">
+              <label htmlFor="stock" className="block text-sm font-medium mb-2 text-black">
                 Stock *
               </label>
               <input
@@ -188,13 +217,13 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 value={formData.stock}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
               />
             </div>
           </div>
 
           <div>
-            <label htmlFor="category" className="block text-sm font-medium mb-2">
+            <label htmlFor="category" className="block text-sm font-medium mb-2 text-black">
               Category *
             </label>
             <select
@@ -203,19 +232,28 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               value={formData.category}
               onChange={handleChange}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
             >
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
+              {categories.length === 0 ? (
+                <option value="">Loading categories...</option>
+              ) : (
+                categories.map(cat => (
+                  <option key={cat.id} value={cat.name}>{cat.name}</option>
+                ))
+              )}
             </select>
           </div>
 
-          <MultiImageUpload
-            productId={productId}
-            onImagesChange={(urls) => setFormData({ ...formData, images: urls })}
-            initialImages={formData.images}
-          />
+          <div>
+            <label className="block text-sm font-medium mb-2 text-black">
+              Product Images
+            </label>
+            <MultiImageUpload
+              productId={productId}
+              onImagesChange={(urls) => setFormData({ ...formData, images: urls })}
+              initialImages={formData.images}
+            />
+          </div>
 
           <div className="flex gap-4 pt-4">
             <button
@@ -234,6 +272,15 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
           </div>
         </form>
       </div>
+
+      {/* Notification */}
+      {notification && (
+        <Notification
+          type={notification.type}
+          message={notification.message}
+          onClose={() => setNotification(null)}
+        />
+      )}
     </div>
   )
 }

@@ -6,7 +6,7 @@ import { productService } from '@/lib/products'
 import { useLanguage } from '@/lib/i18n'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Eye, Package, AlertCircle, Search, SlidersHorizontal, Grid, List, Pencil, Trash2, Filter } from 'lucide-react'
+import { Eye, Package, AlertCircle, Search, SlidersHorizontal, Grid, List, Pencil, Trash2, Filter, PlusCircle } from 'lucide-react'
 
 type ViewMode = 'tiles' | 'content'
 type SortOption = 'name-asc' | 'name-desc' | 'newest' | 'oldest' | 'stock-high' | 'stock-low'
@@ -21,6 +21,9 @@ export default function MonitoringPage() {
   const [sortBy, setSortBy] = useState<SortOption>('newest')
   const [showSortMenu, setShowSortMenu] = useState(false)
   const [showCategoryFilter, setShowCategoryFilter] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [productToDelete, setProductToDelete] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   useEffect(() => {
     loadProducts()
@@ -47,15 +50,30 @@ export default function MonitoringPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t('adminProducts.confirmDelete'))) return
+    setProductToDelete(id)
+    setShowDeleteModal(true)
+    setDeleteError(null)
+  }
+
+  const confirmDelete = async () => {
+    if (!productToDelete) return
 
     try {
-      await productService.deleteProduct(id)
-      setProducts(products.filter(p => p.id !== id))
+      await productService.deleteProduct(productToDelete)
+      setProducts(products.filter(p => p.id !== productToDelete))
+      setShowDeleteModal(false)
+      setProductToDelete(null)
+      setDeleteError(null)
     } catch (error) {
       console.error('Error deleting product:', error)
-      alert(t('adminProducts.deleteError'))
+      setDeleteError(t('adminProducts.deleteError'))
     }
+  }
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false)
+    setProductToDelete(null)
+    setDeleteError(null)
   }
 
   const getFilteredProducts = () => {
@@ -119,9 +137,18 @@ export default function MonitoringPage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold mb-2 text-black">Product Management</h2>
-        <p className="text-gray-600">Manage product availability, stock levels, and images</p>
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold mb-2 text-black">Product Management</h2>
+          <p className="text-gray-600">Manage product availability, stock levels, and images</p>
+        </div>
+        <Link
+          href="/admin/dashboard/add-product"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+        >
+          <PlusCircle className="w-5 h-5" />
+          Add Product
+        </Link>
       </div>
 
       {/* Alert Stats */}
@@ -165,7 +192,7 @@ export default function MonitoringPage() {
             placeholder="Search products by name, category, or description..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+            className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-gray-600"
           />
         </div>
 
@@ -341,10 +368,18 @@ export default function MonitoringPage() {
                   </Link>
                   <Link
                     href={`/admin/dashboard/edit-product/${product.id}`}
-                    className="flex-1 bg-black text-white px-3 py-2 rounded text-sm font-medium hover:bg-gray-800 transition text-center"
+                    className="flex-1 bg-black text-white px-3 py-2 rounded text-sm font-medium hover:bg-gray-800 transition text-center flex items-center justify-center gap-1"
                   >
+                    <Pencil className="w-4 h-4" />
                     Edit
                   </Link>
+                  <button
+                    onClick={() => handleDelete(product.id)}
+                    className="bg-red-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-red-700 transition flex items-center justify-center"
+                    title="Delete"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             </div>
@@ -447,6 +482,41 @@ export default function MonitoringPage() {
       {filteredProducts.length === 0 && (
         <div className="text-center py-12 text-gray-500">
           No products found in this category.
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold text-black mb-4">
+              {t('adminProducts.confirmDelete')}
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete this product? This action cannot be undone.
+            </p>
+            
+            {deleteError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={cancelDelete}
+                className="px-4 py-2 bg-gray-100 text-black rounded hover:bg-gray-200 transition font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition font-medium"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

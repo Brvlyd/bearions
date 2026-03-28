@@ -2,27 +2,42 @@
 
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { User, Menu, X, LogOut, Globe, ShoppingBag } from 'lucide-react'
 import { authService } from '@/lib/auth'
 import CartButton from './CartButton'
 import { useLanguage } from '@/lib/i18n'
 
 export default function Header() {
+  const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userRole, setUserRole] = useState<'admin' | 'user' | null>(null)
+  const [userName, setUserName] = useState<string>('')
   const [scrolled, setScrolled] = useState(false)
   const { language, setLanguage, t } = useLanguage()
 
   useEffect(() => {
     checkAuth()
     
+    // Listen for auth state changes
+    const { data: authListener } = authService.onAuthStateChange((event) => {
+      console.log('Auth state changed:', event)
+      checkAuth()
+    })
+    
     // Detect scroll for header effect
     const handleScroll = () => {
       setScrolled(window.scrollY > 10)
     }
     window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      if (authListener?.subscription) {
+        authListener.subscription.unsubscribe()
+      }
+    }
   }, [])
 
   const checkAuth = async () => {
@@ -31,9 +46,17 @@ export default function Header() {
       if (user) {
         setIsLoggedIn(true)
         setUserRole(user.role)
+        setUserName(user.profile?.full_name || '')
+      } else {
+        setIsLoggedIn(false)
+        setUserRole(null)
+        setUserName('')
       }
     } catch (error) {
       console.error('Auth check failed:', error)
+      setIsLoggedIn(false)
+      setUserRole(null)
+      setUserName('')
     }
   }
 
@@ -42,6 +65,7 @@ export default function Header() {
       await authService.logout()
       setIsLoggedIn(false)
       setUserRole(null)
+      setUserName('')
       window.location.href = '/'
     } catch (error) {
       console.error('Logout failed:', error)
@@ -50,6 +74,11 @@ export default function Header() {
 
   const toggleLanguage = () => {
     setLanguage(language === 'en' ? 'id' : 'en')
+  }
+
+  // Don't render header on admin pages
+  if (pathname?.startsWith('/admin')) {
+    return null
   }
 
   return (
@@ -94,14 +123,14 @@ export default function Header() {
           </nav>
 
           {/* Right Side with enhanced animations */}
-          <div className="hidden md:flex items-center space-x-3">
+          <div className="hidden md:flex items-center space-x-2 flex-shrink-0">
             {/* Cart Button with pulse animation */}
             <CartButton />
             
             {/* Language Switcher with smooth transition */}
             <button
               onClick={toggleLanguage}
-              className="header-btn-language text-sm group"
+              className="header-btn-language text-sm group flex-shrink-0"
               title={language === 'en' ? 'Switch to Indonesian' : 'Ganti ke English'}
             >
               <Globe className="w-4 h-4 transition-transform duration-300 group-hover:rotate-180" />
@@ -112,14 +141,25 @@ export default function Header() {
               <>
                 <Link 
                   href={userRole === 'admin' ? '/admin/dashboard' : '/profile'}
-                  className="header-btn-icon group"
+                  className="header-btn-icon group max-w-xs"
+                  title={userName ? `Hello, ${userName}` : ''}
                 >
-                  <User className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
-                  <span className="font-medium">{userRole === 'admin' ? t('nav.dashboard') : t('nav.profile')}</span>
+                  <User className="w-4 h-4 transition-transform duration-300 group-hover:scale-110 flex-shrink-0" />
+                  <span className="font-medium truncate">
+                    {userName ? (
+                      <>
+                        <span className="hidden lg:inline">Hello, </span>
+                        <span className="hidden lg:inline">{userName.length > 12 ? userName.substring(0, 12) + '...' : userName}</span>
+                        <span className="lg:hidden">{userName.split(' ')[0]}</span>
+                      </>
+                    ) : (
+                      userRole === 'admin' ? t('nav.dashboard') : t('nav.profile')
+                    )}
+                  </span>
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="header-btn-logout group"
+                  className="header-btn-logout group flex-shrink-0"
                 >
                   <LogOut className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
                   <span className="font-medium">{t('nav.logout')}</span>
@@ -129,14 +169,14 @@ export default function Header() {
               <>
                 <Link 
                   href="/login" 
-                  className="header-btn-icon group"
+                  className="header-btn-icon group flex-shrink-0"
                 >
                   <User className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
                   <span className="font-medium">{t('nav.signIn')}</span>
                 </Link>
                 <Link
                   href="/register"
-                  className="header-btn-primary font-medium"
+                  className="header-btn-primary font-medium flex-shrink-0"
                 >
                   {t('nav.signUp')}
                 </Link>
@@ -145,7 +185,7 @@ export default function Header() {
             
             <Link
               href="/contact"
-              className="header-btn-primary font-medium"
+              className="header-btn-primary font-medium flex-shrink-0"
             >
               {t('nav.contact')}
             </Link>
@@ -212,7 +252,11 @@ export default function Header() {
                   className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  {userRole === 'admin' ? t('nav.dashboard') : t('nav.profile')}
+                  {userName ? (
+                    <span>Hello, {userName.split(' ')[0]}</span>
+                  ) : (
+                    userRole === 'admin' ? t('nav.dashboard') : t('nav.profile')
+                  )}
                 </Link>
                 <button 
                   onClick={() => {

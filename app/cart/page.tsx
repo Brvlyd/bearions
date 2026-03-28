@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/lib/i18n'
 import Link from 'next/link'
 import { ShoppingBag, ArrowRight, AlertCircle } from 'lucide-react'
@@ -11,12 +10,12 @@ import CartItem from '@/components/CartItem'
 import type { CartItem as CartItemType } from '@/lib/supabase'
 
 export default function CartPage() {
-  const router = useRouter()
   const { t } = useLanguage()
   const [cartItems, setCartItems] = useState<CartItemType[]>([])
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
   const [updating, setUpdating] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   useEffect(() => {
     checkAuth()
@@ -28,10 +27,12 @@ export default function CartPage() {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      router.push('/login?redirect=/cart')
+      setIsLoggedIn(false)
+      setLoading(false)
       return
     }
 
+    setIsLoggedIn(true)
     setUserId(user.id)
     loadCart(user.id)
   }
@@ -117,6 +118,28 @@ export default function CartPage() {
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
             <p className="mt-4 text-gray-600">{t('cart.loading') || 'Loading cart...'}</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-white">
+        <div className="container mx-auto px-4 py-12 pt-24">
+          <div className="max-w-md mx-auto text-center">
+            <ShoppingBag className="w-24 h-24 mx-auto text-gray-300 mb-6" />
+            <h1 className="text-2xl font-bold text-black mb-2">{t('login.pleaseLoginToViewCart')}</h1>
+            <p className="text-gray-600 mb-8">
+              {t('login.needLoginForCart')}
+            </p>
+            <Link
+              href="/login"
+              className="inline-block bg-black text-white px-8 py-3 rounded-lg font-semibold hover:bg-gray-800 transition"
+            >
+              {t('nav.signIn')}
+            </Link>
           </div>
         </div>
       </div>

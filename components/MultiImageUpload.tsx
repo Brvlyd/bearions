@@ -133,10 +133,6 @@ export default function MultiImageUpload({ productId, onImagesChange, initialIma
 
   return (
     <div>
-      <label className="block text-sm font-medium mb-2 text-black">
-        Product Images
-      </label>
-
       {/* Image Grid */}
       {images.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">

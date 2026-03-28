@@ -15,6 +15,7 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
+  const [redirecting, setRedirecting] = useState(false)
 
   // Check if coming from email confirmation
   useEffect(() => {
@@ -47,6 +48,8 @@ export default function LoginPage() {
     }
 
     setLoading(true)
+    setError('')
+    setSuccess('')
 
     try {
       // Login tanpa specify role, akan auto-detect
@@ -54,16 +57,26 @@ export default function LoginPage() {
       
       if (!result) {
         setError(t('login.errorFailed'))
+        setLoading(false)
         return
       }
       
+      // Show success message
+      setRedirecting(true)
+      setSuccess('✅ Login berhasil! Mengarahkan ke halaman...')
+      
+      // Wait a bit to ensure session is properly saved
+      await new Promise(resolve => setTimeout(resolve, 800))
+      
       if (result.role === 'admin') {
-        router.push('/admin/dashboard')
+        window.location.href = '/admin/dashboard'
       } else if (result.role === 'user') {
-        router.push('/catalog')
+        window.location.href = '/catalog'
       } else {
         setError(t('login.errorRoleDetermination'))
         await authService.logout()
+        setLoading(false)
+        setRedirecting(false)
       }
     } catch (err: any) {
       console.error('Login error:', err)
@@ -139,10 +152,10 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || redirecting}
               className="w-full btn-primary-animated"
             >
-              {loading ? t('login.submitting') : t('login.submit')}
+              {redirecting ? '🔄 Mengarahkan...' : (loading ? t('login.submitting') : t('login.submit'))}
             </button>
           </form>
 

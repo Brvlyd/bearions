@@ -46,6 +46,9 @@ const translations: Translations = {
   'login.errorEmailNotConfirmed': { en: 'Please verify your email before logging in. Check your inbox (and spam folder) for the confirmation link.', id: 'Verifikasi email Anda sebelum login. Cek inbox (dan folder spam) untuk link konfirmasi.' },
   'login.errorInvalidCredentials': { en: 'Invalid email or password. Please try again.', id: 'Email atau kata sandi salah. Silakan coba lagi.' },
   'login.errorRoleDetermination': { en: 'Unable to determine user role', id: 'Tidak dapat menentukan peran pengguna' },
+  'login.pleaseLoginFirst': { en: 'Please login first to add items to cart', id: 'Silakan login terlebih dahulu untuk menambahkan item ke keranjang' },
+  'login.pleaseLoginToViewCart': { en: 'Please Login to View Your Cart', id: 'Silakan Login untuk Melihat Keranjang Anda' },
+  'login.needLoginForCart': { en: 'You need to login to view your shopping cart', id: 'Anda perlu login untuk melihat keranjang belanja' },
   
   // Register Page
   'register.title': { en: 'Create Account', id: 'Buat Akun' },

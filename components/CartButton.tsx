@@ -50,8 +50,6 @@ export default function CartButton() {
     setTimeout(() => setIsAnimating(false), 300)
   }
 
-  if (!userId) return null
-
   return (
     <Link
       href="/cart"
@@ -61,7 +59,7 @@ export default function CartButton() {
       }`}
     >
       <ShoppingCart className="w-5 h-5 text-white group-hover:text-white transition-all duration-300 group-hover:scale-110" />
-      {cartCount > 0 && (
+      {userId && cartCount > 0 && (
         <span className="absolute -top-1 -right-1 bg-white text-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center ring-2 ring-black transition-all duration-300 group-hover:scale-110">
           {cartCount > 9 ? '9+' : cartCount}
         </span>

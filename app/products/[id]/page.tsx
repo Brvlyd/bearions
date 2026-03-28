@@ -75,7 +75,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       // Get current user
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        setMessage({ type: 'error', text: t('login.title') })
+        setMessage({ type: 'error', text: t('login.pleaseLoginFirst') })
+        setAddingToCart(false)
         return
       }
 
@@ -163,12 +164,6 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
           {/* Product Info */}
           <div className="flex flex-col">
-            {message && (
-              <div className={`mb-4 p-4 rounded-lg ${message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
-                {message.text}
-              </div>
-            )}
-
             <div className="mb-4">
               <span className="inline-block px-3 py-1 bg-gray-100 text-sm rounded text-black">
                 {product.category}
@@ -239,19 +234,18 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                     <button
                       onClick={decrementQuantity}
                       disabled={quantity <= 1}
-                      className="w-10 h-10 border-2 border-gray-300 rounded-lg flex items-center justify-center hover:border-black disabled:opacity-50 disabled:cursor-not-allowed btn-animate-bounce"
+                      className="w-10 h-10 border-2 border-gray-300 rounded-lg flex items-center justify-center hover:border-black disabled:opacity-50 disabled:cursor-not-allowed btn-animate-bounce text-black"
                     >
-                      <Minus className="w-4 h-4" />
+                      <Minus className="w-5 h-5 stroke-[2.5]" />
                     </button>
                     <span className="text-lg lg:text-xl font-bold text-black w-12 text-center">{quantity}</span>
                     <button
                       onClick={incrementQuantity}
                       disabled={quantity >= product.stock}
-                      className="w-10 h-10 border-2 border-gray-300 rounded-lg flex items-center justify-center hover:border-black disabled:opacity-50 disabled:cursor-not-allowed btn-animate-bounce"
+                      className="w-10 h-10 border-2 border-gray-300 rounded-lg flex items-center justify-center hover:border-black disabled:opacity-50 disabled:cursor-not-allowed btn-animate-bounce text-black"
                     >
-                      <Plus className="w-4 h-4" />
+                      <Plus className="w-5 h-5 stroke-[2.5]" />
                     </button>
-                    <span className="text-sm text-gray-600">Max: {product.stock}</span>
                   </div>
                 </div>
               </>
@@ -273,6 +267,18 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               >
                 Out of Stock
               </button>
+            )}
+            
+            {/* Notification message below button */}
+            {message && (
+              <div className={`mt-4 p-4 rounded-lg ${message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-yellow-50 text-yellow-800 border border-yellow-200'}`}>
+                <p>{message.text}</p>
+                {message.type === 'error' && (
+                  <Link href="/login" className="inline-block mt-2 text-sm font-semibold underline hover:no-underline">
+                    {t('nav.login')}
+                  </Link>
+                )}
+              </div>
             )}
           </div>
         </div>

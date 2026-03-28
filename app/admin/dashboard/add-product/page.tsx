@@ -1,19 +1,27 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { productService } from '@/lib/products'
 import { useLanguage } from '@/lib/i18n'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import MultiImageUpload from '@/components/MultiImageUpload'
+import { supabase } from '@/lib/supabase'
+import Notification from '@/components/Notification'
 
-const categories = ['Tops', 'Bottoms', 'Accessories', 'Outerwear']
+interface Category {
+  id: string
+  name: string
+  description?: string
+}
 
 export default function AddProductPage() {
   const router = useRouter()
   const { t } = useLanguage()
   const [loading, setLoading] = useState(false)
+  const [categories, setCategories] = useState<Category[]>([])
+  const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info', message: string } | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     name_id: '',
@@ -21,10 +29,33 @@ export default function AddProductPage() {
     description_id: '',
     price: '',
     stock: '',
-    category: 'Tops',
+    category: '',
     image_url: '',
     images: [] as string[]
   })
+
+  useEffect(() => {
+    loadCategories()
+  }, [])
+
+  const loadCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('name', { ascending: true })
+      
+      if (error) throw error
+      setCategories(data || [])
+      
+      // Set first category as default
+      if (data && data.length > 0 && !formData.category) {
+        setFormData(prev => ({ ...prev, category: data[0].name }))
+      }
+    } catch (error) {
+      console.error('Error loading categories:', error)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -47,11 +78,13 @@ export default function AddProductPage() {
         await productService.saveProductImages(product.id, formData.images)
       }
 
-      alert(t('adminProduct.createSuccess'))
-      router.push('/admin/dashboard')
+      setNotification({ type: 'success', message: t('adminProduct.createSuccess') })
+      setTimeout(() => {
+        router.push('/admin/dashboard')
+      }, 1500)
     } catch (error: any) {
       console.error('Error creating product:', error)
-      alert(t('adminProduct.createError') + ': ' + error.message)
+      setNotification({ type: 'error', message: t('adminProduct.createError') + ': ' + error.message })
     } finally {
       setLoading(false)
     }
@@ -152,7 +185,7 @@ export default function AddProductPage() {
                 value={formData.price}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
                 placeholder="380000"
               />
             </div>
@@ -168,7 +201,7 @@ export default function AddProductPage() {
                 value={formData.stock}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
                 placeholder="100"
               />
             </div>
@@ -184,18 +217,27 @@ export default function AddProductPage() {
               value={formData.category}
               onChange={handleChange}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
             >
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
+              {categories.length === 0 ? (
+                <option value="">Loading categories...</option>
+              ) : (
+                categories.map(cat => (
+                  <option key={cat.id} value={cat.name}>{cat.name}</option>
+                ))
+              )}
             </select>
           </div>
 
-          <MultiImageUpload
-            onImagesChange={(urls) => setFormData({ ...formData, images: urls })}
-            initialImages={formData.images}
-          />
+          <div>
+            <label className="block text-sm font-medium mb-2 text-black">
+              Product Images *
+            </label>
+            <MultiImageUpload
+              onImagesChange={(urls) => setFormData({ ...formData, images: urls })}
+              initialImages={formData.images}
+            />
+          </div>
 
           <div className="flex gap-4 pt-4">
             <button
@@ -214,6 +256,15 @@ export default function AddProductPage() {
           </div>
         </form>
       </div>
+
+      {/* Notification */}
+      {notification && (
+        <Notification
+          type={notification.type}
+          message={notification.message}
+          onClose={() => setNotification(null)}
+        />
+      )}
     </div>
   )
 }

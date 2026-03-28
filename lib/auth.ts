@@ -203,9 +203,20 @@ export const authService = {
 
   // Get current user
   async getCurrentUser() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return null
-    return this.getUserWithRole(user)
+    try {
+      // First check session
+      const session = await this.getSession()
+      if (!session?.user) return null
+      
+      // Then get user data
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return null
+      
+      return this.getUserWithRole(user)
+    } catch (error) {
+      console.error('Error getting current user:', error)
+      return null
+    }
   },
 
   // Get user profile
@@ -247,6 +258,13 @@ export const authService = {
       console.error('Error updating profile:', error)
       throw error
     }
+  },
+
+  // Listen to auth state changes
+  onAuthStateChange(callback: (event: string, session: any) => void) {
+    return supabase.auth.onAuthStateChange((event, session) => {
+      callback(event, session)
+    })
   }
 }
 

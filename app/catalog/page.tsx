@@ -1,9 +1,6 @@
-import CatalogView from '@/components/CatalogView'
+'use client'
 
-export const metadata = {
-  title: 'Catalog - Bearions',
-  description: 'Browse our collection of premium clothing',
-}
+import CatalogView from '@/components/CatalogView'
 
 export default function CatalogPage() {
   return (
