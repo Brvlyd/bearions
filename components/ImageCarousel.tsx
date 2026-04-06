@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import SafeImage from './SafeImage'
 import { getImageUrl } from '@/lib/image-utils'
+import { useLanguage } from '@/lib/i18n'
 
 interface ImageCarouselProps {
   images: string[]
@@ -14,6 +15,7 @@ interface ImageCarouselProps {
 }
 
 export default function ImageCarousel({ images, alt, autoPlay = true, interval = 3000, category }: ImageCarouselProps) {
+  const { tr } = useLanguage()
   const [currentIndex, setCurrentIndex] = useState(0)
 
   useEffect(() => {
@@ -41,7 +43,7 @@ export default function ImageCarousel({ images, alt, autoPlay = true, interval =
   if (images.length === 0) {
     return (
       <div className="relative w-full h-full bg-gray-100 flex items-center justify-center">
-        <p className="text-gray-400">No image available</p>
+        <p className="text-gray-400">{tr('No image available', 'Gambar tidak tersedia')}</p>
       </div>
     )
   }
@@ -80,7 +82,7 @@ export default function ImageCarousel({ images, alt, autoPlay = true, interval =
       <button
         onClick={goToPrevious}
         className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition opacity-0 group-hover:opacity-100"
-        aria-label="Previous image"
+        aria-label={tr('Previous image', 'Gambar sebelumnya')}
       >
         <ChevronLeft className="w-5 h-5" />
       </button>
@@ -88,7 +90,7 @@ export default function ImageCarousel({ images, alt, autoPlay = true, interval =
       <button
         onClick={goToNext}
         className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition opacity-0 group-hover:opacity-100"
-        aria-label="Next image"
+        aria-label={tr('Next image', 'Gambar berikutnya')}
       >
         <ChevronRight className="w-5 h-5" />
       </button>
@@ -104,7 +106,7 @@ export default function ImageCarousel({ images, alt, autoPlay = true, interval =
                 ? 'bg-white w-6'
                 : 'bg-white/50 hover:bg-white/75'
             }`}
-            aria-label={`Go to image ${index + 1}`}
+            aria-label={`${tr('Go to image', 'Ke gambar')} ${index + 1}`}
           />
         ))}
       </div>

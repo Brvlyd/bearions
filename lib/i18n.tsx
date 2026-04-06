@@ -332,9 +332,21 @@ interface LanguageContextType {
   language: Language
   setLanguage: (lang: Language) => void
   t: (key: string, params?: Record<string, string | number>) => string
+  tr: (enText: string, idText: string, params?: Record<string, string | number>) => string
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined)
+const warnedMissingKeys = new Set<string>()
+
+const applyParams = (text: string, params?: Record<string, string | number>) => {
+  let result = text
+  if (params) {
+    Object.entries(params).forEach(([paramKey, paramValue]) => {
+      result = result.replace(`{${paramKey}}`, String(paramValue))
+    })
+  }
+  return result
+}
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>('en')
@@ -353,20 +365,24 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }
 
   const t = (key: string, params?: Record<string, string | number>): string => {
-    let translation = translations[key]?.[language] || key
-    
-    // Replace parameters in translation
-    if (params) {
-      Object.entries(params).forEach(([paramKey, paramValue]) => {
-        translation = translation.replace(`{${paramKey}}`, String(paramValue))
-      })
+    const entry = translations[key]
+    if (!entry) {
+      if (!warnedMissingKeys.has(key) && process.env.NODE_ENV !== 'production') {
+        warnedMissingKeys.add(key)
+        console.warn(`[i18n] Missing translation key: ${key}`)
+      }
+      return applyParams(key, params)
     }
-    
-    return translation
+
+    return applyParams(entry[language], params)
+  }
+
+  const tr = (enText: string, idText: string, params?: Record<string, string | number>) => {
+    return applyParams(language === 'en' ? enText : idText, params)
   }
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, tr }}>
       {children}
     </LanguageContext.Provider>
   )

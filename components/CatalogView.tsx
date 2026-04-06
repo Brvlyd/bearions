@@ -14,7 +14,7 @@ interface Category {
 }
 
 export default function CatalogView() {
-  const { t, language } = useLanguage()
+  const { t, tr, language } = useLanguage()
   const [products, setProducts] = useState<Product[]>([])
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -143,7 +143,7 @@ export default function CatalogView() {
             className="lg:hidden mb-4 px-4 py-2 bg-black text-white rounded-lg flex items-center gap-2"
           >
             <Search className="w-4 h-4" />
-            {sidebarOpen ? 'Hide Filters' : 'Show Filters'}
+            {sidebarOpen ? tr('Hide Filters', 'Sembunyikan Filter') : tr('Show Filters', 'Tampilkan Filter')}
           </button>
           
           {/* Header */}
@@ -164,7 +164,7 @@ export default function CatalogView() {
             <form onSubmit={handleSearch} className="flex-1 relative">
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder={tr('Search...', 'Cari...')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full px-4 py-3 pr-12 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-gray-600"

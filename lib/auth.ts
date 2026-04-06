@@ -15,6 +15,24 @@ export interface RegisterData {
 
 export type UserRole = 'admin' | 'user'
 
+const buildLoginRedirectUrl = (email?: string) => {
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+  if (!baseUrl) return undefined
+
+  if (email) {
+    return `${baseUrl}/login?confirmed=true&email=${encodeURIComponent(email)}`
+  }
+
+  return `${baseUrl}/login?confirmed=true`
+}
+
+const buildResetPasswordRedirectUrl = () => {
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+  if (!baseUrl) return undefined
+
+  return `${baseUrl}/auth/reset-password`
+}
+
 export const authService = {
   // Register new user
   async register(data: RegisterData) {
@@ -62,7 +80,7 @@ export const authService = {
         email: data.email,
         password: data.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/login?confirmed=true&email=${encodeURIComponent(data.email)}`,
+          emailRedirectTo: buildLoginRedirectUrl(data.email),
           data: {
             full_name: data.full_name,
             phone: data.phone,
@@ -77,10 +95,19 @@ export const authService = {
       // Wait a moment for trigger to complete
       await new Promise(resolve => setTimeout(resolve, 1500))
 
+      // Supabase behavior:
+      // - session exists => email confirmation disabled (user can login immediately)
+      // - session null => email confirmation required before login
+      const needsEmailConfirmation = !authData.session
+
+      const message = needsEmailConfirmation
+        ? 'Registration successful! Please check your email and click the confirmation link before logging in.'
+        : 'Registration successful! You can login immediately.'
+
       return { 
-        ...authData, 
-        needsEmailConfirmation: true,
-        message: 'Registration successful! Please check your email and click the confirmation link before logging in.'
+        ...authData,
+        needsEmailConfirmation,
+        message,
       }
     } catch (error) {
       console.error('Registration error:', error)
@@ -137,6 +164,55 @@ export const authService = {
       return this.getUserWithRole(data.user)
     } catch (error) {
       console.error('Login error:', error)
+      throw error
+    }
+  },
+
+  // Resend verification email for unconfirmed users
+  async resendEmailVerification(email: string) {
+    try {
+      const { data, error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: buildLoginRedirectUrl(email),
+        },
+      })
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error('Resend verification email error:', error)
+      throw error
+    }
+  },
+
+  // Send password reset email
+  async sendPasswordResetEmail(email: string) {
+    try {
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: buildResetPasswordRedirectUrl(),
+      })
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error('Send reset password email error:', error)
+      throw error
+    }
+  },
+
+  // Update password after recovery link
+  async updatePassword(newPassword: string) {
+    try {
+      const { data, error } = await supabase.auth.updateUser({
+        password: newPassword,
+      })
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error('Update password error:', error)
       throw error
     }
   },

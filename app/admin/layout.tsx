@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { authService } from '@/lib/auth'
+import { useLanguage } from '@/lib/i18n'
 
 export default function AdminLayout({
   children,
@@ -10,6 +11,7 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
+  const { tr } = useLanguage()
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -37,7 +39,7 @@ export default function AdminLayout({
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black mb-4"></div>
-          <p className="text-gray-600">Verifying access...</p>
+          <p className="text-gray-600">{tr('Verifying access...', 'Memverifikasi akses...')}</p>
         </div>
       </div>
     )

@@ -8,7 +8,7 @@ import Link from 'next/link'
 
 export default function RegisterPage() {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -76,12 +76,19 @@ export default function RegisterPage() {
         address: formData.address
       })
 
-      // Show success message with clear instructions
-      const successMessage = t('register.successEmailConfirm') || 
-        '✅ Pendaftaran berhasil!\n\n📧 Silakan cek email Anda dan klik link konfirmasi yang kami kirim.\n\n⚠️ Anda harus mengkonfirmasi email terlebih dahulu sebelum bisa login.'
+      const successMessage = result?.needsEmailConfirmation
+        ? (t('register.successEmailConfirm') ||
+          '✅ Pendaftaran berhasil!\n\n📧 Silakan cek email Anda dan klik link konfirmasi yang kami kirim.\n\n⚠️ Anda harus mengkonfirmasi email terlebih dahulu sebelum bisa login.')
+        : (t('register.successLogin') ||
+          '✅ Pendaftaran berhasil!\n\nAnda bisa langsung login sekarang.')
       
       alert(successMessage)
-      router.push('/login')
+      if (result?.needsEmailConfirmation) {
+        const encodedEmail = encodeURIComponent(formData.email.trim().toLowerCase())
+        router.push(`/auth/otp?email=${encodedEmail}&source=register`)
+      } else {
+        router.push('/login')
+      }
     } catch (err: any) {
       console.error('Registration error:', err)
       
@@ -89,11 +96,20 @@ export default function RegisterPage() {
       
       // Handle specific error types
       if (err.message?.includes('DUPLICATE_EMAIL')) {
-        errorMessage = '❌ Email sudah terdaftar! Silakan gunakan email lain atau login jika Anda sudah punya akun.'
+        errorMessage =
+          language === 'en'
+            ? '❌ Email is already registered! Please use another email or sign in if you already have an account.'
+            : '❌ Email sudah terdaftar! Silakan gunakan email lain atau login jika Anda sudah punya akun.'
       } else if (err.message?.includes('DUPLICATE_PHONE')) {
-        errorMessage = '❌ Nomor telepon sudah terdaftar! Silakan gunakan nomor lain.'
+        errorMessage =
+          language === 'en'
+            ? '❌ Phone number is already registered! Please use another number.'
+            : '❌ Nomor telepon sudah terdaftar! Silakan gunakan nomor lain.'
       } else if (err.message?.includes('User already registered')) {
-        errorMessage = '❌ Email sudah terdaftar! Silakan login atau gunakan email lain.'
+        errorMessage =
+          language === 'en'
+            ? '❌ Email is already registered! Please sign in or use another email.'
+            : '❌ Email sudah terdaftar! Silakan login atau gunakan email lain.'
       }
       
       setError(errorMessage)

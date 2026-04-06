@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useLanguage } from '@/lib/i18n'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ShoppingBag, ArrowRight, AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -10,7 +11,9 @@ import CartItem from '@/components/CartItem'
 import type { CartItem as CartItemType } from '@/lib/supabase'
 
 export default function CartPage() {
-  const { t } = useLanguage()
+  const { t, tr } = useLanguage()
+  const searchParams = useSearchParams()
+  const checkoutSuccess = searchParams.get('checkout') === 'success'
   const [cartItems, setCartItems] = useState<CartItemType[]>([])
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
@@ -151,6 +154,11 @@ export default function CartPage() {
       <div className="min-h-screen bg-white">
         <div className="container mx-auto px-4 py-12 pt-24">
           <div className="max-w-md mx-auto text-center">
+            {checkoutSuccess && (
+              <div className="mb-6 p-4 rounded-lg border border-green-200 bg-green-50 text-green-800 text-sm">
+                {tr('Order placed successfully! Thank you for your purchase.', 'Pesanan berhasil dibuat! Terima kasih atas pembelian Anda.')}
+              </div>
+            )}
             <ShoppingBag className="w-24 h-24 mx-auto text-gray-300 mb-6" />
             <h1 className="text-2xl font-bold text-black mb-2">{t('cart.empty')}</h1>
             <p className="text-gray-600 mb-8">

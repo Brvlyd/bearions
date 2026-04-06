@@ -1,7 +1,7 @@
 -- Landing Page Images Table
 CREATE TABLE IF NOT EXISTS landing_page_images (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  position INTEGER NOT NULL UNIQUE CHECK (position IN (1, 2, 3)),
+  position INTEGER NOT NULL UNIQUE CHECK (position BETWEEN 1 AND 6),
   image_url TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()

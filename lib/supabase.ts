@@ -34,6 +34,15 @@ export type LandingPageImage = {
   updated_at: string
 }
 
+export type CommunityPost = {
+  id: string
+  image_url: string
+  caption: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
 // Cart Types
 export type Cart = {
   id: string

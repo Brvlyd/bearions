@@ -9,12 +9,14 @@ import { cartService } from '@/lib/cart'
 import { orderService } from '@/lib/orders'
 import { shippingService } from '@/lib/shipping'
 import { paymentService } from '@/lib/payments'
+import { useLanguage } from '@/lib/i18n'
 import type { CartItem, ShippingAddress } from '@/lib/supabase'
 
 type Step = 'shipping' | 'payment' | 'review'
 
 export default function CheckoutPage() {
   const router = useRouter()
+  const { tr } = useLanguage()
   const [currentStep, setCurrentStep] = useState<Step>('shipping')
   const [userId, setUserId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string>('')
@@ -112,7 +114,7 @@ export default function CheckoutPage() {
       })
     } catch (error) {
       console.error('Error adding address:', error)
-      alert('Failed to add address')
+      alert(tr('Failed to add address', 'Gagal menambahkan alamat'))
     }
   }
 
@@ -163,11 +165,11 @@ export default function CheckoutPage() {
       // Clear cart
       await cartService.clearCart(userId)
 
-      // Redirect to order confirmation
-      router.push(`/orders/${order.order_number}`)
+      // My Orders page is removed, return users to cart with success state.
+      router.push('/cart?checkout=success')
     } catch (error) {
       console.error('Error placing order:', error)
-      alert('Failed to place order. Please try again.')
+      alert(tr('Failed to place order. Please try again.', 'Gagal membuat pesanan. Silakan coba lagi.'))
     } finally {
       setProcessing(false)
     }
@@ -195,7 +197,7 @@ export default function CheckoutPage() {
       <div className="container mx-auto px-4 py-12 pt-20">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-          <p className="mt-4 text-gray-600">Loading checkout...</p>
+          <p className="mt-4 text-gray-600">{tr('Loading checkout...', 'Memuat checkout...')}</p>
         </div>
       </div>
     )
@@ -210,10 +212,10 @@ export default function CheckoutPage() {
           className="inline-flex items-center gap-2 text-gray-600 hover:text-black transition mb-4 lg:mb-6"
         >
           <ArrowLeft className="w-5 h-5" />
-          Back to Cart
+          {tr('Back to Cart', 'Kembali ke Keranjang')}
         </Link>
 
-        <h1 className="text-2xl lg:text-3xl font-bold text-black mb-6 lg:mb-8">Checkout</h1>
+        <h1 className="text-2xl lg:text-3xl font-bold text-black mb-6 lg:mb-8">{tr('Checkout', 'Checkout')}</h1>
 
         {/* Progress Steps */}
         <div className="mb-6 lg:mb-8 flex items-center justify-center gap-2 lg:gap-4">
@@ -221,21 +223,21 @@ export default function CheckoutPage() {
             <div className={`w-7 h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center text-sm ${currentStep === 'shipping' ? 'bg-black text-white' : 'bg-green-500 text-white'}`}>
               {currentStep !== 'shipping' ? <CheckCircle className="w-4 h-4 lg:w-5 lg:h-5" /> : '1'}
             </div>
-            <span className="font-medium text-sm lg:text-base hidden sm:inline">Shipping</span>
+            <span className="font-medium text-sm lg:text-base hidden sm:inline">{tr('Shipping', 'Pengiriman')}</span>
           </div>
           <div className="w-6 lg:w-12 h-0.5 bg-gray-300"></div>
           <div className="flex items-center gap-1 lg:gap-2">
             <div className={`w-7 h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center text-sm ${currentStep === 'payment' ? 'bg-black text-white' : currentStep === 'review' ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
               {currentStep === 'review' ? <CheckCircle className="w-4 h-4 lg:w-5 lg:h-5" /> : '2'}
             </div>
-            <span className="font-medium text-sm lg:text-base hidden sm:inline">Payment</span>
+            <span className="font-medium text-sm lg:text-base hidden sm:inline">{tr('Payment', 'Pembayaran')}</span>
           </div>
           <div className="w-6 lg:w-12 h-0.5 bg-gray-300"></div>
           <div className="flex items-center gap-1 lg:gap-2">
             <div className={`w-7 h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center text-sm ${currentStep === 'review' ? 'bg-black text-white' : 'bg-gray-300 text-gray-600'}`}>
               3
             </div>
-            <span className="font-medium text-sm lg:text-base hidden sm:inline">Review</span>
+            <span className="font-medium text-sm lg:text-base hidden sm:inline">{tr('Review', 'Tinjau')}</span>
           </div>
         </div>
 
@@ -247,7 +249,7 @@ export default function CheckoutPage() {
               <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6">
                 <h2 className="text-xl font-semibold text-black mb-4 flex items-center gap-2">
                   <Truck className="w-6 h-6" />
-                  Shipping Address
+                  {tr('Shipping Address', 'Alamat Pengiriman')}
                 </h2>
 
                 {/* Address List */}
@@ -276,7 +278,7 @@ export default function CheckoutPage() {
                         </div>
                         {address.is_default && (
                           <span className="text-xs bg-black text-white px-2 py-1 rounded">
-                            Default
+                            {tr('Default', 'Utama')}
                           </span>
                         )}
                       </div>
@@ -287,53 +289,53 @@ export default function CheckoutPage() {
                 {/* Add Address Form */}
                 {showAddressForm ? (
                   <div className="border border-gray-200 rounded-lg p-4 space-y-4">
-                    <h3 className="font-semibold text-sm lg:text-base">Add New Address</h3>
+                    <h3 className="font-semibold text-sm lg:text-base">{tr('Add New Address', 'Tambah Alamat Baru')}</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
                       <input
                         type="text"
-                        placeholder="Recipient Name"
+                        placeholder={tr('Recipient Name', 'Nama Penerima')}
                         value={newAddress.recipient_name}
                         onChange={(e) => setNewAddress({ ...newAddress, recipient_name: e.target.value })}
                         className="col-span-2 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
                       />
                       <input
                         type="tel"
-                        placeholder="Phone"
+                        placeholder={tr('Phone', 'Telepon')}
                         value={newAddress.phone}
                         onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value })}
                         className="col-span-2 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
                       />
                       <input
                         type="text"
-                        placeholder="Address Line 1"
+                        placeholder={tr('Address Line 1', 'Alamat Baris 1')}
                         value={newAddress.address_line1}
                         onChange={(e) => setNewAddress({ ...newAddress, address_line1: e.target.value })}
                         className="col-span-2 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
                       />
                       <input
                         type="text"
-                        placeholder="Address Line 2 (Optional)"
+                        placeholder={tr('Address Line 2 (Optional)', 'Alamat Baris 2 (Opsional)')}
                         value={newAddress.address_line2}
                         onChange={(e) => setNewAddress({ ...newAddress, address_line2: e.target.value })}
                         className="col-span-2 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
                       />
                       <input
                         type="text"
-                        placeholder="City"
+                        placeholder={tr('City', 'Kota')}
                         value={newAddress.city}
                         onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
                         className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
                       />
                       <input
                         type="text"
-                        placeholder="Province"
+                        placeholder={tr('Province', 'Provinsi')}
                         value={newAddress.province}
                         onChange={(e) => setNewAddress({ ...newAddress, province: e.target.value })}
                         className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
                       />
                       <input
                         type="text"
-                        placeholder="Postal Code"
+                        placeholder={tr('Postal Code', 'Kode Pos')}
                         value={newAddress.postal_code}
                         onChange={(e) => setNewAddress({ ...newAddress, postal_code: e.target.value })}
                         className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
@@ -344,13 +346,13 @@ export default function CheckoutPage() {
                         onClick={handleAddAddress}
                         className="btn-primary-animated px-4 py-2"
                       >
-                        Save Address
+                        {tr('Save Address', 'Simpan Alamat')}
                       </button>
                       <button
                         onClick={() => setShowAddressForm(false)}
                         className="btn-secondary-animated px-4 py-2"
                       >
-                        Cancel
+                        {tr('Cancel', 'Batal')}
                       </button>
                     </div>
                   </div>
@@ -359,7 +361,7 @@ export default function CheckoutPage() {
                     onClick={() => setShowAddressForm(true)}
                     className="text-black hover:underline font-medium btn-animate"
                   >
-                    + Add New Address
+                    + {tr('Add New Address', 'Tambah Alamat Baru')}
                   </button>
                 )}
 
@@ -368,7 +370,7 @@ export default function CheckoutPage() {
                   disabled={!selectedAddress}
                   className="w-full mt-6 py-3 btn-primary-animated"
                 >
-                  Continue to Payment
+                  {tr('Continue to Payment', 'Lanjut ke Pembayaran')}
                 </button>
               </div>
             )}
@@ -378,7 +380,7 @@ export default function CheckoutPage() {
               <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <h2 className="text-xl font-semibold text-black mb-4 flex items-center gap-2">
                   <CreditCard className="w-6 h-6" />
-                  Payment Method
+                  {tr('Payment Method', 'Metode Pembayaran')}
                 </h2>
 
                 <div className="space-y-3 mb-6">
@@ -390,8 +392,8 @@ export default function CheckoutPage() {
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <p className="font-semibold">Bank Transfer</p>
-                    <p className="text-sm text-gray-600">Pay via bank transfer</p>
+                    <p className="font-semibold">{tr('Bank Transfer', 'Transfer Bank')}</p>
+                    <p className="text-sm text-gray-600">{tr('Pay via bank transfer', 'Bayar melalui transfer bank')}</p>
                   </div>
 
                   <div
@@ -402,8 +404,8 @@ export default function CheckoutPage() {
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <p className="font-semibold">E-Wallet</p>
-                    <p className="text-sm text-gray-600">GoPay, OVO, DANA, etc.</p>
+                    <p className="font-semibold">{tr('E-Wallet', 'E-Wallet')}</p>
+                    <p className="text-sm text-gray-600">{tr('GoPay, OVO, DANA, etc.', 'GoPay, OVO, DANA, dll.')}</p>
                   </div>
 
                   <div
@@ -414,8 +416,8 @@ export default function CheckoutPage() {
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <p className="font-semibold">Cash on Delivery</p>
-                    <p className="text-sm text-gray-600">Pay when you receive</p>
+                    <p className="font-semibold">{tr('Cash on Delivery', 'Bayar di Tempat')}</p>
+                    <p className="text-sm text-gray-600">{tr('Pay when you receive', 'Bayar saat barang diterima')}</p>
                   </div>
                 </div>
 
@@ -424,13 +426,13 @@ export default function CheckoutPage() {
                     onClick={() => setCurrentStep('shipping')}
                     className="btn-secondary-animated px-6 py-3"
                   >
-                    Back
+                    {tr('Back', 'Kembali')}
                   </button>
                   <button
                     onClick={() => setCurrentStep('review')}
                     className="flex-1 btn-primary-animated py-3"
                   >
-                    Review Order
+                    {tr('Review Order', 'Tinjau Pesanan')}
                   </button>
                 </div>
               </div>
@@ -442,12 +444,12 @@ export default function CheckoutPage() {
                 {/* Shipping Info */}
                 <div className="bg-white rounded-lg border border-gray-200 p-6">
                   <div className="flex justify-between items-start mb-4">
-                    <h3 className="font-semibold">Shipping Address</h3>
+                    <h3 className="font-semibold">{tr('Shipping Address', 'Alamat Pengiriman')}</h3>
                     <button
                       onClick={() => setCurrentStep('shipping')}
                       className="text-sm text-gray-600 hover:text-black btn-animate"
                     >
-                      Edit
+                      {tr('Edit', 'Ubah')}
                     </button>
                   </div>
                   {selectedAddress && (
@@ -468,12 +470,12 @@ export default function CheckoutPage() {
                 {/* Payment Info */}
                 <div className="bg-white rounded-lg border border-gray-200 p-6">
                   <div className="flex justify-between items-start mb-4">
-                    <h3 className="font-semibold">Payment Method</h3>
+                    <h3 className="font-semibold">{tr('Payment Method', 'Metode Pembayaran')}</h3>
                     <button
                       onClick={() => setCurrentStep('payment')}
                       className="text-sm text-gray-600 hover:text-black btn-animate"
                     >
-                      Edit
+                      {tr('Edit', 'Ubah')}
                     </button>
                   </div>
                   <p className="text-gray-600 capitalize">
@@ -483,11 +485,11 @@ export default function CheckoutPage() {
 
                 {/* Customer Notes */}
                 <div className="bg-white rounded-lg border border-gray-200 p-6">
-                  <h3 className="font-semibold mb-3">Order Notes (Optional)</h3>
+                  <h3 className="font-semibold mb-3">{tr('Order Notes (Optional)', 'Catatan Pesanan (Opsional)')}</h3>
                   <textarea
                     value={customerNotes}
                     onChange={(e) => setCustomerNotes(e.target.value)}
-                    placeholder="Special instructions for your order..."
+                    placeholder={tr('Special instructions for your order...', 'Instruksi khusus untuk pesanan Anda...')}
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black resize-none"
                     rows={4}
                   />
@@ -498,7 +500,7 @@ export default function CheckoutPage() {
                   disabled={processing}
                   className="w-full py-4 btn-primary-animated"
                 >
-                  {processing ? 'Processing...' : 'Place Order'}
+                  {processing ? tr('Processing...', 'Memproses...') : tr('Place Order', 'Buat Pesanan')}
                 </button>
               </div>
             )}
@@ -508,7 +510,7 @@ export default function CheckoutPage() {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg border border-gray-200 p-6 sticky top-4">
               <h2 className="text-xl font-semibold text-black mb-4">
-                Order Summary
+                {tr('Order Summary', 'Ringkasan Pesanan')}
               </h2>
 
               {/* Items */}
@@ -517,7 +519,7 @@ export default function CheckoutPage() {
                   <div key={item.id} className="flex gap-3">
                     <div className="text-sm">
                       <p className="font-medium text-black">{item.product?.name}</p>
-                      <p className="text-gray-600">Qty: {item.quantity}</p>
+                      <p className="text-gray-600">{tr('Qty', 'Jumlah')}: {item.quantity}</p>
                     </div>
                   </div>
                 ))}
@@ -526,20 +528,20 @@ export default function CheckoutPage() {
               {/* Totals */}
               <div className="space-y-3 pt-4 border-t border-gray-200">
                 <div className="flex justify-between text-gray-600">
-                  <span>Subtotal</span>
+                  <span>{tr('Subtotal', 'Subtotal')}</span>
                   <span>{formatPrice(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
-                  <span>Shipping</span>
+                  <span>{tr('Shipping', 'Pengiriman')}</span>
                   <span>{formatPrice(shippingCost)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
-                  <span>Tax (PPN 11%)</span>
+                  <span>{tr('Tax (VAT 11%)', 'Pajak (PPN 11%)')}</span>
                   <span>{formatPrice(tax)}</span>
                 </div>
                 <div className="border-t border-gray-200 pt-3">
                   <div className="flex justify-between text-lg font-bold text-black">
-                    <span>Total</span>
+                    <span>{tr('Total', 'Total')}</span>
                     <span>{formatPrice(total)}</span>
                   </div>
                 </div>

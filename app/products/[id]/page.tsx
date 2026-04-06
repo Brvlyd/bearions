@@ -13,7 +13,7 @@ import ImageCarousel from '@/components/ImageCarousel'
 
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, tr } = useLanguage()
   const [product, setProduct] = useState<Product | null>(null)
   const [images, setImages] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
@@ -95,7 +95,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         setMessage(null)
       }, 3000)
     } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Failed to add to cart' })
+      setMessage({ type: 'error', text: error.message || tr('Failed to add to cart', 'Gagal menambahkan ke keranjang') })
     } finally {
       setAddingToCart(false)
     }
@@ -112,6 +112,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       setQuantity(quantity - 1)
     }
   }
+
+  const colorOptions = ['Black', 'White', 'Navy', 'Gray', 'Beige']
 
   if (loading) {
     return (
@@ -156,7 +158,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                 <ImageCarousel images={images} alt={product.name} autoPlay={true} interval={3000} />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400">
-                  No Image
+                  {tr('No Image', 'Tidak Ada Gambar')}
                 </div>
               )}
             </div>
@@ -174,22 +176,24 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             
             {product.description && (
               <div className="mb-6">
-                <h2 className="text-lg font-semibold mb-2 text-black">Description</h2>
+                <h2 className="text-lg font-semibold mb-2 text-black">{tr('Description', 'Deskripsi')}</h2>
                 <p className="text-black">{product.description}</p>
               </div>
             )}
 
             <div className="mb-6">
-              <h2 className="text-lg font-semibold mb-2 text-black">Availability</h2>
+              <h2 className="text-lg font-semibold mb-2 text-black">{tr('Availability', 'Ketersediaan')}</h2>
               <p className={`text-lg font-semibold ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {product.stock > 0 ? `In Stock (${product.stock} available)` : 'Out of Stock'}
+                {product.stock > 0
+                  ? `${tr('In Stock', 'Stok Tersedia')} (${product.stock} ${tr('available', 'tersedia')})`
+                  : tr('Out of Stock', 'Stok Habis')}
               </p>
             </div>
 
             {product.stock > 0 && (
               <>
                 <div className="mb-6">
-                  <h2 className="text-base lg:text-lg font-semibold mb-3 text-black">Size</h2>
+                  <h2 className="text-base lg:text-lg font-semibold mb-3 text-black">{tr('Size', 'Ukuran')}</h2>
                   <div className="flex flex-wrap gap-2">
                     {['S', 'M', 'L', 'XL', 'XXL'].map((size) => (
                       <button
@@ -209,9 +213,9 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
                 {/* Color Selection */}
                 <div className="mb-6">
-                  <h2 className="text-base lg:text-lg font-semibold mb-3 text-black">Color</h2>
+                  <h2 className="text-base lg:text-lg font-semibold mb-3 text-black">{tr('Color', 'Warna')}</h2>
                   <div className="flex flex-wrap gap-2">
-                    {['Black', 'White', 'Navy', 'Gray', 'Beige'].map((color) => (
+                    {colorOptions.map((color) => (
                       <button
                         key={color}
                         onClick={() => setSelectedColor(color)}
@@ -221,7 +225,13 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                             : 'border-gray-300 text-black hover:border-black'
                         }`}
                       >
-                        {color}
+                        {tr(
+                          color,
+                          color === 'Black' ? 'Hitam' :
+                          color === 'White' ? 'Putih' :
+                          color === 'Navy' ? 'Biru Navy' :
+                          color === 'Gray' ? 'Abu-abu' : 'Krem'
+                        )}
                       </button>
                     ))}
                   </div>
@@ -229,7 +239,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
                 {/* Quantity Selector */}
                 <div className="mb-8">
-                  <h2 className="text-base lg:text-lg font-semibold mb-3 text-black">Quantity</h2>
+                  <h2 className="text-base lg:text-lg font-semibold mb-3 text-black">{tr('Quantity', 'Jumlah')}</h2>
                   <div className="flex items-center space-x-3 lg:space-x-4">
                     <button
                       onClick={decrementQuantity}
@@ -258,14 +268,14 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                 className="w-full py-4 flex items-center justify-center space-x-2 btn-primary-animated"
               >
                 <ShoppingCart className="w-5 h-5" />
-                <span>{addingToCart ? 'Adding...' : 'Add to Cart'}</span>
+                <span>{addingToCart ? tr('Adding...', 'Menambahkan...') : tr('Add to Cart', 'Tambah ke Keranjang')}</span>
               </button>
             ) : (
               <button
                 disabled
                 className="w-full bg-gray-300 text-gray-500 py-4 rounded-lg font-semibold cursor-not-allowed"
               >
-                Out of Stock
+                {tr('Out of Stock', 'Stok Habis')}
               </button>
             )}
             

@@ -11,7 +11,7 @@ type FilterStatus = 'all' | Order['status']
 type FilterPayment = 'all' | Order['payment_status']
 
 export default function OrdersPage() {
-  const { t } = useLanguage()
+  const { tr } = useLanguage()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -56,13 +56,13 @@ export default function OrdersPage() {
 
   const getStatusBadge = (status: Order['status']) => {
     const statusConfig = {
-      pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
-      confirmed: { label: 'Confirmed', color: 'bg-blue-100 text-blue-800', icon: CheckCircle },
-      processing: { label: 'Processing', color: 'bg-purple-100 text-purple-800', icon: Package },
-      shipped: { label: 'Shipped', color: 'bg-indigo-100 text-indigo-800', icon: Truck },
-      delivered: { label: 'Delivered', color: 'bg-green-100 text-green-800', icon: CheckCircle },
-      cancelled: { label: 'Cancelled', color: 'bg-red-100 text-red-800', icon: XCircle },
-      refunded: { label: 'Refunded', color: 'bg-gray-100 text-gray-800', icon: DollarSign }
+      pending: { label: tr('Pending', 'Menunggu'), color: 'bg-yellow-100 text-yellow-800', icon: Clock },
+      confirmed: { label: tr('Confirmed', 'Dikonfirmasi'), color: 'bg-blue-100 text-blue-800', icon: CheckCircle },
+      processing: { label: tr('Processing', 'Diproses'), color: 'bg-purple-100 text-purple-800', icon: Package },
+      shipped: { label: tr('Shipped', 'Dikirim'), color: 'bg-indigo-100 text-indigo-800', icon: Truck },
+      delivered: { label: tr('Delivered', 'Terkirim'), color: 'bg-green-100 text-green-800', icon: CheckCircle },
+      cancelled: { label: tr('Cancelled', 'Dibatalkan'), color: 'bg-red-100 text-red-800', icon: XCircle },
+      refunded: { label: tr('Refunded', 'Dikembalikan'), color: 'bg-gray-100 text-gray-800', icon: DollarSign }
     }
     const config = statusConfig[status] || statusConfig.pending
     const Icon = config.icon
@@ -76,11 +76,11 @@ export default function OrdersPage() {
 
   const getPaymentBadge = (status: Order['payment_status']) => {
     const statusConfig = {
-      unpaid: { label: 'Unpaid', color: 'bg-gray-100 text-gray-800' },
-      pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800' },
-      paid: { label: 'Paid', color: 'bg-green-100 text-green-800' },
-      failed: { label: 'Failed', color: 'bg-red-100 text-red-800' },
-      refunded: { label: 'Refunded', color: 'bg-purple-100 text-purple-800' }
+      unpaid: { label: tr('Unpaid', 'Belum Dibayar'), color: 'bg-gray-100 text-gray-800' },
+      pending: { label: tr('Pending', 'Menunggu'), color: 'bg-yellow-100 text-yellow-800' },
+      paid: { label: tr('Paid', 'Lunas'), color: 'bg-green-100 text-green-800' },
+      failed: { label: tr('Failed', 'Gagal'), color: 'bg-red-100 text-red-800' },
+      refunded: { label: tr('Refunded', 'Dikembalikan'), color: 'bg-purple-100 text-purple-800' }
     }
     const config = statusConfig[status] || statusConfig.unpaid
     return (
@@ -121,7 +121,6 @@ export default function OrdersPage() {
 
   // Calculate stats
   const totalOrders = orders.length
-  const paidOrders = orders.filter(o => o.payment_status === 'paid').length
   const pendingOrders = orders.filter(o => o.status === 'pending').length
   // Orders yang sudah dibayar tapi belum dikirim (ready to ship)
   const readyToShip = orders.filter(o => 
@@ -136,7 +135,7 @@ export default function OrdersPage() {
     return (
       <div className="text-center py-12">
         <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-        <p className="mt-4 text-gray-600">Loading orders...</p>
+        <p className="mt-4 text-gray-600">{tr('Loading orders...', 'Memuat pesanan...')}</p>
       </div>
     )
   }
@@ -145,8 +144,8 @@ export default function OrdersPage() {
     <div>
       {/* Header */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold mb-2 text-black">Order History</h2>
-        <p className="text-gray-600">View and manage all customer orders</p>
+        <h2 className="text-2xl font-bold mb-2 text-black">{tr('Order History', 'Riwayat Pesanan')}</h2>
+        <p className="text-gray-600">{tr('View and manage all customer orders', 'Lihat dan kelola semua pesanan pelanggan')}</p>
       </div>
 
       {/* Stats Cards */}
@@ -154,7 +153,7 @@ export default function OrdersPage() {
         <div className="bg-white p-6 rounded-lg border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Total Orders</p>
+              <p className="text-sm text-gray-600 mb-1">{tr('Total Orders', 'Total Pesanan')}</p>
               <p className="text-3xl font-bold text-black">{totalOrders}</p>
             </div>
             <ShoppingBag className="w-12 h-12 text-blue-400" />
@@ -168,9 +167,9 @@ export default function OrdersPage() {
              }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Ready to Ship</p>
+              <p className="text-sm text-gray-600 mb-1">{tr('Ready to Ship', 'Siap Dikirim')}</p>
               <p className="text-3xl font-bold text-orange-700">{readyToShip}</p>
-              <p className="text-xs text-orange-600 mt-1">Paid, not shipped yet</p>
+              <p className="text-xs text-orange-600 mt-1">{tr('Paid, not shipped yet', 'Sudah dibayar, belum dikirim')}</p>
             </div>
             <Truck className="w-12 h-12 text-orange-500" />
           </div>
@@ -178,7 +177,7 @@ export default function OrdersPage() {
         <div className="bg-yellow-50 p-6 rounded-lg border border-yellow-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Pending Payment</p>
+              <p className="text-sm text-gray-600 mb-1">{tr('Pending Payment', 'Menunggu Pembayaran')}</p>
               <p className="text-3xl font-bold text-yellow-700">{pendingOrders}</p>
             </div>
             <Clock className="w-12 h-12 text-yellow-500" />
@@ -187,7 +186,7 @@ export default function OrdersPage() {
         <div className="bg-purple-50 p-6 rounded-lg border border-purple-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Revenue</p>
+              <p className="text-sm text-gray-600 mb-1">{tr('Revenue', 'Pendapatan')}</p>
               <p className="text-2xl font-bold text-purple-700">{formatPrice(totalRevenue)}</p>
             </div>
             <DollarSign className="w-12 h-12 text-purple-500" />
@@ -209,7 +208,7 @@ export default function OrdersPage() {
               : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
           }`}
         >
-          All Orders
+          {tr('All Orders', 'Semua Pesanan')}
         </button>
         <button
           onClick={() => {
@@ -220,7 +219,7 @@ export default function OrdersPage() {
           className="px-4 py-2 rounded-lg font-medium bg-orange-100 text-orange-700 border border-orange-300 hover:bg-orange-200 transition-all flex items-center gap-2"
         >
           <Truck className="w-4 h-4" />
-          Ready to Ship ({readyToShip})
+          {tr('Ready to Ship', 'Siap Dikirim')} ({readyToShip})
         </button>
         <button
           onClick={() => {
@@ -230,7 +229,7 @@ export default function OrdersPage() {
           }}
           className="px-4 py-2 rounded-lg font-medium bg-yellow-100 text-yellow-700 border border-yellow-300 hover:bg-yellow-200 transition-all"
         >
-          Pending Payment
+          {tr('Pending Payment', 'Menunggu Pembayaran')}
         </button>
         <button
           onClick={() => {
@@ -240,7 +239,7 @@ export default function OrdersPage() {
           }}
           className="px-4 py-2 rounded-lg font-medium bg-green-100 text-green-700 border border-green-300 hover:bg-green-200 transition-all"
         >
-          Delivered
+          {tr('Delivered', 'Terkirim')}
         </button>
       </div>
 
@@ -251,7 +250,7 @@ export default function OrdersPage() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
             type="text"
-            placeholder="Search by order number, customer name, email, or phone..."
+            placeholder={tr('Search by order number, customer name, email, or phone...', 'Cari berdasarkan nomor pesanan, nama pelanggan, email, atau telepon...')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-gray-600"
@@ -268,7 +267,7 @@ export default function OrdersPage() {
             className="px-4 py-3 bg-white border border-gray-200 rounded-lg font-medium hover:bg-gray-50 transition flex items-center gap-2 min-w-[140px]"
           >
             <Filter className="w-5 h-5" />
-            Status: {statusFilter === 'all' ? 'All' : statusFilter}
+            {tr('Status', 'Status')}: {statusFilter === 'all' ? tr('All', 'Semua') : statusFilter}
           </button>
           
           {showStatusMenu && (
@@ -280,7 +279,9 @@ export default function OrdersPage() {
                     onClick={() => { setStatusFilter(status); setShowStatusMenu(false) }}
                     className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${statusFilter === status ? 'bg-gray-100 font-medium' : ''}`}
                   >
-                    {status === 'all' ? 'All Status' : status.charAt(0).toUpperCase() + status.slice(1)}
+                    {status === 'all'
+                      ? tr('All Status', 'Semua Status')
+                      : tr(status.charAt(0).toUpperCase() + status.slice(1), status === 'pending' ? 'Menunggu' : status === 'confirmed' ? 'Dikonfirmasi' : status === 'processing' ? 'Diproses' : status === 'shipped' ? 'Dikirim' : status === 'delivered' ? 'Terkirim' : 'Dibatalkan')}
                   </button>
                 ))}
               </div>
@@ -298,7 +299,7 @@ export default function OrdersPage() {
             className="px-4 py-3 bg-white border border-gray-200 rounded-lg font-medium hover:bg-gray-50 transition flex items-center gap-2 min-w-[140px]"
           >
             <DollarSign className="w-5 h-5" />
-            Payment: {paymentFilter === 'all' ? 'All' : paymentFilter}
+            {tr('Payment', 'Pembayaran')}: {paymentFilter === 'all' ? tr('All', 'Semua') : paymentFilter}
           </button>
           
           {showPaymentMenu && (
@@ -310,7 +311,9 @@ export default function OrdersPage() {
                     onClick={() => { setPaymentFilter(status); setShowPaymentMenu(false) }}
                     className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${paymentFilter === status ? 'bg-gray-100 font-medium' : ''}`}
                   >
-                    {status === 'all' ? 'All Payments' : status.charAt(0).toUpperCase() + status.slice(1)}
+                    {status === 'all'
+                      ? tr('All Payments', 'Semua Pembayaran')
+                      : tr(status.charAt(0).toUpperCase() + status.slice(1), status === 'unpaid' ? 'Belum Dibayar' : status === 'pending' ? 'Menunggu' : status === 'paid' ? 'Lunas' : 'Gagal')}
                   </button>
                 ))}
               </div>
@@ -325,13 +328,13 @@ export default function OrdersPage() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Order Number</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Customer</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Total</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Payment</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Action</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{tr('Order Number', 'Nomor Pesanan')}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{tr('Customer', 'Pelanggan')}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{tr('Date', 'Tanggal')}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{tr('Total', 'Total')}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{tr('Payment', 'Pembayaran')}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{tr('Status', 'Status')}</th>
+                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">{tr('Action', 'Aksi')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -339,7 +342,7 @@ export default function OrdersPage() {
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                     <ShoppingBag className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                    <p>No orders found</p>
+                    <p>{tr('No orders found', 'Tidak ada pesanan')}</p>
                   </td>
                 </tr>
               ) : (
@@ -360,7 +363,7 @@ export default function OrdersPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           {isReadyToShip && (
-                            <div title="Ready to Ship">
+                            <div title={tr('Ready to Ship', 'Siap Dikirim')}>
                               <Truck className="w-4 h-4 text-orange-600" />
                             </div>
                           )}
@@ -395,7 +398,7 @@ export default function OrdersPage() {
                           }`}
                         >
                           <Eye className="w-4 h-4" />
-                          View
+                          {tr('View', 'Lihat')}
                         </Link>
                       </td>
                     </tr>
@@ -409,7 +412,10 @@ export default function OrdersPage() {
 
       {/* Results Summary */}
       <div className="mt-4 text-sm text-gray-600 text-center">
-        Showing {filteredOrders.length} of {totalOrders} orders
+        {tr('Showing {shown} of {total} orders', 'Menampilkan {shown} dari {total} pesanan', {
+          shown: filteredOrders.length,
+          total: totalOrders,
+        })}
       </div>
     </div>
   )

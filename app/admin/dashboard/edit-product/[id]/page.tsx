@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { productService } from '@/lib/products'
 import { Product, supabase } from '@/lib/supabase'
+import { useLanguage } from '@/lib/i18n'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import MultiImageUpload from '@/components/MultiImageUpload'
@@ -17,6 +18,7 @@ interface Category {
 
 export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
+  const { tr } = useLanguage()
   const [productId, setProductId] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -82,7 +84,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
       })
     } catch (error) {
       console.error('Error loading product:', error)
-      setNotification({ type: 'error', message: 'Failed to load product' })
+      setNotification({ type: 'error', message: tr('Failed to load product', 'Gagal memuat produk') })
       setTimeout(() => {
         router.push('/admin/dashboard')
       }, 2000)
@@ -110,13 +112,13 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         await productService.saveProductImages(productId, formData.images)
       }
 
-      setNotification({ type: 'success', message: 'Product updated successfully!' })
+      setNotification({ type: 'success', message: tr('Product updated successfully!', 'Produk berhasil diperbarui!') })
       setTimeout(() => {
         router.push('/admin/dashboard')
       }, 1500)
     } catch (error: any) {
       console.error('Error updating product:', error)
-      setNotification({ type: 'error', message: 'Failed to update product: ' + error.message })
+      setNotification({ type: 'error', message: tr('Failed to update product', 'Gagal memperbarui produk') + ': ' + error.message })
     } finally {
       setSaving(false)
     }
@@ -133,7 +135,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     return (
       <div className="text-center py-12">
         <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-        <p className="mt-4 text-gray-600">Loading product...</p>
+        <p className="mt-4 text-gray-600">{tr('Loading product...', 'Memuat produk...')}</p>
       </div>
     )
   }
@@ -141,7 +143,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   if (!product) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-600">Product not found</p>
+        <p className="text-red-600">{tr('Product not found', 'Produk tidak ditemukan')}</p>
       </div>
     )
   }
@@ -153,16 +155,16 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         className="flex items-center space-x-2 text-gray-600 hover:text-black mb-6"
       >
         <ArrowLeft className="w-5 h-5" />
-        <span>Back to Dashboard</span>
+        <span>{tr('Back to Dashboard', 'Kembali ke Dashboard')}</span>
       </Link>
 
       <div className="max-w-2xl">
-        <h2 className="text-2xl font-bold mb-6 text-black">Edit Product</h2>
+        <h2 className="text-2xl font-bold mb-6 text-black">{tr('Edit Product', 'Ubah Produk')}</h2>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
           <div>
             <label htmlFor="name" className="block text-sm font-medium mb-2 text-black">
-              Product Name *
+              {tr('Product Name *', 'Nama Produk *')}
             </label>
             <input
               id="name"
@@ -177,7 +179,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
 
           <div>
             <label htmlFor="description" className="block text-sm font-medium mb-2 text-black">
-              Description
+              {tr('Description', 'Deskripsi')}
             </label>
             <textarea
               id="description"
@@ -192,7 +194,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label htmlFor="price" className="block text-sm font-medium mb-2 text-black">
-                Price (IDR) *
+                {tr('Price (IDR) *', 'Harga (IDR) *')}
               </label>
               <input
                 id="price"
@@ -208,7 +210,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
 
             <div>
               <label htmlFor="stock" className="block text-sm font-medium mb-2 text-black">
-                Stock *
+                {tr('Stock *', 'Stok *')}
               </label>
               <input
                 id="stock"
@@ -224,7 +226,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
 
           <div>
             <label htmlFor="category" className="block text-sm font-medium mb-2 text-black">
-              Category *
+              {tr('Category *', 'Kategori *')}
             </label>
             <select
               id="category"
@@ -235,7 +237,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
             >
               {categories.length === 0 ? (
-                <option value="">Loading categories...</option>
+                <option value="">{tr('Loading categories...', 'Memuat kategori...')}</option>
               ) : (
                 categories.map(cat => (
                   <option key={cat.id} value={cat.name}>{cat.name}</option>
@@ -246,7 +248,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
 
           <div>
             <label className="block text-sm font-medium mb-2 text-black">
-              Product Images
+              {tr('Product Images', 'Gambar Produk')}
             </label>
             <MultiImageUpload
               productId={productId}
@@ -261,13 +263,13 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               disabled={saving}
               className="flex-1 py-3 btn-primary-animated"
             >
-              {saving ? 'Saving...' : 'Save Changes'}
+              {saving ? tr('Saving...', 'Menyimpan...') : tr('Save Changes', 'Simpan Perubahan')}
             </button>
             <Link
               href="/admin/dashboard"
               className="flex-1 py-3 text-center btn-secondary-animated"
             >
-              Cancel
+              {tr('Cancel', 'Batal')}
             </Link>
           </div>
         </form>

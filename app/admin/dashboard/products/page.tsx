@@ -12,7 +12,7 @@ type ViewMode = 'tiles' | 'content'
 type SortOption = 'name-asc' | 'name-desc' | 'newest' | 'oldest' | 'stock-high' | 'stock-low'
 
 export default function MonitoringPage() {
-  const { t } = useLanguage()
+  const { t, tr } = useLanguage()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
@@ -130,7 +130,7 @@ export default function MonitoringPage() {
     return (
       <div className="text-center py-12">
         <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-        <p className="mt-4 text-gray-600">Loading products...</p>
+        <p className="mt-4 text-gray-600">{tr('Loading products...', 'Memuat produk...')}</p>
       </div>
     )
   }
@@ -139,15 +139,15 @@ export default function MonitoringPage() {
     <div>
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold mb-2 text-black">Product Management</h2>
-          <p className="text-gray-600">Manage product availability, stock levels, and images</p>
+          <h2 className="text-2xl font-bold mb-2 text-black">{tr('Product Management', 'Manajemen Produk')}</h2>
+          <p className="text-gray-600">{tr('Manage product availability, stock levels, and images', 'Kelola ketersediaan produk, level stok, dan gambar')}</p>
         </div>
         <Link
           href="/admin/dashboard/add-product"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
         >
           <PlusCircle className="w-5 h-5" />
-          Add Product
+          {tr('Add Product', 'Tambah Produk')}
         </Link>
       </div>
 
@@ -156,7 +156,7 @@ export default function MonitoringPage() {
         <div className="bg-white p-6 rounded-lg border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Total Products</p>
+              <p className="text-sm text-gray-600 mb-1">{tr('Total Products', 'Total Produk')}</p>
               <p className="text-3xl font-bold text-black">{products.length}</p>
             </div>
             <Package className="w-12 h-12 text-blue-400" />
@@ -165,7 +165,7 @@ export default function MonitoringPage() {
         <div className="bg-yellow-50 p-6 rounded-lg border border-yellow-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Low Stock (≤10)</p>
+              <p className="text-sm text-gray-600 mb-1">{tr('Low Stock (<=10)', 'Stok Menipis (<=10)')}</p>
               <p className="text-3xl font-bold text-yellow-700">{lowStockCount}</p>
             </div>
             <AlertCircle className="w-12 h-12 text-yellow-500" />
@@ -174,7 +174,7 @@ export default function MonitoringPage() {
         <div className="bg-red-50 p-6 rounded-lg border border-red-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Out of Stock</p>
+              <p className="text-sm text-gray-600 mb-1">{tr('Out of Stock', 'Stok Habis')}</p>
               <p className="text-3xl font-bold text-red-700">{outOfStockCount}</p>
             </div>
             <AlertCircle className="w-12 h-12 text-red-500" />
@@ -189,7 +189,7 @@ export default function MonitoringPage() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
             type="text"
-            placeholder="Search products by name, category, or description..."
+            placeholder={tr('Search products by name, category, or description...', 'Cari produk berdasarkan nama, kategori, atau deskripsi...')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-gray-600"
@@ -201,7 +201,7 @@ export default function MonitoringPage() {
           <button
             onClick={() => setShowCategoryFilter(!showCategoryFilter)}
             className="p-3 bg-white border border-gray-200 rounded-full hover:bg-gray-50 btn-animate-bounce"
-            title="Filter by Category"
+            title={tr('Filter by Category', 'Filter Kategori')}
           >
             <Filter className="w-5 h-5" />
           </button>
@@ -209,12 +209,12 @@ export default function MonitoringPage() {
           {showCategoryFilter && (
             <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
               <div className="p-2">
-                <p className="text-xs font-semibold text-gray-500 px-2 py-1">FILTER BY CATEGORY</p>
+                <p className="text-xs font-semibold text-gray-500 px-2 py-1">{tr('FILTER BY CATEGORY', 'FILTER KATEGORI')}</p>
                 <button
                   onClick={() => { setCategoryFilter('all'); setShowCategoryFilter(false) }}
                   className={`w-full text-left px-3 py-2 rounded btn-animate ${categoryFilter === 'all' ? 'bg-gray-100 font-medium' : 'hover:bg-gray-100'}`}
                 >
-                  All Categories
+                  {tr('All Categories', 'Semua Kategori')}
                 </button>
                 {categories.map((category) => (
                   <button
@@ -237,7 +237,7 @@ export default function MonitoringPage() {
             className="px-4 py-3 bg-white border border-gray-200 rounded-lg font-medium hover:bg-gray-50 transition flex items-center gap-2"
           >
             <SlidersHorizontal className="w-5 h-5" />
-            Sort By
+            {tr('Sort By', 'Urutkan')}
           </button>
           
           {showSortMenu && (
@@ -247,37 +247,37 @@ export default function MonitoringPage() {
                   onClick={() => { setSortBy('name-asc'); setShowSortMenu(false) }}
                   className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${sortBy === 'name-asc' ? 'bg-gray-100 font-medium' : ''}`}
                 >
-                  Name (A - Z)
+                  {tr('Name (A - Z)', 'Nama (A - Z)')}
                 </button>
                 <button
                   onClick={() => { setSortBy('name-desc'); setShowSortMenu(false) }}
                   className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${sortBy === 'name-desc' ? 'bg-gray-100 font-medium' : ''}`}
                 >
-                  Name (Z - A)
+                  {tr('Name (Z - A)', 'Nama (Z - A)')}
                 </button>
                 <button
                   onClick={() => { setSortBy('newest'); setShowSortMenu(false) }}
                   className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${sortBy === 'newest' ? 'bg-gray-100 font-medium' : ''}`}
                 >
-                  Newest First
+                  {tr('Newest First', 'Terbaru')}
                 </button>
                 <button
                   onClick={() => { setSortBy('oldest'); setShowSortMenu(false) }}
                   className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${sortBy === 'oldest' ? 'bg-gray-100 font-medium' : ''}`}
                 >
-                  Oldest First
+                  {tr('Oldest First', 'Terlama')}
                 </button>
                 <button
                   onClick={() => { setSortBy('stock-high'); setShowSortMenu(false) }}
                   className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${sortBy === 'stock-high' ? 'bg-gray-100 font-medium' : ''}`}
                 >
-                  Stock (High to Low)
+                  {tr('Stock (High to Low)', 'Stok (Tinggi ke Rendah)')}
                 </button>
                 <button
                   onClick={() => { setSortBy('stock-low'); setShowSortMenu(false) }}
                   className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${sortBy === 'stock-low' ? 'bg-gray-100 font-medium' : ''}`}
                 >
-                  Stock (Low to High)
+                  {tr('Stock (Low to High)', 'Stok (Rendah ke Tinggi)')}
                 </button>
               </div>
             </div>
@@ -291,7 +291,7 @@ export default function MonitoringPage() {
             className={`p-3 border border-gray-200 rounded-lg transition ${
               viewMode === 'tiles' ? 'bg-black text-white' : 'bg-white text-black hover:bg-gray-50'
             }`}
-            title="Tiles View"
+            title={tr('Tiles View', 'Tampilan Tile')}
           >
             <Grid className="w-5 h-5" />
           </button>
@@ -300,7 +300,7 @@ export default function MonitoringPage() {
             className={`p-3 border border-gray-200 rounded-lg transition ${
               viewMode === 'content' ? 'bg-black text-white' : 'bg-white text-black hover:bg-gray-50'
             }`}
-            title="Content View"
+            title={tr('Content View', 'Tampilan Konten')}
           >
             <List className="w-5 h-5" />
           </button>
@@ -335,7 +335,7 @@ export default function MonitoringPage() {
                     ? 'bg-yellow-500 text-white'
                     : 'bg-green-500 text-white'
                 }`}>
-                  {product.stock === 0 ? 'Out' : product.stock <= 10 ? 'Low' : 'In Stock'}
+                  {product.stock === 0 ? tr('Out', 'Habis') : product.stock <= 10 ? tr('Low', 'Sedikit') : tr('In Stock', 'Tersedia')}
                 </div>
               </div>
 
@@ -352,7 +352,7 @@ export default function MonitoringPage() {
                       ? 'text-yellow-600'
                       : 'text-green-600'
                   }`}>
-                    Stock: {product.stock}
+                    {tr('Stock', 'Stok')}: {product.stock}
                   </span>
                 </div>
 
@@ -364,19 +364,19 @@ export default function MonitoringPage() {
                     className="flex-1 bg-gray-100 text-black px-3 py-2 rounded text-sm font-medium hover:bg-gray-200 transition text-center flex items-center justify-center gap-1"
                   >
                     <Eye className="w-4 h-4" />
-                    View
+                    {tr('View', 'Lihat')}
                   </Link>
                   <Link
                     href={`/admin/dashboard/edit-product/${product.id}`}
                     className="flex-1 bg-black text-white px-3 py-2 rounded text-sm font-medium hover:bg-gray-800 transition text-center flex items-center justify-center gap-1"
                   >
                     <Pencil className="w-4 h-4" />
-                    Edit
+                    {tr('Edit', 'Ubah')}
                   </Link>
                   <button
                     onClick={() => handleDelete(product.id)}
                     className="bg-red-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-red-700 transition flex items-center justify-center"
-                    title="Delete"
+                    title={tr('Delete', 'Hapus')}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -392,11 +392,11 @@ export default function MonitoringPage() {
             <table className="w-full min-w-160">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-black">Product</th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-black">Category</th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-black">Price</th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-black">Stock</th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-black">Actions</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-black">{tr('Product', 'Produk')}</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-black">{tr('Category', 'Kategori')}</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-black">{tr('Price', 'Harga')}</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-black">{tr('Stock', 'Stok')}</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-black">{tr('Actions', 'Aksi')}</th>
               </tr>
             </thead>
             <tbody>
@@ -451,21 +451,21 @@ export default function MonitoringPage() {
                         href={`/products/${product.id}`}
                         target="_blank"
                         className="text-gray-600 hover:text-black"
-                        title="View"
+                        title={tr('View', 'Lihat')}
                       >
                         <Eye className="w-5 h-5" />
                       </Link>
                       <Link
                         href={`/admin/dashboard/edit-product/${product.id}`}
                         className="text-gray-600 hover:text-black"
-                        title="Edit"
+                        title={tr('Edit', 'Ubah')}
                       >
                         <Pencil className="w-5 h-5" />
                       </Link>
                       <button
                         onClick={() => handleDelete(product.id)}
                         className="text-gray-600 hover:text-red-600"
-                        title="Delete"
+                        title={tr('Delete', 'Hapus')}
                       >
                         <Trash2 className="w-5 h-5" />
                       </button>
@@ -481,7 +481,7 @@ export default function MonitoringPage() {
 
       {filteredProducts.length === 0 && (
         <div className="text-center py-12 text-gray-500">
-          No products found in this category.
+          {tr('No products found in this category.', 'Tidak ada produk di kategori ini.')}
         </div>
       )}
 
@@ -493,7 +493,7 @@ export default function MonitoringPage() {
               {t('adminProducts.confirmDelete')}
             </h3>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to delete this product? This action cannot be undone.
+              {tr('Are you sure you want to delete this product? This action cannot be undone.', 'Yakin ingin menghapus produk ini? Tindakan ini tidak bisa dibatalkan.')}
             </p>
             
             {deleteError && (
@@ -507,13 +507,13 @@ export default function MonitoringPage() {
                 onClick={cancelDelete}
                 className="px-4 py-2 bg-gray-100 text-black rounded hover:bg-gray-200 transition font-medium"
               >
-                Cancel
+                {tr('Cancel', 'Batal')}
               </button>
               <button
                 onClick={confirmDelete}
                 className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition font-medium"
               >
-                Delete
+                {tr('Delete', 'Hapus')}
               </button>
             </div>
           </div>

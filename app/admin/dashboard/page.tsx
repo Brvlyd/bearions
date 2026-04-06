@@ -8,7 +8,7 @@ import { Package, TrendingUp, AlertCircle, ShoppingBag } from 'lucide-react'
 import Link from 'next/link'
 
 export default function AdminDashboardPage() {
-  const { t } = useLanguage()
+  const { t, tr } = useLanguage()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -36,23 +36,23 @@ export default function AdminDashboardPage() {
 
   // Category distribution
   const categoryData = products.reduce((acc, product) => {
-    const category = product.category || 'Uncategorized'
+    const category = product.category || tr('Uncategorized', 'Tanpa Kategori')
     acc[category] = (acc[category] || 0) + 1
     return acc
   }, {} as Record<string, number>)
 
   // Stock status distribution
   const stockDistribution = [
-    { label: 'In Stock (>10)', count: products.filter(p => p.stock > 10).length, color: 'bg-green-500' },
-    { label: 'Low Stock (1-10)', count: lowStockProducts, color: 'bg-yellow-500' },
-    { label: 'Out of Stock', count: outOfStockProducts, color: 'bg-red-500' },
+    { label: tr('In Stock (>10)', 'Stok Aman (>10)'), count: products.filter(p => p.stock > 10).length, color: 'bg-green-500' },
+    { label: tr('Low Stock (1-10)', 'Stok Menipis (1-10)'), count: lowStockProducts, color: 'bg-yellow-500' },
+    { label: tr('Out of Stock', 'Stok Habis'), count: outOfStockProducts, color: 'bg-red-500' },
   ]
 
   if (loading) {
     return (
       <div className="text-center py-12">
         <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-        <p className="mt-4 text-gray-600">Loading analytics...</p>
+        <p className="mt-4 text-gray-600">{tr('Loading analytics...', 'Memuat analitik...')}</p>
       </div>
     )
   }
@@ -69,7 +69,7 @@ export default function AdminDashboardPage() {
         <div className="bg-white p-6 rounded-lg border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Total Products</p>
+              <p className="text-sm text-gray-600 mb-1">{tr('Total Products', 'Total Produk')}</p>
               <p className="text-3xl font-bold text-black">{totalProducts}</p>
             </div>
             <Package className="w-12 h-12 text-gray-400" />
@@ -78,7 +78,7 @@ export default function AdminDashboardPage() {
         <div className="bg-white p-6 rounded-lg border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">In Stock</p>
+              <p className="text-sm text-gray-600 mb-1">{tr('In Stock', 'Stok Tersedia')}</p>
               <p className="text-3xl font-bold text-black">{inStockProducts}</p>
             </div>
             <Package className="w-12 h-12 text-green-400" />
@@ -87,7 +87,7 @@ export default function AdminDashboardPage() {
         <div className="bg-white p-6 rounded-lg border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Out of Stock</p>
+              <p className="text-sm text-gray-600 mb-1">{tr('Out of Stock', 'Stok Habis')}</p>
               <p className="text-3xl font-bold text-black">{outOfStockProducts}</p>
             </div>
             <Package className="w-12 h-12 text-red-400" />
@@ -101,14 +101,14 @@ export default function AdminDashboardPage() {
         <div className="bg-white p-6 rounded-lg border border-gray-200">
           <h3 className="text-lg font-semibold text-black mb-4 flex items-center gap-2">
             <Package className="w-5 h-5" />
-            Stock Status Distribution
+            {tr('Stock Status Distribution', 'Distribusi Status Stok')}
           </h3>
           <div className="space-y-4">
             {stockDistribution.map((item, index) => (
               <div key={index}>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-gray-700">{item.label}</span>
-                  <span className="font-semibold text-black">{item.count} products</span>
+                  <span className="font-semibold text-black">{tr('{count} products', '{count} produk', { count: item.count })}</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3">
                   <div
@@ -125,14 +125,14 @@ export default function AdminDashboardPage() {
         <div className="bg-white p-6 rounded-lg border border-gray-200">
           <h3 className="text-lg font-semibold text-black mb-4 flex items-center gap-2">
             <ShoppingBag className="w-5 h-5" />
-            Products by Category
+            {tr('Products by Category', 'Produk per Kategori')}
           </h3>
           <div className="space-y-4">
             {Object.entries(categoryData).map(([category, count], index) => (
               <div key={index}>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-gray-700">{category}</span>
-                  <span className="font-semibold text-black">{count} products</span>
+                  <span className="font-semibold text-black">{tr('{count} products', '{count} produk', { count })}</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3">
                   <div
@@ -149,25 +149,25 @@ export default function AdminDashboardPage() {
         <div className="bg-white p-6 rounded-lg border border-gray-200 lg:col-span-2">
           <h3 className="text-lg font-semibold text-black mb-4 flex items-center gap-2">
             <TrendingUp className="w-5 h-5" />
-            Inventory Health
+            {tr('Inventory Health', 'Kesehatan Inventori')}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
-              <span className="text-sm text-gray-700">In Stock</span>
+              <span className="text-sm text-gray-700">{tr('In Stock', 'Stok Tersedia')}</span>
               <span className="text-2xl font-bold text-green-700">{inStockProducts}</span>
             </div>
             <div className="flex justify-between items-center p-4 bg-yellow-50 rounded-lg">
-              <span className="text-sm text-gray-700">Low Stock</span>
+              <span className="text-sm text-gray-700">{tr('Low Stock', 'Stok Menipis')}</span>
               <span className="text-2xl font-bold text-yellow-700">{lowStockProducts}</span>
             </div>
             <div className="flex justify-between items-center p-4 bg-red-50 rounded-lg">
-              <span className="text-sm text-gray-700">Out of Stock</span>
+              <span className="text-sm text-gray-700">{tr('Out of Stock', 'Stok Habis')}</span>
               <span className="text-2xl font-bold text-red-700">{outOfStockProducts}</span>
             </div>
           </div>
           <div className="mt-4 pt-4 border-t border-gray-200">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-700">Stock Availability Rate</span>
+              <span className="text-sm text-gray-700">{tr('Stock Availability Rate', 'Rasio Ketersediaan Stok')}</span>
               <span className="text-lg font-bold text-black">
                 {totalProducts > 0 ? Math.round((inStockProducts / totalProducts) * 100) : 0}%
               </span>
@@ -178,31 +178,31 @@ export default function AdminDashboardPage() {
 
       {/* Quick Actions */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-black mb-4">Quick Actions</h3>
+        <h3 className="text-lg font-semibold text-black mb-4">{tr('Quick Actions', 'Aksi Cepat')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link
             href="/admin/dashboard/products"
             className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition text-center"
           >
             <Package className="w-8 h-8 mx-auto mb-2 text-gray-600" />
-            <p className="font-medium text-black">Manage Products</p>
-            <p className="text-sm text-gray-500">View and edit all products</p>
+            <p className="font-medium text-black">{tr('Manage Products', 'Kelola Produk')}</p>
+            <p className="text-sm text-gray-500">{tr('View and edit all products', 'Lihat dan ubah semua produk')}</p>
           </Link>
           <Link
             href="/admin/dashboard/add-product"
             className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition text-center"
           >
             <ShoppingBag className="w-8 h-8 mx-auto mb-2 text-gray-600" />
-            <p className="font-medium text-black">Add Product</p>
-            <p className="text-sm text-gray-500">Create new product listing</p>
+            <p className="font-medium text-black">{tr('Add Product', 'Tambah Produk')}</p>
+            <p className="text-sm text-gray-500">{tr('Create new product listing', 'Buat listing produk baru')}</p>
           </Link>
           <Link
             href="/admin/dashboard/products"
             className="p-4 border border-yellow-200 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition text-center"
           >
             <AlertCircle className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
-            <p className="font-medium text-black">Low Stock Alert</p>
-            <p className="text-sm text-gray-600">{lowStockProducts} items need attention</p>
+            <p className="font-medium text-black">{tr('Low Stock Alert', 'Peringatan Stok Menipis')}</p>
+            <p className="text-sm text-gray-600">{tr('{count} items need attention', '{count} item perlu perhatian', { count: lowStockProducts })}</p>
           </Link>
         </div>
       </div>

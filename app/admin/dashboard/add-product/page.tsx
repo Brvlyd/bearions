@@ -18,7 +18,7 @@ interface Category {
 
 export default function AddProductPage() {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, tr } = useLanguage()
   const [loading, setLoading] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
   const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info', message: string } | null>(null)
@@ -104,16 +104,16 @@ export default function AddProductPage() {
         className="flex items-center space-x-2 text-gray-600 hover:text-black mb-6"
       >
         <ArrowLeft className="w-5 h-5" />
-        <span>Back to Dashboard</span>
+        <span>{tr('Back to Dashboard', 'Kembali ke Dashboard')}</span>
       </Link>
 
       <div className="max-w-2xl">
-        <h2 className="text-xl lg:text-2xl font-bold mb-4 lg:mb-6 text-black">Add New Product</h2>
+        <h2 className="text-xl lg:text-2xl font-bold mb-4 lg:mb-6 text-black">{tr('Add New Product', 'Tambah Produk Baru')}</h2>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6 space-y-4 lg:space-y-6">
           <div>
             <label htmlFor="name" className="block text-sm font-medium mb-2 text-black">
-              Product Name (English) *
+              {tr('Product Name (English) *', 'Nama Produk (Inggris) *')}
             </label>
             <input
               id="name"
@@ -123,13 +123,13 @@ export default function AddProductPage() {
               onChange={handleChange}
               required
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
-              placeholder="e.g., Bearion Absolute Tees"
+              placeholder={tr('e.g., Bearion Absolute Tees', 'contoh: Bearion Absolute Tees')}
             />
           </div>
 
           <div>
             <label htmlFor="name_id" className="block text-sm font-medium mb-2 text-black">
-              Product Name (Indonesian)
+              {tr('Product Name (Indonesian)', 'Nama Produk (Indonesia)')}
             </label>
             <input
               id="name_id"
@@ -138,13 +138,13 @@ export default function AddProductPage() {
               value={formData.name_id}
               onChange={handleChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
-              placeholder="Contoh: Kaos Bearion Absolute"
+              placeholder={tr('Example: Kaos Bearion Absolute', 'Contoh: Kaos Bearion Absolute')}
             />
           </div>
 
           <div>
             <label htmlFor="description" className="block text-sm font-medium mb-2 text-black">
-              Description (English)
+              {tr('Description (English)', 'Deskripsi (Inggris)')}
             </label>
             <textarea
               id="description"
@@ -153,13 +153,13 @@ export default function AddProductPage() {
               onChange={handleChange}
               rows={4}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
-              placeholder="Product description..."
+              placeholder={tr('Product description...', 'Deskripsi produk...')}
             />
           </div>
 
           <div>
             <label htmlFor="description_id" className="block text-sm font-medium mb-2 text-black">
-              Description (Indonesian)
+              {tr('Description (Indonesian)', 'Deskripsi (Indonesia)')}
             </label>
             <textarea
               id="description_id"
@@ -168,14 +168,14 @@ export default function AddProductPage() {
               onChange={handleChange}
               rows={4}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
-              placeholder="Deskripsi produk..."
+              placeholder={tr('Product description in Indonesian...', 'Deskripsi produk...')}
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="price" className="block text-sm font-medium mb-2 text-black">
-                Price (IDR) *
+                {tr('Price (IDR) *', 'Harga (IDR) *')}
               </label>
               <input
                 id="price"
@@ -192,7 +192,7 @@ export default function AddProductPage() {
 
             <div>
               <label htmlFor="stock" className="block text-sm font-medium mb-2 text-black">
-                Stock *
+                {tr('Stock *', 'Stok *')}
               </label>
               <input
                 id="stock"
@@ -209,7 +209,7 @@ export default function AddProductPage() {
 
           <div>
             <label htmlFor="category" className="block text-sm font-medium mb-2 text-black">
-              Category *
+              {tr('Category *', 'Kategori *')}
             </label>
             <select
               id="category"
@@ -220,7 +220,7 @@ export default function AddProductPage() {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
             >
               {categories.length === 0 ? (
-                <option value="">Loading categories...</option>
+                <option value="">{tr('Loading categories...', 'Memuat kategori...')}</option>
               ) : (
                 categories.map(cat => (
                   <option key={cat.id} value={cat.name}>{cat.name}</option>
@@ -231,7 +231,7 @@ export default function AddProductPage() {
 
           <div>
             <label className="block text-sm font-medium mb-2 text-black">
-              Product Images *
+              {tr('Product Images *', 'Gambar Produk *')}
             </label>
             <MultiImageUpload
               onImagesChange={(urls) => setFormData({ ...formData, images: urls })}
@@ -245,13 +245,13 @@ export default function AddProductPage() {
               disabled={loading}
               className="flex-1 py-3 btn-primary-animated"
             >
-              {loading ? 'Creating...' : 'Create Product'}
+              {loading ? tr('Creating...', 'Membuat...') : tr('Create Product', 'Buat Produk')}
             </button>
             <Link
               href="/admin/dashboard"
               className="flex-1 py-3 text-center btn-secondary-animated"
             >
-              Cancel
+              {tr('Cancel', 'Batal')}
             </Link>
           </div>
         </form>

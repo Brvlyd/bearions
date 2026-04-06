@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useLanguage } from '@/lib/i18n'
 import Link from 'next/link'
 import { authService } from '@/lib/auth'
-import { Package, PlusCircle, BarChart3, TrendingUp, Users, ShoppingCart, X, Image } from 'lucide-react'
+import { Package, PlusCircle, BarChart3, TrendingUp, Users, ShoppingCart, X, Image, Images } from 'lucide-react'
 import AdminHeader from '@/components/AdminHeader'
 
 export default function AdminLayout({
@@ -15,7 +15,7 @@ export default function AdminLayout({
 }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -152,7 +152,7 @@ export default function AdminLayout({
             <ShoppingCart className={`w-5 h-5 transition-all duration-200 ${
               pathname?.startsWith('/admin/dashboard/orders') ? 'scale-110' : 'group-hover:scale-110'
             }`} />
-            <span className="font-medium">Orders</span>
+            <span className="font-medium">{language === 'en' ? 'Orders' : 'Pesanan'}</span>
           </Link>
 
           <Link
@@ -169,7 +169,7 @@ export default function AdminLayout({
             <Users className={`w-5 h-5 transition-all duration-200 ${
               pathname?.startsWith('/admin/dashboard/users') ? 'scale-110' : 'group-hover:scale-110'
             }`} />
-            <span className="font-medium">Users</span>
+            <span className="font-medium">{language === 'en' ? 'Users' : 'Pengguna'}</span>
           </Link>
 
           <Link
@@ -186,7 +186,24 @@ export default function AdminLayout({
             <Image className={`w-5 h-5 transition-all duration-200 ${
               pathname?.startsWith('/admin/dashboard/landing-page') ? 'scale-110' : 'group-hover:scale-110'
             }`} />
-            <span className="font-medium">Content</span>
+            <span className="font-medium">{language === 'en' ? 'Content' : 'Konten'}</span>
+          </Link>
+
+          <Link
+            href="/admin/dashboard/community"
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group relative ${
+              pathname?.startsWith('/admin/dashboard/community')
+                ? 'bg-white/10 text-white shadow-lg'
+                : 'hover:bg-white/5 text-gray-300 hover:text-white'
+            }`}
+          >
+            {pathname?.startsWith('/admin/dashboard/community') && (
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full"></span>
+            )}
+            <Images className={`w-5 h-5 transition-all duration-200 ${
+              pathname?.startsWith('/admin/dashboard/community') ? 'scale-110' : 'group-hover:scale-110'
+            }`} />
+            <span className="font-medium">{language === 'en' ? 'Community' : 'Komunitas'}</span>
           </Link>
 
           {/* Quick Stats Section */}

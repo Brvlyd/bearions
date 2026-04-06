@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
-import { User, Menu, X, LogOut, Globe, ShoppingBag } from 'lucide-react'
+import { User, Menu, X, LogOut, Globe } from 'lucide-react'
 import { authService } from '@/lib/auth'
 import CartButton from './CartButton'
 import { useLanguage } from '@/lib/i18n'
@@ -15,7 +15,7 @@ export default function Header() {
   const [userRole, setUserRole] = useState<'admin' | 'user' | null>(null)
   const [userName, setUserName] = useState<string>('')
   const [scrolled, setScrolled] = useState(false)
-  const { language, setLanguage, t } = useLanguage()
+  const { language, setLanguage, t, tr } = useLanguage()
 
   useEffect(() => {
     checkAuth()
@@ -104,15 +104,6 @@ export default function Header() {
               <span className="relative z-10">{t('nav.catalog')}</span>
               <span className="absolute inset-0 bg-linear-to-rrom-white/0 via-white/5 to-white/0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
             </Link>
-            {isLoggedIn && (
-              <Link 
-                href="/orders" 
-                className="px-4 py-2 rounded-lg transition-all duration-300 hover:bg-white/10 hover:scale-105 relative group"
-              >
-                <span className="relative z-10">{t('nav.myOrders')}</span>
-                <span className="absolute inset-0 bg-linear-to-r from-white/0 via-white/5 to-white/0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-              </Link>
-            )}
             <Link 
               href="/community" 
               className="px-4 py-2 rounded-lg transition-all duration-300 hover:bg-white/10 hover:scale-105 relative group"
@@ -123,15 +114,15 @@ export default function Header() {
           </nav>
 
           {/* Right Side with enhanced animations */}
-          <div className="hidden md:flex items-center space-x-2 flex-shrink-0">
+          <div className="hidden md:flex items-center space-x-2 shrink-0">
             {/* Cart Button with pulse animation */}
             <CartButton />
             
             {/* Language Switcher with smooth transition */}
             <button
               onClick={toggleLanguage}
-              className="header-btn-language text-sm group flex-shrink-0"
-              title={language === 'en' ? 'Switch to Indonesian' : 'Ganti ke English'}
+              className="header-btn-language text-sm group shrink-0"
+              title={language === 'en' ? tr('Switch to Indonesian', 'Ganti ke Bahasa Indonesia') : tr('Switch to English', 'Ganti ke English')}
             >
               <Globe className="w-4 h-4 transition-transform duration-300 group-hover:rotate-180" />
               <span className="font-medium min-w-6 text-center">{language === 'en' ? 'EN' : 'ID'}</span>
@@ -142,13 +133,13 @@ export default function Header() {
                 <Link 
                   href={userRole === 'admin' ? '/admin/dashboard' : '/profile'}
                   className="header-btn-icon group max-w-xs"
-                  title={userName ? `Hello, ${userName}` : ''}
+                  title={userName ? `${tr('Hello', 'Halo')}, ${userName}` : ''}
                 >
-                  <User className="w-4 h-4 transition-transform duration-300 group-hover:scale-110 flex-shrink-0" />
+                  <User className="w-4 h-4 transition-transform duration-300 group-hover:scale-110 shrink-0" />
                   <span className="font-medium truncate">
                     {userName ? (
                       <>
-                        <span className="hidden lg:inline">Hello, </span>
+                        <span className="hidden lg:inline">{tr('Hello', 'Halo')}, </span>
                         <span className="hidden lg:inline">{userName.length > 12 ? userName.substring(0, 12) + '...' : userName}</span>
                         <span className="lg:hidden">{userName.split(' ')[0]}</span>
                       </>
@@ -159,7 +150,7 @@ export default function Header() {
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="header-btn-logout group flex-shrink-0"
+                  className="header-btn-logout group shrink-0"
                 >
                   <LogOut className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
                   <span className="font-medium">{t('nav.logout')}</span>
@@ -169,14 +160,14 @@ export default function Header() {
               <>
                 <Link 
                   href="/login" 
-                  className="header-btn-icon group flex-shrink-0"
+                  className="header-btn-icon group shrink-0"
                 >
                   <User className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
                   <span className="font-medium">{t('nav.signIn')}</span>
                 </Link>
                 <Link
                   href="/register"
-                  className="header-btn-primary font-medium flex-shrink-0"
+                  className="header-btn-primary font-medium shrink-0"
                 >
                   {t('nav.signUp')}
                 </Link>
@@ -185,7 +176,7 @@ export default function Header() {
             
             <Link
               href="/contact"
-              className="header-btn-primary font-medium flex-shrink-0"
+              className="header-btn-primary font-medium shrink-0"
             >
               {t('nav.contact')}
             </Link>
@@ -212,15 +203,6 @@ export default function Header() {
             >
               {t('nav.catalog')}
             </Link>
-            {isLoggedIn && (
-              <Link 
-                href="/orders" 
-                className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {t('nav.myOrders')}
-              </Link>
-            )}
             <Link 
               href="/community" 
               className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"

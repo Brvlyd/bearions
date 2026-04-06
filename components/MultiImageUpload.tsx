@@ -4,6 +4,7 @@ import { useState, useRef, DragEvent, ChangeEvent } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Upload, X, Image as ImageIcon, GripVertical } from 'lucide-react'
 import Image from 'next/image'
+import { useLanguage } from '@/lib/i18n'
 
 interface MultiImageUploadProps {
   productId?: string
@@ -12,6 +13,7 @@ interface MultiImageUploadProps {
 }
 
 export default function MultiImageUpload({ productId, onImagesChange, initialImages = [] }: MultiImageUploadProps) {
+  const { tr } = useLanguage()
   const [uploading, setUploading] = useState(false)
   const [dragActive, setDragActive] = useState(false)
   const [images, setImages] = useState<string[]>(initialImages)
@@ -31,12 +33,12 @@ export default function MultiImageUpload({ productId, onImagesChange, initialIma
   const uploadFile = async (file: File): Promise<string> => {
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      throw new Error('Please upload an image file')
+      throw new Error(tr('Please upload an image file', 'Silakan unggah file gambar'))
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      throw new Error('Image size should be less than 5MB')
+      throw new Error(tr('Image size should be less than 5MB', 'Ukuran gambar harus kurang dari 5MB'))
     }
 
     // Create unique file name
@@ -146,7 +148,7 @@ export default function MultiImageUpload({ productId, onImagesChange, initialIma
                     fill
                     className="object-contain rounded"
                     onError={() => {
-                      setError('Failed to load image')
+                      setError(tr('Failed to load image', 'Gagal memuat gambar'))
                     }}
                   />
                 </div>
@@ -156,7 +158,7 @@ export default function MultiImageUpload({ productId, onImagesChange, initialIma
                   type="button"
                   onClick={() => handleRemove(index)}
                   className="absolute top-1 right-1 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 transition shadow-lg opacity-0 group-hover:opacity-100"
-                  title="Remove image"
+                  title={tr('Remove image', 'Hapus gambar')}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -168,7 +170,7 @@ export default function MultiImageUpload({ productId, onImagesChange, initialIma
                       type="button"
                       onClick={() => moveImage(index, index - 1)}
                       className="bg-black/70 text-white p-1 rounded hover:bg-black transition"
-                      title="Move left"
+                      title={tr('Move left', 'Pindah ke kiri')}
                     >
                       <GripVertical className="w-3 h-3 rotate-90" />
                     </button>
@@ -178,7 +180,7 @@ export default function MultiImageUpload({ productId, onImagesChange, initialIma
                       type="button"
                       onClick={() => moveImage(index, index + 1)}
                       className="bg-black/70 text-white p-1 rounded hover:bg-black transition"
-                      title="Move right"
+                      title={tr('Move right', 'Pindah ke kanan')}
                     >
                       <GripVertical className="w-3 h-3 -rotate-90" />
                     </button>
@@ -221,25 +223,25 @@ export default function MultiImageUpload({ productId, onImagesChange, initialIma
           {uploading ? (
             <>
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mb-4"></div>
-              <p className="text-black font-medium">Uploading...</p>
+              <p className="text-black font-medium">{tr('Uploading...', 'Mengunggah...')}</p>
             </>
           ) : (
             <>
               <ImageIcon className="w-12 h-12 text-gray-400 mb-4" />
               <p className="text-black font-medium mb-2">
-                Drag & drop images here
+                {tr('Drag & drop images here', 'Seret & lepas gambar di sini')}
               </p>
-              <p className="text-sm text-gray-500 mb-4">or</p>
+              <p className="text-sm text-gray-500 mb-4">{tr('or', 'atau')}</p>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 className="bg-black text-white px-6 py-2.5 rounded-lg hover:bg-gray-800 transition inline-flex items-center gap-2"
               >
                 <Upload className="w-4 h-4" />
-                Browse Files
+                {tr('Browse Files', 'Pilih File')}
               </button>
               <p className="text-xs text-gray-500 mt-4">
-                PNG, JPG, GIF up to 5MB each (multiple files supported)
+                {tr('PNG, JPG, GIF up to 5MB each (multiple files supported)', 'PNG, JPG, GIF hingga 5MB per file (mendukung banyak file)')}
               </p>
             </>
           )}
@@ -254,8 +256,8 @@ export default function MultiImageUpload({ productId, onImagesChange, initialIma
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
         <p className="text-sm text-blue-800">
-          <strong>Tip:</strong> Upload multiple images to create a carousel. 
-          Drag images to reorder them. The first image will be the main display.
+          <strong>{tr('Tip', 'Tips')}:</strong> {tr('Upload multiple images to create a carousel.', 'Unggah beberapa gambar untuk membuat carousel.')} 
+          {tr('Drag images to reorder them. The first image will be the main display.', 'Seret gambar untuk mengurutkannya. Gambar pertama akan menjadi tampilan utama.')}
         </p>
       </div>
     </div>

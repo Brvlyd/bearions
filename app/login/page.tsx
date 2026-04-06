@@ -9,34 +9,62 @@ import { useLanguage } from '@/lib/i18n'
 export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { t } = useLanguage()
+    const { t, language } = useLanguage()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
   const [redirecting, setRedirecting] = useState(false)
+  const [resetLoading, setResetLoading] = useState(false)
 
   // Check if coming from email confirmation
   useEffect(() => {
     const confirmed = searchParams.get('confirmed')
     const emailParam = searchParams.get('email')
+    const reset = searchParams.get('reset')
+    const resetError = searchParams.get('reset_error')
+
+    if (emailParam) {
+      setEmail(decodeURIComponent(emailParam))
+    }
     
     if (confirmed === 'true') {
-      setSuccess('✅ Email berhasil dikonfirmasi! Silakan login untuk melanjutkan.')
-      if (emailParam) {
-        setEmail(decodeURIComponent(emailParam))
-      }
+        setSuccess(
+          language === 'en'
+            ? '✅ Email confirmed successfully! Please sign in to continue.'
+            : '✅ Email berhasil dikonfirmasi! Silakan login untuk melanjutkan.'
+        )
+    }
+
+    if (reset === 'success') {
+        setSuccess(
+          language === 'en'
+            ? '✅ Password updated successfully! Please login with your new password.'
+            : '✅ Password berhasil diubah! Silakan login dengan password baru Anda.'
+        )
+    }
+
+    if (resetError === 'expired') {
+        setError(
+          language === 'en'
+            ? '❌ Password reset link is invalid or expired. Please request a new reset link.'
+            : '❌ Link reset password sudah tidak valid atau sudah kadaluarsa. Silakan kirim ulang link reset password.'
+        )
     }
   }, [searchParams])
+
+  const isValidEmail = (value: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(value)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
     // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
+    if (!isValidEmail(email)) {
       setError(t('login.errorInvalidEmail'))
       return
     }
@@ -63,7 +91,11 @@ export default function LoginPage() {
       
       // Show success message
       setRedirecting(true)
-      setSuccess('✅ Login berhasil! Mengarahkan ke halaman...')
+        setSuccess(
+          language === 'en'
+            ? '✅ Login successful! Redirecting...'
+            : '✅ Login berhasil! Mengarahkan ke halaman...'
+        )
       
       // Wait a bit to ensure session is properly saved
       await new Promise(resolve => setTimeout(resolve, 800))
@@ -84,14 +116,51 @@ export default function LoginPage() {
       let errorMessage = t('login.errorFailed')
       
       if (err.message?.includes('EMAIL_NOT_CONFIRMED') || err.message?.includes('Email not confirmed')) {
-        errorMessage = '📧 Email belum dikonfirmasi! Silakan cek inbox email Anda dan klik link konfirmasi yang kami kirim. Jika tidak ada, cek folder spam/junk.'
+        const encodedEmail = encodeURIComponent(email.trim().toLowerCase())
+        router.push(`/auth/otp?email=${encodedEmail}&source=login`)
+        return
       } else if (err.message?.includes('Invalid login credentials')) {
-        errorMessage = '❌ Email atau password salah. Jika Anda baru mendaftar, pastikan sudah konfirmasi email terlebih dahulu.'
+          errorMessage =
+            language === 'en'
+              ? '❌ Invalid email or password. If you just registered, make sure your email has been verified first.'
+              : '❌ Email atau password salah. Jika Anda baru mendaftar, pastikan sudah konfirmasi email terlebih dahulu.'
       }
       
       setError(errorMessage)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleSendResetPassword = async () => {
+    setError('')
+    setSuccess('')
+
+    if (!isValidEmail(email)) {
+        setError(
+          language === 'en'
+            ? '🔑 Please enter a valid email first to reset password.'
+            : '🔑 Masukkan email yang valid terlebih dahulu untuk reset password.'
+        )
+      return
+    }
+
+    try {
+      setResetLoading(true)
+      await authService.sendPasswordResetEmail(email.trim().toLowerCase())
+        setSuccess(
+          language === 'en'
+            ? '📩 Password reset link has been sent. Please check your inbox and spam/junk folder.'
+            : '📩 Link reset password sudah dikirim. Silakan cek inbox dan folder spam/junk.'
+        )
+    } catch (err: any) {
+      console.error('Reset password email error:', err)
+        const message =
+          err?.message ||
+          (language === 'en' ? 'Failed to send reset password email.' : 'Gagal mengirim email reset password.')
+      setError(`❌ ${message}`)
+    } finally {
+      setResetLoading(false)
     }
   }
 
@@ -136,9 +205,21 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-2 text-black">
-                {t('login.password')}
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label htmlFor="password" className="block text-sm font-medium text-black">
+                  {t('login.password')}
+                </label>
+                <button
+                  type="button"
+                  onClick={handleSendResetPassword}
+                  disabled={resetLoading}
+                  className="text-xs text-black hover:underline disabled:text-gray-400 disabled:no-underline"
+                >
+                    {resetLoading
+                      ? (language === 'en' ? 'Sending...' : 'Mengirim...')
+                      : (language === 'en' ? 'Forgot password?' : 'Lupa password?')}
+                </button>
+              </div>
               <input
                 id="password"
                 type="password"
@@ -152,10 +233,12 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading || redirecting}
+              disabled={loading || redirecting || resetLoading}
               className="w-full btn-primary-animated"
             >
-              {redirecting ? '🔄 Mengarahkan...' : (loading ? t('login.submitting') : t('login.submit'))}
+                {redirecting
+                  ? (language === 'en' ? '🔄 Redirecting...' : '🔄 Mengarahkan...')
+                  : (loading ? t('login.submitting') : t('login.submit'))}
             </button>
           </form>
 

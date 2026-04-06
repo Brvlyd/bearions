@@ -4,6 +4,7 @@ import { useState, useRef, DragEvent, ChangeEvent } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Upload, X, Image as ImageIcon } from 'lucide-react'
 import Image from 'next/image'
+import { useLanguage } from '@/lib/i18n'
 
 interface ImageUploadProps {
   currentImageUrl?: string
@@ -12,6 +13,7 @@ interface ImageUploadProps {
 }
 
 export default function ImageUpload({ currentImageUrl, onImageChange, productId }: ImageUploadProps) {
+  const { tr } = useLanguage()
   const [uploading, setUploading] = useState(false)
   const [dragActive, setDragActive] = useState(false)
   const [previewUrl, setPreviewUrl] = useState(currentImageUrl || '')
@@ -35,12 +37,12 @@ export default function ImageUpload({ currentImageUrl, onImageChange, productId 
 
       // Validate file type
       if (!file.type.startsWith('image/')) {
-        throw new Error('Please upload an image file')
+        throw new Error(tr('Please upload an image file', 'Silakan unggah file gambar'))
       }
 
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        throw new Error('Image size should be less than 5MB')
+        throw new Error(tr('Image size should be less than 5MB', 'Ukuran gambar harus kurang dari 5MB'))
       }
 
       // Create unique file name
@@ -119,7 +121,7 @@ export default function ImageUpload({ currentImageUrl, onImageChange, productId 
   return (
     <div>
       <label className="block text-sm font-medium mb-2 text-black">
-        Product Image
+        {tr('Product Image', 'Gambar Produk')}
       </label>
 
       {previewUrl ? (
@@ -128,11 +130,11 @@ export default function ImageUpload({ currentImageUrl, onImageChange, productId 
             <div className="relative w-full h-full">
               <Image
                 src={previewUrl}
-                alt="Product preview"
+                alt={tr('Product preview', 'Pratinjau produk')}
                 fill
                 className="object-contain"
                 onError={() => {
-                  setError('Failed to load image')
+                  setError(tr('Failed to load image', 'Gagal memuat gambar'))
                   setPreviewUrl('')
                 }}
               />
@@ -141,13 +143,13 @@ export default function ImageUpload({ currentImageUrl, onImageChange, productId 
               type="button"
               onClick={handleRemove}
               className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 transition shadow-lg"
-              title="Remove image"
+              title={tr('Remove image', 'Hapus gambar')}
             >
               <X className="w-4 h-4" />
             </button>
           </div>
           <p className="text-sm text-gray-500">
-            Click the <strong>X</strong> button to remove and upload a new image
+            {tr('Click the', 'Klik tombol')} <strong>X</strong> {tr('button to remove and upload a new image', 'untuk menghapus dan mengunggah gambar baru')}
           </p>
         </div>
       ) : (
@@ -175,25 +177,25 @@ export default function ImageUpload({ currentImageUrl, onImageChange, productId 
             {uploading ? (
               <>
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mb-4"></div>
-                <p className="text-black font-medium">Uploading...</p>
+                <p className="text-black font-medium">{tr('Uploading...', 'Mengunggah...')}</p>
               </>
             ) : (
               <>
                 <ImageIcon className="w-16 h-16 text-gray-400 mb-4" />
                 <p className="text-black font-medium mb-2">
-                  Drag & drop an image here
+                  {tr('Drag & drop an image here', 'Seret & lepas gambar di sini')}
                 </p>
-                <p className="text-sm text-gray-500 mb-4">or</p>
+                <p className="text-sm text-gray-500 mb-4">{tr('or', 'atau')}</p>
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   className="bg-black text-white px-6 py-2.5 rounded-lg hover:bg-gray-800 transition inline-flex items-center gap-2"
                 >
                   <Upload className="w-4 h-4" />
-                  Browse Files
+                  {tr('Browse Files', 'Pilih File')}
                 </button>
                 <p className="text-xs text-gray-500 mt-4">
-                  PNG, JPG, GIF up to 5MB
+                  {tr('PNG, JPG, GIF up to 5MB', 'PNG, JPG, GIF hingga 5MB')}
                 </p>
               </>
             )}
@@ -209,8 +211,8 @@ export default function ImageUpload({ currentImageUrl, onImageChange, productId 
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
         <p className="text-sm text-blue-800">
-          <strong>Tip:</strong> Images are automatically stored in Supabase Storage. 
-          For best results, use square images (1:1 ratio) at least 800x800px.
+          <strong>{tr('Tip', 'Tips')}:</strong> {tr('Images are automatically stored in Supabase Storage.', 'Gambar otomatis disimpan di Supabase Storage.')} 
+          {tr('For best results, use square images (1:1 ratio) at least 800x800px.', 'Untuk hasil terbaik, gunakan gambar persegi (rasio 1:1) minimal 800x800px.')}
         </p>
       </div>
     </div>

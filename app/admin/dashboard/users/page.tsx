@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Search, Pencil, Trash2 } from 'lucide-react'
+import { useLanguage } from '@/lib/i18n'
 
 interface User {
   id: string
@@ -16,6 +17,7 @@ interface User {
 }
 
 export default function UsersManagementPage() {
+  const { tr } = useLanguage()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -45,7 +47,7 @@ export default function UsersManagementPage() {
       setUsers(data || [])
     } catch (error: any) {
       console.error('Error loading users:', error)
-      setMessage({ type: 'error', text: 'Failed to load users' })
+      setMessage({ type: 'error', text: tr('Failed to load users', 'Gagal memuat pengguna') })
     } finally {
       setLoading(false)
     }
@@ -87,12 +89,12 @@ export default function UsersManagementPage() {
 
       if (error) throw error
 
-      setMessage({ type: 'success', text: 'User updated successfully!' })
+      setMessage({ type: 'success', text: tr('User updated successfully!', 'Pengguna berhasil diperbarui!') })
       loadUsers()
       closeEditModal()
     } catch (error: any) {
       console.error('Error updating user:', error)
-      setMessage({ type: 'error', text: error.message || 'Failed to update user' })
+      setMessage({ type: 'error', text: error.message || tr('Failed to update user', 'Gagal memperbarui pengguna') })
     }
   }
 
@@ -117,12 +119,12 @@ export default function UsersManagementPage() {
 
       if (error) throw error
 
-      setMessage({ type: 'success', text: 'User deleted successfully!' })
+      setMessage({ type: 'success', text: tr('User deleted successfully!', 'Pengguna berhasil dihapus!') })
       loadUsers()
       closeDeleteModal()
     } catch (error: any) {
       console.error('Error deleting user:', error)
-      setMessage({ type: 'error', text: error.message || 'Failed to delete user' })
+      setMessage({ type: 'error', text: error.message || tr('Failed to delete user', 'Gagal menghapus pengguna') })
       closeDeleteModal()
     }
   }
@@ -156,8 +158,8 @@ export default function UsersManagementPage() {
     <div className="p-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-black mb-2">User Management</h1>
-        <p className="text-gray-600">Manage and monitor registered users</p>
+        <h1 className="text-3xl font-bold text-black mb-2">{tr('User Management', 'Manajemen Pengguna')}</h1>
+        <p className="text-gray-600">{tr('Manage and monitor registered users', 'Kelola dan pantau pengguna terdaftar')}</p>
       </div>
 
       {/* Message Alert */}
@@ -174,11 +176,11 @@ export default function UsersManagementPage() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <p className="text-sm text-gray-600 mb-1">Total Users</p>
+          <p className="text-sm text-gray-600 mb-1">{tr('Total Users', 'Total Pengguna')}</p>
           <p className="text-2xl font-bold text-black">{users.length}</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <p className="text-sm text-gray-600 mb-1">Users This Month</p>
+          <p className="text-sm text-gray-600 mb-1">{tr('Users This Month', 'Pengguna Bulan Ini')}</p>
           <p className="text-2xl font-bold text-blue-600">
             {users.filter(u => {
               const userDate = new Date(u.created_at)
@@ -188,7 +190,7 @@ export default function UsersManagementPage() {
           </p>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <p className="text-sm text-gray-600 mb-1">Last 7 Days</p>
+          <p className="text-sm text-gray-600 mb-1">{tr('Last 7 Days', '7 Hari Terakhir')}</p>
           <p className="text-2xl font-bold text-green-600">
             {users.filter(u => {
               const userDate = new Date(u.created_at)
@@ -205,7 +207,7 @@ export default function UsersManagementPage() {
         <div className="relative">
           <input
             type="text"
-            placeholder="Search by name, email, or phone..."
+            placeholder={tr('Search by name, email, or phone...', 'Cari berdasarkan nama, email, atau telepon...')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full px-4 py-3 pr-12 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-gray-600"
@@ -221,16 +223,16 @@ export default function UsersManagementPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  User
+                  {tr('User', 'Pengguna')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Contact
+                  {tr('Contact', 'Kontak')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Joined
+                  {tr('Joined', 'Bergabung')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
+                  {tr('Actions', 'Aksi')}
                 </th>
               </tr>
             </thead>
@@ -238,7 +240,7 @@ export default function UsersManagementPage() {
               {filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
-                    No users found
+                    {tr('No users found', 'Tidak ada pengguna')}
                   </td>
                 </tr>
               ) : (
@@ -250,7 +252,7 @@ export default function UsersManagementPage() {
                           {(user.full_name || user.email || '?').charAt(0).toUpperCase()}
                         </div>
                         <div className="ml-3">
-                          <p className="text-sm font-medium text-black">{user.full_name || 'No name'}</p>
+                          <p className="text-sm font-medium text-black">{user.full_name || tr('No name', 'Tanpa nama')}</p>
                           <p className="text-sm text-gray-500">{user.email}</p>
                         </div>
                       </div>
@@ -267,14 +269,14 @@ export default function UsersManagementPage() {
                         <button
                           onClick={() => openEditModal(user)}
                           className="text-gray-600 hover:text-black p-2 hover:bg-gray-100 rounded"
-                          title="Edit"
+                          title={tr('Edit', 'Ubah')}
                         >
                           <Pencil className="w-5 h-5" />
                         </button>
                         <button
                           onClick={() => openDeleteModal(user)}
                           className="text-gray-600 hover:text-red-600 p-2 hover:bg-red-50 rounded"
-                          title="Delete"
+                          title={tr('Delete', 'Hapus')}
                         >
                           <Trash2 className="w-5 h-5" />
                         </button>
@@ -292,38 +294,38 @@ export default function UsersManagementPage() {
       {showEditModal && selectedUser && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-bold text-black mb-4">Edit User</h3>
+            <h3 className="text-xl font-bold text-black mb-4">{tr('Edit User', 'Ubah Pengguna')}</h3>
             
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-black mb-1">
-                  Full Name *
+                  {tr('Full Name *', 'Nama Lengkap *')}
                 </label>
                 <input
                   type="text"
                   value={editFormData.full_name}
                   onChange={(e) => setEditFormData({ ...editFormData, full_name: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-black"
-                  placeholder="Enter user's full name"
+                  placeholder={tr('Enter user\'s full name', 'Masukkan nama lengkap pengguna')}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-black mb-1">
-                  Phone
+                  {tr('Phone', 'Telepon')}
                 </label>
                 <input
                   type="text"
                   value={editFormData.phone}
                   onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-black"
-                  placeholder="e.g., 081234567890"
+                  placeholder={tr('e.g., 081234567890', 'contoh: 081234567890')}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-black mb-1">
-                  Address
+                  {tr('Address', 'Alamat')}
                 </label>
                 <textarea
                   value={editFormData.address}
@@ -340,13 +342,13 @@ export default function UsersManagementPage() {
                 onClick={closeEditModal}
                 className="px-4 py-2 bg-gray-100 text-black rounded hover:bg-gray-200 transition font-medium"
               >
-                Cancel
+                {tr('Cancel', 'Batal')}
               </button>
               <button
                 onClick={handleSaveEdit}
                 className="px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition font-medium"
               >
-                Save Changes
+                {tr('Save Changes', 'Simpan Perubahan')}
               </button>
             </div>
           </div>
@@ -357,9 +359,9 @@ export default function UsersManagementPage() {
       {showDeleteModal && selectedUser && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-bold text-black mb-4">Delete User</h3>
+            <h3 className="text-xl font-bold text-black mb-4">{tr('Delete User', 'Hapus Pengguna')}</h3>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to delete <strong>{selectedUser.full_name || selectedUser.email}</strong>? This action cannot be undone.
+              {tr('Are you sure you want to delete', 'Yakin ingin menghapus')} <strong>{selectedUser.full_name || selectedUser.email}</strong>? {tr('This action cannot be undone.', 'Tindakan ini tidak dapat dibatalkan.')}
             </p>
 
             <div className="flex gap-3 justify-end">
@@ -367,13 +369,13 @@ export default function UsersManagementPage() {
                 onClick={closeDeleteModal}
                 className="px-4 py-2 bg-gray-100 text-black rounded hover:bg-gray-200 transition font-medium"
               >
-                Cancel
+                {tr('Cancel', 'Batal')}
               </button>
               <button
                 onClick={handleDeleteUser}
                 className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition font-medium"
               >
-                Delete
+                {tr('Delete', 'Hapus')}
               </button>
             </div>
           </div>
