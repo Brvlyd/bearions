@@ -16,6 +16,7 @@ const translations: Translations = {
   'nav.catalog': { en: 'Catalog', id: 'Katalog' },
   'nav.myOrders': { en: 'My Orders', id: 'Pesanan Saya' },
   'nav.community': { en: 'Community', id: 'Komunitas' },
+  'nav.about': { en: 'About Us', id: 'Tentang Kami' },
   'nav.contact': { en: 'Contact Us', id: 'Hubungi Kami' },
   'nav.cart': { en: 'Shopping Cart', id: 'Keranjang Belanja' },
   'nav.signIn': { en: 'Sign in', id: 'Masuk' },

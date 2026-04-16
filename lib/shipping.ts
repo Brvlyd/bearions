@@ -1,6 +1,28 @@
 import { supabase } from './supabase'
 import type { ShippingAddress } from './supabase'
 
+type SupabaseErrorLike = {
+  message?: string
+  details?: string
+  hint?: string
+  code?: string
+}
+
+const parseSupabaseError = (error: unknown, fallback = 'Unknown error') => {
+  const err = (error || {}) as SupabaseErrorLike
+  const message = err.message || fallback
+  const details = err.details || ''
+  const hint = err.hint || ''
+  const code = err.code || 'UNKNOWN'
+
+  return {
+    message,
+    details,
+    hint,
+    code,
+  }
+}
+
 export const shippingService = {
   // Get user shipping addresses
   async getUserAddresses(userId: string): Promise<ShippingAddress[]> {
@@ -46,6 +68,17 @@ export const shippingService = {
     addressData: Omit<ShippingAddress, 'id' | 'user_id' | 'created_at' | 'updated_at'>
   ): Promise<ShippingAddress> {
     try {
+      const { count, error: countError } = await supabase
+        .from('shipping_addresses')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+
+      if (countError) throw countError
+
+      if ((count || 0) >= 3) {
+        throw new Error('MAX_ADDRESSES_REACHED')
+      }
+
       // If this is set as default, unset other default addresses
       if (addressData.is_default) {
         await supabase
@@ -116,8 +149,18 @@ export const shippingService = {
 
       if (error) throw error
     } catch (error) {
-      console.error('Error deleting address:', error)
-      throw error
+      const parsed = parseSupabaseError(error)
+      console.error('Error deleting address:', parsed)
+
+      if (parsed.code === '42501') {
+        throw new Error('ADDRESS_DELETE_NOT_ALLOWED')
+      }
+
+      if (parsed.code === '23503') {
+        throw new Error('ADDRESS_DELETE_REQUIRES_DB_MIGRATION')
+      }
+
+      throw new Error(`ADDRESS_DELETE_FAILED:${parsed.code}`)
     }
   },
 

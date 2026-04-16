@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Order, OrderItem, ShippingAddress } from '@/lib/supabase'
+import { Order, OrderItem, ShippingAddress, Payment } from '@/lib/supabase'
 import { orderService } from '@/lib/orders'
 import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/lib/i18n'
@@ -23,6 +23,7 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<Order | null>(null)
   const [orderItems, setOrderItems] = useState<OrderItem[]>([])
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress | null>(null)
+  const [payment, setPayment] = useState<Payment | null>(null)
   const [loading, setLoading] = useState(true)
   const [editMode, setEditMode] = useState(false)
   const [editStatus, setEditStatus] = useState<Order['status']>('pending')
@@ -61,6 +62,16 @@ export default function OrderDetailPage() {
       const items = await orderService.getOrderItems(orderId)
       setOrderItems(items)
 
+      const { data: paymentData } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('order_id', orderId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      setPayment(paymentData || null)
+
       // Load shipping address if exists
       if (orderData.shipping_address_id) {
         const { data: address } = await supabase
@@ -82,6 +93,14 @@ export default function OrderDetailPage() {
 
   const handleSaveChanges = async () => {
     if (!order) return
+
+    const isManualBankTransfer = order.payment_method === 'bank_transfer'
+    const willBeProcessed = ['processing', 'shipped', 'delivered'].includes(editStatus)
+
+    if (isManualBankTransfer && willBeProcessed && !payment?.payment_proof_url) {
+      alert(tr('Cannot process this order before payment proof is uploaded by user.', 'Pesanan tidak bisa diproses sebelum user mengupload bukti pembayaran.'))
+      return
+    }
 
     try {
       setSaving(true)
@@ -106,7 +125,12 @@ export default function OrderDetailPage() {
       await loadOrderDetails()
     } catch (error) {
       console.error('Error updating order:', error)
-      alert(tr('Failed to update order', 'Gagal memperbarui pesanan'))
+      const message = error instanceof Error ? error.message : ''
+      if (message.includes('PAYMENT_PROOF_REQUIRED')) {
+        alert(tr('Cannot process order before payment proof is uploaded.', 'Pesanan tidak bisa diproses sebelum bukti pembayaran diupload.'))
+      } else {
+        alert(tr('Failed to update order', 'Gagal memperbarui pesanan'))
+      }
     } finally {
       setSaving(false)
     }
@@ -585,6 +609,21 @@ export default function OrderDetailPage() {
               <div>
                 <p className="text-sm text-gray-600">{tr('Payment Status', 'Status Pembayaran')}</p>
                 <div className="mt-1">{getPaymentBadge(order.payment_status)}</div>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">{tr('Payment Proof', 'Bukti Pembayaran')}</p>
+                {payment?.payment_proof_url ? (
+                  <a
+                    href={payment.payment_proof_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex mt-1 text-sm font-medium text-black hover:underline"
+                  >
+                    {tr('View uploaded proof', 'Lihat bukti terupload')}
+                  </a>
+                ) : (
+                  <p className="text-sm text-red-600 mt-1">{tr('No proof uploaded yet', 'Belum ada bukti terupload')}</p>
+                )}
               </div>
             </div>
           </div>

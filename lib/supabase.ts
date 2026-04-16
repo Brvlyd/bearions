@@ -39,6 +39,41 @@ export type CommunityPost = {
   image_url: string
   caption: string | null
   created_by: string | null
+  layout_size?: 's' | 'm' | 'w' | 'l' | null
+  layout_order?: number | null
+  created_at: string
+  updated_at: string
+}
+
+export type AboutUsContentBlock = {
+  id: string
+  type: 'text' | 'image'
+  text?: string
+  image_url?: string
+}
+
+export type AboutUsContent = {
+  id: number
+  title: string
+  headline: string
+  content_blocks: AboutUsContentBlock[] | null
+  background_image_url: string | null
+  updated_at: string
+  updated_by: string | null
+}
+
+export type PaymentMethodConfig = {
+  id: string
+  code: string
+  display_name: string
+  description: string | null
+  instructions: string | null
+  provider_name: string | null
+  account_name: string | null
+  account_number: string | null
+  requires_proof: boolean
+  is_active: boolean
+  sort_order: number
   created_at: string
   updated_at: string
 }

@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS orders (
   -- Payment methods: bank_transfer, credit_card, e_wallet, cod
   
   -- Shipping information
-  shipping_address_id UUID REFERENCES shipping_addresses(id),
+  shipping_address_id UUID REFERENCES shipping_addresses(id) ON DELETE SET NULL,
   tracking_number VARCHAR(100),
   courier VARCHAR(100),
   estimated_delivery DATE,

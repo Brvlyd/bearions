@@ -4,12 +4,17 @@ CREATE TABLE IF NOT EXISTS community_posts (
   image_url TEXT NOT NULL,
   caption TEXT,
   created_by UUID,
+  layout_size VARCHAR(10) NOT NULL DEFAULT 'm',
+  layout_order INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_community_posts_created_at
   ON community_posts (created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_community_posts_layout_order
+  ON community_posts (layout_order ASC, created_at DESC);
 
 -- Enable RLS
 ALTER TABLE community_posts ENABLE ROW LEVEL SECURITY;

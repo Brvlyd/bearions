@@ -1,6 +1,21 @@
 import { supabase } from './supabase'
 import type { Payment, Order } from './supabase'
 
+const MAX_PAYMENT_PROOF_SIZE = 2 * 1024 * 1024
+const ALLOWED_PAYMENT_PROOF_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'application/pdf',
+]
+const PRIMARY_PAYMENT_PROOF_BUCKET = process.env.NEXT_PUBLIC_PAYMENT_PROOF_BUCKET || 'uploads'
+const FALLBACK_PAYMENT_PROOF_BUCKET = 'product-images'
+
+const isBucketNotFoundError = (error: unknown): boolean => {
+  const message = String((error as { message?: string })?.message || '').toLowerCase()
+  return message.includes('bucket not found')
+}
+
 export const paymentService = {
   // Create payment record
   async createPayment(paymentData: {
@@ -102,19 +117,46 @@ export const paymentService = {
     file: File
   ): Promise<string> {
     try {
+      if (!ALLOWED_PAYMENT_PROOF_TYPES.includes(file.type)) {
+        throw new Error('INVALID_PAYMENT_PROOF_TYPE')
+      }
+
+      if (file.size > MAX_PAYMENT_PROOF_SIZE) {
+        throw new Error('PAYMENT_PROOF_TOO_LARGE')
+      }
+
       const fileExt = file.name.split('.').pop()
       const fileName = `${paymentId}-${Date.now()}.${fileExt}`
       const filePath = `payment-proofs/${fileName}`
 
-      const { error: uploadError } = await supabase.storage
-        .from('uploads')
-        .upload(filePath, file)
+      const uploadToBucket = async (bucketName: string): Promise<string> => {
+        const { error: uploadError } = await supabase.storage
+          .from(bucketName)
+          .upload(filePath, file)
 
-      if (uploadError) throw uploadError
+        if (uploadError) throw uploadError
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('uploads')
-        .getPublicUrl(filePath)
+        const { data: { publicUrl } } = supabase.storage
+          .from(bucketName)
+          .getPublicUrl(filePath)
+
+        return publicUrl
+      }
+
+      let publicUrl = ''
+
+      try {
+        publicUrl = await uploadToBucket(PRIMARY_PAYMENT_PROOF_BUCKET)
+      } catch (primaryError) {
+        if (
+          isBucketNotFoundError(primaryError) &&
+          PRIMARY_PAYMENT_PROOF_BUCKET !== FALLBACK_PAYMENT_PROOF_BUCKET
+        ) {
+          publicUrl = await uploadToBucket(FALLBACK_PAYMENT_PROOF_BUCKET)
+        } else {
+          throw primaryError
+        }
+      }
 
       // Update payment record
       await supabase
@@ -125,6 +167,26 @@ export const paymentService = {
       return publicUrl
     } catch (error) {
       console.error('Error uploading payment proof:', error)
+      throw error
+    }
+  },
+
+  // Submit proof for manual transfer and mark payment as waiting for admin verification
+  async submitPaymentProof(orderId: string, file: File): Promise<Payment> {
+    try {
+      const payment = await this.getPaymentByOrderId(orderId)
+
+      if (!payment) {
+        throw new Error('PAYMENT_NOT_FOUND')
+      }
+
+      await this.uploadPaymentProof(payment.id, file)
+
+      const updatedPayment = await this.updatePaymentStatus(payment.id, 'processing')
+
+      return updatedPayment
+    } catch (error) {
+      console.error('Error submitting payment proof:', error)
       throw error
     }
   },

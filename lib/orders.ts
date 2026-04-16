@@ -165,6 +165,45 @@ export const orderService = {
     status: Order['status']
   ): Promise<Order> {
     try {
+      const requiresProof = ['processing', 'shipped', 'delivered'].includes(status)
+
+      if (requiresProof) {
+        const { data: orderData } = await supabase
+          .from('orders')
+          .select('payment_method')
+          .eq('id', orderId)
+          .single()
+
+        const paymentMethodCode = orderData?.payment_method || ''
+        let methodRequiresProof = paymentMethodCode === 'bank_transfer'
+
+        if (paymentMethodCode) {
+          const { data: methodConfig } = await supabase
+            .from('payment_methods')
+            .select('requires_proof')
+            .eq('code', paymentMethodCode)
+            .maybeSingle()
+
+          if (typeof methodConfig?.requires_proof === 'boolean') {
+            methodRequiresProof = methodConfig.requires_proof
+          }
+        }
+
+        if (methodRequiresProof) {
+          const { data: paymentData } = await supabase
+            .from('payments')
+            .select('payment_proof_url')
+            .eq('order_id', orderId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+          if (!paymentData?.payment_proof_url) {
+            throw new Error('PAYMENT_PROOF_REQUIRED')
+          }
+        }
+      }
+
       const updateData: any = { status }
 
       // Set timestamp based on status

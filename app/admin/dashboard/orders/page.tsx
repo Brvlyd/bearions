@@ -264,7 +264,7 @@ export default function OrdersPage() {
               setShowStatusMenu(!showStatusMenu)
               setShowPaymentMenu(false)
             }}
-            className="px-4 py-3 bg-white border border-gray-200 rounded-lg font-medium hover:bg-gray-50 transition flex items-center gap-2 min-w-[140px]"
+            className="px-4 py-3 bg-white border border-gray-200 rounded-lg font-medium hover:bg-gray-50 transition flex items-center gap-2 min-w-35"
           >
             <Filter className="w-5 h-5" />
             {tr('Status', 'Status')}: {statusFilter === 'all' ? tr('All', 'Semua') : statusFilter}
@@ -296,7 +296,7 @@ export default function OrdersPage() {
               setShowPaymentMenu(!showPaymentMenu)
               setShowStatusMenu(false)
             }}
-            className="px-4 py-3 bg-white border border-gray-200 rounded-lg font-medium hover:bg-gray-50 transition flex items-center gap-2 min-w-[140px]"
+            className="px-4 py-3 bg-white border border-gray-200 rounded-lg font-medium hover:bg-gray-50 transition flex items-center gap-2 min-w-35"
           >
             <DollarSign className="w-5 h-5" />
             {tr('Payment', 'Pembayaran')}: {paymentFilter === 'all' ? tr('All', 'Semua') : paymentFilter}

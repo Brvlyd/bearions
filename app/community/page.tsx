@@ -5,6 +5,10 @@ import { Image as ImageIcon, X } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n'
 import { CommunityPost, supabase } from '@/lib/supabase'
 import { getImageUrl } from '@/lib/image-utils'
+import {
+  getCommunityTileClassName,
+  normalizeCommunityLayoutSize,
+} from '@/lib/community-layout'
 
 type SupabaseErrorLike = {
   message?: string
@@ -29,12 +33,17 @@ const parseErrorInfo = (error: unknown, unknownErrorText = 'Unknown error') => {
         combined.includes('schema cache') ||
         combined.includes('could not find the table')))
 
+  const isMissingLayoutColumnError =
+    (combined.includes('layout_order') || combined.includes('layout_size')) &&
+    (combined.includes('does not exist') || combined.includes('schema cache'))
+
   return {
     message,
     details,
     hint,
     code,
     isMissingTableError,
+    isMissingLayoutColumnError,
   }
 }
 
@@ -98,6 +107,7 @@ export default function CommunityPage() {
       const { data, error } = await supabase
         .from('community_posts')
         .select('*')
+        .order('layout_order', { ascending: true })
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -109,14 +119,44 @@ export default function CommunityPage() {
           return
         }
 
+        if (parsed.isMissingLayoutColumnError) {
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from('community_posts')
+            .select('*')
+            .order('created_at', { ascending: false })
+
+          if (!fallbackError) {
+            const normalizedPosts = ((fallbackData || []) as CommunityPost[]).map((post, index) => ({
+              ...post,
+              layout_size: normalizeCommunityLayoutSize(post.layout_size),
+              layout_order: post.layout_order ?? index + 1,
+            }))
+
+            setSchemaMissing(false)
+            setLoadError(
+              language === 'en'
+                ? 'Tetris layout columns are missing. Run add-community-layout-columns.sql for full control.'
+                : 'Kolom layout tetris belum ada. Jalankan add-community-layout-columns.sql untuk kontrol penuh.'
+            )
+            setPosts(normalizedPosts)
+            return
+          }
+        }
+
         setSchemaMissing(false)
         setLoadError(`${parsed.message} (${parsed.code})`)
         console.error('Error loading community gallery:', parsed)
         return
       }
 
+      const normalizedPosts = ((data || []) as CommunityPost[]).map((post, index) => ({
+        ...post,
+        layout_size: normalizeCommunityLayoutSize(post.layout_size),
+        layout_order: post.layout_order ?? index + 1,
+      }))
+
       setSchemaMissing(false)
-      setPosts((data || []) as CommunityPost[])
+      setPosts(normalizedPosts)
     } catch (error) {
       const parsed = parseErrorInfo(error, unknownErrorText)
       setSchemaMissing(false)
@@ -165,19 +205,19 @@ export default function CommunityPage() {
         )}
 
         {!loading && (
-          <div className="columns-2 md:columns-3 lg:columns-4 gap-3 [column-fill:balance]">
+          <div className="grid grid-cols-2 md:grid-cols-4 auto-rows-[120px] md:auto-rows-[140px] grid-flow-dense gap-3 md:gap-4">
             {posts.map((post) => (
               <button
                 key={post.id}
                 type="button"
                 onClick={() => setActivePost(post)}
-                className="mb-3 block break-inside-avoid"
+                className={getCommunityTileClassName(post.layout_size)}
               >
-                <figure className="relative group overflow-hidden rounded-xl bg-gray-100 border border-gray-200 shadow-sm hover:shadow-lg transition-shadow duration-300">
+                <figure className="relative group overflow-hidden rounded-xl bg-gray-100 border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 h-full hover:-translate-y-1 hover:scale-[1.01]">
                   <img
                     src={getImageUrl(post.image_url)}
                     alt={post.caption || (language === 'en' ? 'Community post' : 'Post komunitas')}
-                    className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                    className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05]"
                   />
 
                   {post.caption && (
