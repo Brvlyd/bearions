@@ -271,10 +271,16 @@ CREATE POLICY "Users can delete their cart items" ON cart_items FOR DELETE
 CREATE POLICY "Users can view their own orders" ON orders FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can create orders" ON orders FOR INSERT WITH CHECK (true);
 CREATE POLICY "Admins can view all orders" ON orders FOR SELECT USING (
-  EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'admin')
+  EXISTS (SELECT 1 FROM admins WHERE admins.id = auth.uid())
+  OR EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'admin')
 );
 CREATE POLICY "Admins can update orders" ON orders FOR UPDATE USING (
-  EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'admin')
+  EXISTS (SELECT 1 FROM admins WHERE admins.id = auth.uid())
+  OR EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'admin')
+)
+WITH CHECK (
+  EXISTS (SELECT 1 FROM admins WHERE admins.id = auth.uid())
+  OR EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'admin')
 );
 
 -- Order items policies
@@ -282,7 +288,8 @@ CREATE POLICY "Users can view their order items" ON order_items FOR SELECT
   USING (EXISTS (SELECT 1 FROM orders WHERE orders.id = order_items.order_id AND orders.user_id = auth.uid()));
 CREATE POLICY "Users can create order items" ON order_items FOR INSERT WITH CHECK (true);
 CREATE POLICY "Admins can view all order items" ON order_items FOR SELECT USING (
-  EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'admin')
+  EXISTS (SELECT 1 FROM admins WHERE admins.id = auth.uid())
+  OR EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'admin')
 );
 
 -- Shipping address policies
@@ -290,13 +297,18 @@ CREATE POLICY "Users can view their addresses" ON shipping_addresses FOR SELECT 
 CREATE POLICY "Users can create addresses" ON shipping_addresses FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update their addresses" ON shipping_addresses FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete their addresses" ON shipping_addresses FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Admins can view all shipping addresses" ON shipping_addresses FOR SELECT USING (
+  EXISTS (SELECT 1 FROM admins WHERE admins.id = auth.uid())
+  OR EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'admin')
+);
 
 -- Payment policies
 CREATE POLICY "Users can view their payments" ON payments FOR SELECT 
   USING (EXISTS (SELECT 1 FROM orders WHERE orders.id = payments.order_id AND orders.user_id = auth.uid()));
 CREATE POLICY "Users can create payments" ON payments FOR INSERT WITH CHECK (true);
 CREATE POLICY "Admins can view all payments" ON payments FOR SELECT USING (
-  EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'admin')
+  EXISTS (SELECT 1 FROM admins WHERE admins.id = auth.uid())
+  OR EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'admin')
 );
 
 -- Wishlist policies
