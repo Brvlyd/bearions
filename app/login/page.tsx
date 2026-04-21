@@ -9,7 +9,7 @@ import { useLanguage } from '@/lib/i18n'
 export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-    const { t, language } = useLanguage()
+  const { t, language } = useLanguage()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -17,6 +17,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [redirecting, setRedirecting] = useState(false)
   const [resetLoading, setResetLoading] = useState(false)
+  const [verificationLoading, setVerificationLoading] = useState(false)
+  const [verificationCooldown, setVerificationCooldown] = useState(0)
+  const [showVerificationActions, setShowVerificationActions] = useState(false)
 
   // Check if coming from email confirmation
   useEffect(() => {
@@ -52,7 +55,17 @@ export default function LoginPage() {
             : '❌ Link reset password sudah tidak valid atau sudah kadaluarsa. Silakan kirim ulang link reset password.'
         )
     }
-  }, [searchParams])
+  }, [language, searchParams])
+
+  useEffect(() => {
+    if (verificationCooldown <= 0) return
+
+    const timer = window.setTimeout(() => {
+      setVerificationCooldown((prev) => prev - 1)
+    }, 1000)
+
+    return () => window.clearTimeout(timer)
+  }, [verificationCooldown])
 
   const isValidEmail = (value: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -78,6 +91,7 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
     setSuccess('')
+    setShowVerificationActions(false)
 
     try {
       // Login tanpa specify role, akan auto-detect
@@ -110,25 +124,71 @@ export default function LoginPage() {
         setLoading(false)
         setRedirecting(false)
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Login error:', err)
+      const errMessage = err instanceof Error ? err.message : String(err ?? '')
       
       let errorMessage = t('login.errorFailed')
       
-      if (err.message?.includes('EMAIL_NOT_CONFIRMED') || err.message?.includes('Email not confirmed')) {
-        const encodedEmail = encodeURIComponent(email.trim().toLowerCase())
-        router.push(`/auth/otp?email=${encodedEmail}&source=login`)
+      if (errMessage.includes('EMAIL_NOT_CONFIRMED') || errMessage.includes('Email not confirmed')) {
+        setError(
+          language === 'en'
+            ? '❌ Your email is not verified yet. Click resend verification below, then open the latest email.'
+            : '❌ Email Anda belum diverifikasi. Klik kirim ulang verifikasi di bawah, lalu buka email terbaru.'
+        )
+        setShowVerificationActions(true)
         return
-      } else if (err.message?.includes('Invalid login credentials')) {
+      } else if (errMessage.includes('Invalid login credentials')) {
           errorMessage =
             language === 'en'
               ? '❌ Invalid email or password. If you just registered, make sure your email has been verified first.'
               : '❌ Email atau password salah. Jika Anda baru mendaftar, pastikan sudah konfirmasi email terlebih dahulu.'
+          setShowVerificationActions(true)
       }
       
       setError(errorMessage)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleResendVerification = async () => {
+    setError('')
+    setSuccess('')
+
+    const normalizedEmail = email.trim().toLowerCase()
+    if (!isValidEmail(normalizedEmail)) {
+      setError(
+        language === 'en'
+          ? '📩 Enter a valid email first, then resend verification.'
+          : '📩 Masukkan email yang valid terlebih dahulu, lalu kirim ulang verifikasi.'
+      )
+      return
+    }
+
+    if (verificationCooldown > 0) return
+
+    try {
+      setVerificationLoading(true)
+      await authService.resendEmailVerification(normalizedEmail)
+      setSuccess(
+        language === 'en'
+          ? '✅ Verification email sent again. Please check inbox and spam/junk folder.'
+          : '✅ Email verifikasi sudah dikirim ulang. Silakan cek inbox dan folder spam/junk.'
+      )
+      setVerificationCooldown(45)
+      setShowVerificationActions(true)
+    } catch (err: unknown) {
+      console.error('Resend verification error:', err)
+      const errMessage = err instanceof Error ? err.message : String(err ?? '')
+      setError(
+        errMessage ||
+          (language === 'en'
+            ? 'Failed to resend verification email. Please try again.'
+            : 'Gagal mengirim ulang email verifikasi. Silakan coba lagi.')
+      )
+    } finally {
+      setVerificationLoading(false)
     }
   }
 
@@ -153,10 +213,10 @@ export default function LoginPage() {
             ? '📩 Password reset link has been sent. Please check your inbox and spam/junk folder.'
             : '📩 Link reset password sudah dikirim. Silakan cek inbox dan folder spam/junk.'
         )
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Reset password email error:', err)
         const message =
-          err?.message ||
+          (err instanceof Error ? err.message : String(err ?? '')) ||
           (language === 'en' ? 'Failed to send reset password email.' : 'Gagal mengirim email reset password.')
       setError(`❌ ${message}`)
     } finally {
@@ -233,7 +293,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading || redirecting || resetLoading}
+              disabled={loading || redirecting || resetLoading || verificationLoading}
               className="w-full btn-primary-animated"
             >
                 {redirecting
@@ -241,6 +301,31 @@ export default function LoginPage() {
                   : (loading ? t('login.submitting') : t('login.submit'))}
             </button>
           </form>
+
+          {showVerificationActions && (
+            <div className="mt-4 space-y-3">
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={verificationLoading || verificationCooldown > 0 || loading || resetLoading}
+                className="w-full px-4 py-3 rounded-lg border border-black text-black font-medium hover:bg-black hover:text-white transition disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {verificationLoading
+                  ? (language === 'en' ? 'Sending verification...' : 'Mengirim verifikasi...')
+                  : verificationCooldown > 0
+                    ? (language === 'en' ? `Resend in ${verificationCooldown}s` : `Kirim ulang dalam ${verificationCooldown} detik`)
+                    : (language === 'en' ? 'Resend Verification Email' : 'Kirim Ulang Email Verifikasi')}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => router.push(`/auth/otp?email=${encodeURIComponent(email.trim().toLowerCase())}&source=login`)}
+                className="w-full px-4 py-3 rounded-lg text-sm text-black hover:underline"
+              >
+                {language === 'en' ? 'Open verification help page' : 'Buka halaman bantuan verifikasi'}
+              </button>
+            </div>
+          )}
 
           <div className="mt-6 text-center space-y-3">
             <p className="text-sm text-gray-600">

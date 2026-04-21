@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { Payment, Order } from './supabase'
+import type { Payment } from './supabase'
 
 const MAX_PAYMENT_PROOF_SIZE = 2 * 1024 * 1024
 const ALLOWED_PAYMENT_PROOF_TYPES = [
@@ -53,11 +53,11 @@ export const paymentService = {
     additionalData?: {
       transactionId?: string
       paidAt?: string
-      gatewayResponse?: any
+      gatewayResponse?: unknown
     }
   ): Promise<Payment> {
     try {
-      const updateData: any = { status }
+      const updateData: Record<string, unknown> = { status }
 
       if (additionalData?.transactionId) {
         updateData.transaction_id = additionalData.transactionId

@@ -42,7 +42,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       
       // Load product images
       const productImages = await productService.getProductImages(productId)
-      const imageUrls = productImages.map((img: any) => img.image_url)
+      const imageUrls = productImages.map((img: { image_url: string }) => img.image_url)
       
       // Use images from product_images table, or fallback to main image_url
       if (imageUrls.length > 0) {
@@ -94,8 +94,20 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       setTimeout(() => {
         setMessage(null)
       }, 3000)
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || tr('Failed to add to cart', 'Gagal menambahkan ke keranjang') })
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error ?? '')
+
+      if (message.includes('CART_POLICY_ERROR')) {
+        setMessage({
+          type: 'error',
+          text: tr(
+            'Your cart policy is not configured yet. Please contact admin to run cart SQL fix in Supabase.',
+            'Policy cart untuk akun ini belum benar. Mohon admin jalankan SQL fix cart di Supabase.'
+          ),
+        })
+      } else {
+        setMessage({ type: 'error', text: message || tr('Failed to add to cart', 'Gagal menambahkan ke keranjang') })
+      }
     } finally {
       setAddingToCart(false)
     }

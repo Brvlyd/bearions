@@ -1,5 +1,15 @@
 import { supabase } from './supabase'
-import type { Cart, CartItem, Product } from './supabase'
+import type { Cart, CartItem } from './supabase'
+
+const isUniqueViolation = (error: { code?: string; message?: string } | null) => {
+  if (!error) return false
+  return error.code === '23505' || error.message?.toLowerCase().includes('duplicate key')
+}
+
+const isRlsViolation = (error: { code?: string; message?: string } | null) => {
+  if (!error) return false
+  return error.code === '42501' || error.message?.toLowerCase().includes('row-level security')
+}
 
 export const cartService = {
   // Get or create cart for user
@@ -10,7 +20,11 @@ export const cartService = {
         .from('carts')
         .select('*')
         .eq('user_id', userId)
-        .single()
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (fetchError) throw fetchError
 
       if (existingCart) {
         return existingCart
@@ -23,7 +37,27 @@ export const cartService = {
         .select()
         .single()
 
-      if (createError) throw createError
+      if (createError) {
+        // If unique constraint exists and another request created the cart first, re-fetch it.
+        if (isUniqueViolation(createError)) {
+          const { data: retryCart, error: retryError } = await supabase
+            .from('carts')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+          if (retryError) throw retryError
+          if (retryCart) return retryCart
+        }
+
+        if (isRlsViolation(createError)) {
+          throw new Error('CART_POLICY_ERROR: Tidak bisa membuat cart untuk user ini. Jalankan SQL fix policy cart di Supabase.')
+        }
+
+        throw createError
+      }
 
       return newCart
     } catch (error) {
@@ -67,14 +101,18 @@ export const cartService = {
       const cart = await this.getOrCreateCart(userId)
 
       // Check if item already exists in cart
-      const { data: existingItem } = await supabase
+      let existingItemQuery = supabase
         .from('cart_items')
         .select('*')
         .eq('cart_id', cart.id)
         .eq('product_id', productId)
-        .eq('size', size || null)
-        .eq('color', color || null)
-        .single()
+
+      existingItemQuery = size ? existingItemQuery.eq('size', size) : existingItemQuery.is('size', null)
+      existingItemQuery = color ? existingItemQuery.eq('color', color) : existingItemQuery.is('color', null)
+
+      const { data: existingItem, error: existingItemError } = await existingItemQuery.maybeSingle()
+
+      if (existingItemError) throw existingItemError
 
       if (existingItem) {
         // Update quantity if item exists

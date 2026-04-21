@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js'
 
 export interface LoginCredentials {
   email: string
@@ -19,11 +20,16 @@ const buildLoginRedirectUrl = (email?: string) => {
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
   if (!baseUrl) return undefined
 
+  const params = new URLSearchParams({
+    next: '/login',
+    confirmed: 'true',
+  })
+
   if (email) {
-    return `${baseUrl}/login?confirmed=true&email=${encodeURIComponent(email)}`
+    params.set('email', email)
   }
 
-  return `${baseUrl}/login?confirmed=true`
+  return `${baseUrl}/auth/confirm?${params.toString()}`
 }
 
 const buildResetPasswordRedirectUrl = () => {
@@ -34,12 +40,38 @@ const buildResetPasswordRedirectUrl = () => {
 }
 
 export const authService = {
+  async clearLocalAuthState() {
+    try {
+      // Scope local prevents revoking remote sessions and only clears browser state.
+      await supabase.auth.signOut({ scope: 'local' })
+    } catch {
+      // no-op
+    }
+  },
+
+  async getSessionSafely() {
+    const { data, error } = await supabase.auth.getSession()
+
+    if (error) {
+      if (error.message?.includes('Invalid Refresh Token')) {
+        await this.clearLocalAuthState()
+        return null
+      }
+
+      throw error
+    }
+
+    return data.session
+  },
+
   // Register new user
   async register(data: RegisterData) {
     try {
+      const normalizedEmail = data.email.trim().toLowerCase()
+
       // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!emailRegex.test(data.email)) {
+      if (!emailRegex.test(normalizedEmail)) {
         throw new Error('Invalid email format')
       }
 
@@ -55,11 +87,23 @@ export const authService = {
       const { data: existingUserByEmail } = await supabase
         .from('users')
         .select('email')
-        .eq('email', data.email.toLowerCase())
+        .eq('email', normalizedEmail)
         .single()
 
       if (existingUserByEmail) {
-        throw new Error('DUPLICATE_EMAIL: Email sudah terdaftar. Silakan gunakan email lain atau login.')
+        try {
+          await this.resendEmailVerification(normalizedEmail)
+
+          return {
+            user: null,
+            session: null,
+            needsEmailConfirmation: true,
+            existingAccount: true,
+            message: 'Akun dengan email ini sudah ada. Email verifikasi baru sudah kami kirim. Silakan cek inbox/spam lalu lanjut login.',
+          }
+        } catch {
+          throw new Error('DUPLICATE_EMAIL: Email sudah terdaftar. Silakan login atau reset password jika lupa akun.')
+        }
       }
 
       // Check if phone already exists (if phone provided)
@@ -77,10 +121,10 @@ export const authService = {
       }
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
+        email: normalizedEmail,
         password: data.password,
         options: {
-          emailRedirectTo: buildLoginRedirectUrl(data.email),
+          emailRedirectTo: buildLoginRedirectUrl(normalizedEmail),
           data: {
             full_name: data.full_name,
             phone: data.phone,
@@ -118,8 +162,13 @@ export const authService = {
   // Login for both admin and user
   async login(credentials: LoginCredentials, role?: UserRole) {
     try {
+      const normalizedEmail = credentials.email.trim().toLowerCase()
+
+      // Remove stale local session first so invalid refresh tokens do not poison fresh login attempts.
+      await this.getSessionSafely()
+
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: credentials.email,
+        email: normalizedEmail,
         password: credentials.password,
       })
 
@@ -171,11 +220,13 @@ export const authService = {
   // Resend verification email for unconfirmed users
   async resendEmailVerification(email: string) {
     try {
+      const normalizedEmail = email.trim().toLowerCase()
+
       const { data, error } = await supabase.auth.resend({
         type: 'signup',
-        email,
+        email: normalizedEmail,
         options: {
-          emailRedirectTo: buildLoginRedirectUrl(email),
+          emailRedirectTo: buildLoginRedirectUrl(normalizedEmail),
         },
       })
 
@@ -218,7 +269,7 @@ export const authService = {
   },
 
   // Get user with their role
-  async getUserWithRole(user: any) {
+  async getUserWithRole(user: User) {
     if (!user) return null
 
     // Check if admin
@@ -254,9 +305,7 @@ export const authService = {
 
   // Get current session
   async getSession() {
-    const { data, error } = await supabase.auth.getSession()
-    if (error) throw error
-    return data.session
+    return this.getSessionSafely()
   },
 
   // Check if user is admin
@@ -337,7 +386,7 @@ export const authService = {
   },
 
   // Listen to auth state changes
-  onAuthStateChange(callback: (event: string, session: any) => void) {
+  onAuthStateChange(callback: (event: AuthChangeEvent, session: Session | null) => void) {
     return supabase.auth.onAuthStateChange((event, session) => {
       callback(event, session)
     })
