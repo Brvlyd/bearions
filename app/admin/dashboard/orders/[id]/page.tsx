@@ -5,8 +5,10 @@ import { useParams, useRouter } from 'next/navigation'
 import { Order, OrderItem, ShippingAddress, Payment } from '@/lib/supabase'
 import { orderService } from '@/lib/orders'
 import { supabase } from '@/lib/supabase'
+import { notificationService } from '@/lib/notifications'
 import { useLanguage } from '@/lib/i18n'
-import Image from 'next/image'
+import SafeImage from '@/components/SafeImage'
+import Notification from '@/components/Notification'
 import Link from 'next/link'
 import { 
   ArrowLeft, User, Mail, Phone, MapPin, Package, DollarSign, 
@@ -31,6 +33,16 @@ export default function OrderDetailPage() {
   const [trackingNumber, setTrackingNumber] = useState('')
   const [courier, setCourier] = useState('')
   const [saving, setSaving] = useState(false)
+  const [verifyingProof, setVerifyingProof] = useState(false)
+  const [rejectionReason, setRejectionReason] = useState('')
+  const [showRejectForm, setShowRejectForm] = useState(false)
+  const [confirmAction, setConfirmAction] = useState<'approve' | null>(null)
+  const [proofStatusOverride, setProofStatusOverride] = useState<{
+    proofUrl: string
+    status: Payment['proof_verification_status']
+  } | null>(null)
+  const [proofMessage, setProofMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null)
   const [copiedEmail, setCopiedEmail] = useState(false)
   const [copiedPhone, setCopiedPhone] = useState(false)
   const [copiedAddress, setCopiedAddress] = useState(false)
@@ -48,7 +60,7 @@ export default function OrderDetailPage() {
       // Load order
       const orderData = await orderService.getOrderById(orderId)
       if (!orderData) {
-        alert(tr('Order not found', 'Pesanan tidak ditemukan'))
+        setNotification({ type: 'error', message: tr('Order not found', 'Pesanan tidak ditemukan') })
         router.push('/admin/dashboard/orders')
         return
       }
@@ -86,6 +98,7 @@ export default function OrderDetailPage() {
       }
     } catch (error) {
       console.error('Error loading order details:', error)
+      setNotification({ type: 'error', message: tr('Failed to load order details', 'Gagal memuat detail pesanan') })
     } finally {
       setLoading(false)
     }
@@ -98,7 +111,13 @@ export default function OrderDetailPage() {
     const willBeProcessed = ['processing', 'shipped', 'delivered'].includes(editStatus)
 
     if (isManualBankTransfer && willBeProcessed && !payment?.payment_proof_url) {
-      alert(tr('Cannot process this order before payment proof is uploaded by user.', 'Pesanan tidak bisa diproses sebelum user mengupload bukti pembayaran.'))
+      setNotification({
+        type: 'error',
+        message: tr(
+          'Cannot process this order before payment proof is uploaded by user.',
+          'Pesanan tidak bisa diproses sebelum user mengupload bukti pembayaran.'
+        ),
+      })
       return
     }
 
@@ -120,16 +139,19 @@ export default function OrderDetailPage() {
         await orderService.updateTrackingInfo(orderId, trackingNumber, courier)
       }
 
-      alert(tr('Order updated successfully!', 'Pesanan berhasil diperbarui!'))
+      setNotification({ type: 'success', message: tr('Order updated successfully!', 'Pesanan berhasil diperbarui!') })
       setEditMode(false)
       await loadOrderDetails()
     } catch (error) {
       console.error('Error updating order:', error)
       const message = error instanceof Error ? error.message : ''
       if (message.includes('PAYMENT_PROOF_REQUIRED')) {
-        alert(tr('Cannot process order before payment proof is uploaded.', 'Pesanan tidak bisa diproses sebelum bukti pembayaran diupload.'))
+        setNotification({
+          type: 'error',
+          message: tr('Cannot process order before payment proof is uploaded.', 'Pesanan tidak bisa diproses sebelum bukti pembayaran diupload.'),
+        })
       } else {
-        alert(tr('Failed to update order', 'Gagal memperbarui pesanan'))
+        setNotification({ type: 'error', message: tr('Failed to update order', 'Gagal memperbarui pesanan') })
       }
     } finally {
       setSaving(false)
@@ -151,6 +173,197 @@ export default function OrderDetailPage() {
       }
     } catch (err) {
       console.error('Failed to copy:', err)
+    }
+  }
+
+  const reviewPaymentProof = async (action: 'approve' | 'reject') => {
+    const { data: sessionData } = await supabase.auth.getSession()
+    const accessToken = sessionData.session?.access_token
+
+    if (!accessToken) {
+      throw new Error(tr('Authentication session not found', 'Sesi autentikasi tidak ditemukan'))
+    }
+
+    if (!payment || !order) {
+      throw new Error(tr('Order data not found', 'Data pesanan tidak ditemukan'))
+    }
+
+    const response = await fetch('/api/admin/payment-proofs/review', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        paymentId: payment.id,
+        orderId,
+        action,
+        rejectionReason: action === 'reject' ? rejectionReason : undefined,
+      }),
+    })
+
+    const result = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(result.message || tr('Failed to verify payment proof.', 'Gagal memverifikasi bukti pembayaran.'))
+    }
+
+    return result as { message?: string; warning?: string }
+  }
+
+  const sendProofNotification = async (action: 'approve' | 'reject') => {
+    if (!order || !payment || !order.customer_email) return
+
+    try {
+      if (action === 'approve') {
+        await notificationService.sendPaymentProofVerifiedEmail(
+          order.customer_email,
+          order.order_number,
+          payment.amount
+        )
+      } else {
+        await notificationService.sendPaymentProofRejectedEmail(
+          order.customer_email,
+          order.order_number,
+          rejectionReason
+        )
+      }
+    } catch (error) {
+      console.error('Error sending payment proof notification:', error)
+    }
+  }
+
+  const getProofVerificationBadge = (status?: Payment['proof_verification_status']) => {
+    const proofStatus = status || 'unverified'
+    const config = {
+      unverified: { label: tr('Unverified', 'Belum Diverifikasi'), color: 'bg-gray-100 text-gray-800' },
+      pending: { label: tr('Pending', 'Menunggu'), color: 'bg-yellow-100 text-yellow-800' },
+      verified: { label: tr('Verified', 'Terverifikasi'), color: 'bg-green-100 text-green-800' },
+      rejected: { label: tr('Rejected', 'Ditolak'), color: 'bg-red-100 text-red-800' },
+    }
+    const badge = config[proofStatus as keyof typeof config] || config.unverified
+
+    return (
+      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${badge.color}`}>
+        {badge.label}
+      </span>
+    )
+  }
+
+  const getEffectiveProofStatus = (
+    paymentData: Payment | null,
+    orderData: Order | null
+  ): Payment['proof_verification_status'] => {
+    if (
+      proofStatusOverride &&
+      paymentData?.payment_proof_url &&
+      proofStatusOverride.proofUrl === paymentData.payment_proof_url
+    ) {
+      return proofStatusOverride.status
+    }
+
+    if (paymentData?.proof_verification_status) {
+      return paymentData.proof_verification_status
+    }
+
+    if (orderData?.payment_status === 'paid') {
+      return 'verified'
+    }
+
+    return 'pending'
+  }
+
+  const shouldShowProofActions = (status: Payment['proof_verification_status']) => {
+    return status === 'pending' || status === 'unverified'
+  }
+
+  const handleVerifyPaymentProof = async () => {
+    if (!payment || !order) return
+
+    try {
+      setVerifyingProof(true)
+      setProofMessage(null)
+
+      const currentProofUrl = payment.payment_proof_url
+
+      const result = await reviewPaymentProof('approve')
+      await sendProofNotification('approve')
+
+      if (currentProofUrl) {
+        setProofStatusOverride({
+          proofUrl: currentProofUrl,
+          status: 'verified',
+        })
+      }
+
+      await loadOrderDetails()
+
+      setProofMessage({
+        type: 'success',
+        text: result.warning
+          ? `${tr('Payment approved, but verification metadata is limited.', 'Pembayaran disetujui, tetapi metadata verifikasi masih terbatas.')} ${result.warning}`
+          : tr('Payment proof verified and customer notified.', 'Bukti pembayaran diverifikasi dan pelanggan sudah diberitahu.'),
+      })
+      setConfirmAction(null)
+      setShowRejectForm(false)
+      setRejectionReason('')
+    } catch (error) {
+      console.error('Error verifying payment proof:', error)
+      setProofMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : tr('Failed to verify payment proof.', 'Gagal memverifikasi bukti pembayaran.'),
+      })
+    } finally {
+      setVerifyingProof(false)
+    }
+  }
+
+  const handleRejectPaymentProof = async () => {
+    if (!payment || !order) return
+
+    if (!rejectionReason.trim()) {
+      setProofMessage({
+        type: 'error',
+        text: tr('Please provide rejection reason first.', 'Silakan isi alasan penolakan terlebih dahulu.'),
+      })
+      return
+    }
+
+    try {
+      setVerifyingProof(true)
+      setProofMessage(null)
+
+      const currentProofUrl = payment.payment_proof_url
+
+      const result = await reviewPaymentProof('reject')
+      await sendProofNotification('reject')
+
+      if (currentProofUrl) {
+        setProofStatusOverride({
+          proofUrl: currentProofUrl,
+          status: 'rejected',
+        })
+      }
+
+      await loadOrderDetails()
+
+      setProofMessage({
+        type: 'success',
+        text: result.warning
+          ? `${tr('Payment rejection saved, but verification metadata is limited.', 'Penolakan pembayaran disimpan, tetapi metadata verifikasi masih terbatas.')} ${result.warning}`
+          : tr('Payment proof rejected and customer notified.', 'Bukti pembayaran ditolak dan pelanggan sudah diberitahu.'),
+      })
+      setConfirmAction(null)
+      setRejectionReason('')
+      setShowRejectForm(false)
+    } catch (error) {
+      console.error('Error rejecting payment proof:', error)
+      setProofMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : tr('Failed to reject payment proof.', 'Gagal menolak bukti pembayaran.'),
+      })
+    } finally {
+      setVerifyingProof(false)
     }
   }
 
@@ -231,6 +444,14 @@ export default function OrderDetailPage() {
 
   return (
     <div>
+      {notification && (
+        <Notification
+          type={notification.type}
+          message={notification.message}
+          onClose={() => setNotification(null)}
+        />
+      )}
+
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -520,11 +741,10 @@ export default function OrderDetailPage() {
                 <div key={item.id} className="flex gap-4 pb-4 border-b border-gray-200 last:border-0">
                   <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden shrink-0">
                     {item.product_image_url ? (
-                      <Image
+                      <SafeImage
                         src={item.product_image_url}
                         alt={item.product_name}
-                        width={80}
-                        height={80}
+                        fill
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -601,6 +821,17 @@ export default function OrderDetailPage() {
               <CreditCard className="w-5 h-5" />
               {tr('Payment Info', 'Info Pembayaran')}
             </h3>
+            {proofMessage && (
+              <div
+                className={`mb-4 p-3 rounded-lg text-sm border ${
+                  proofMessage.type === 'success'
+                    ? 'bg-green-50 border-green-300 text-green-800'
+                    : 'bg-red-50 border-red-300 text-red-800'
+                }`}
+              >
+                {proofMessage.text}
+              </div>
+            )}
             <div className="space-y-3">
               <div>
                 <p className="text-sm text-gray-600">{tr('Payment Method', 'Metode Pembayaran')}</p>
@@ -613,14 +844,96 @@ export default function OrderDetailPage() {
               <div>
                 <p className="text-sm text-gray-600">{tr('Payment Proof', 'Bukti Pembayaran')}</p>
                 {payment?.payment_proof_url ? (
-                  <a
-                    href={payment.payment_proof_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex mt-1 text-sm font-medium text-black hover:underline"
-                  >
-                    {tr('View uploaded proof', 'Lihat bukti terupload')}
-                  </a>
+                  <div className="mt-2 space-y-3">
+                    <a
+                      href={payment.payment_proof_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex text-sm font-medium text-black hover:underline"
+                    >
+                      {tr('View uploaded proof', 'Lihat bukti terupload')}
+                    </a>
+
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">{tr('Proof Verification', 'Verifikasi Bukti')}</p>
+                      {getProofVerificationBadge(getEffectiveProofStatus(payment, order))}
+                    </div>
+
+                    {payment.proof_verified_at && (
+                      <p className="text-xs text-gray-500">
+                        {tr('Last verification', 'Verifikasi terakhir')}: {formatDate(payment.proof_verified_at)}
+                      </p>
+                    )}
+
+                    {getEffectiveProofStatus(payment, order) === 'rejected' && (
+                      <p className="text-xs text-red-600">
+                        {tr(
+                          'Proof is rejected. Wait for customer to upload a new proof before reviewing again.',
+                          'Bukti ditolak. Tunggu customer upload bukti baru sebelum verifikasi ulang.'
+                        )}
+                      </p>
+                    )}
+
+                    {shouldShowProofActions(getEffectiveProofStatus(payment, order)) && (
+                      <>
+                        {showRejectForm ? (
+                          <>
+                            <textarea
+                              value={rejectionReason}
+                              onChange={(e) => setRejectionReason(e.target.value)}
+                              placeholder={tr('Reason if rejected (required for reject action)', 'Alasan jika ditolak (wajib untuk aksi tolak)')}
+                              rows={3}
+                              className="w-full px-3 py-2 text-sm font-medium !text-black !caret-black placeholder:!text-gray-600 bg-white border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+                              style={{ color: '#000000', WebkitTextFillColor: '#000000', colorScheme: 'light' }}
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  setShowRejectForm(false)
+                                  setRejectionReason('')
+                                }}
+                                disabled={verifyingProof}
+                                className="px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                              >
+                                {tr('Cancel Reject', 'Batal Tolak')}
+                              </button>
+                              <button
+                                onClick={handleRejectPaymentProof}
+                                disabled={verifyingProof || !rejectionReason.trim()}
+                                className="px-3 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                              >
+                                {verifyingProof ? tr('Saving...', 'Menyimpan...') : tr('Submit Reject', 'Kirim Penolakan')}
+                              </button>
+                              <button
+                                onClick={() => setConfirmAction('approve')}
+                                disabled={verifyingProof}
+                                className="px-3 py-2 text-sm font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+                              >
+                                {tr('Approve Proof', 'Setujui Bukti')}
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setShowRejectForm(true)}
+                              disabled={verifyingProof}
+                              className="px-3 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                            >
+                              {tr('Reject Proof', 'Tolak Bukti')}
+                            </button>
+                            <button
+                              onClick={() => setConfirmAction('approve')}
+                              disabled={verifyingProof}
+                              className="px-3 py-2 text-sm font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+                            >
+                              {tr('Approve Proof', 'Setujui Bukti')}
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-sm text-red-600 mt-1">{tr('No proof uploaded yet', 'Belum ada bukti terupload')}</p>
                 )}
@@ -667,6 +980,36 @@ export default function OrderDetailPage() {
           </div>
         </div>
       </div>
+
+      {confirmAction === 'approve' && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-gray-200 p-5">
+            <h4 className="text-lg font-semibold text-black mb-2">
+              {tr('Approve payment proof?', 'Setujui bukti pembayaran?')}
+            </h4>
+            <p className="text-sm text-gray-600 mb-4">
+              {tr('This will mark payment as paid and notify the customer.', 'Ini akan menandai pembayaran sebagai lunas dan memberi notifikasi ke pelanggan.')}
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmAction(null)}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                {tr('Cancel', 'Batal')}
+              </button>
+              <button
+                onClick={handleVerifyPaymentProof}
+                disabled={verifyingProof}
+                className="px-4 py-2 rounded-lg text-white disabled:opacity-50 bg-green-600 hover:bg-green-700"
+              >
+                {verifyingProof
+                  ? tr('Saving...', 'Menyimpan...')
+                  : tr('Confirm Approve', 'Konfirmasi Setujui')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

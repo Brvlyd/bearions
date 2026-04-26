@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { authService } from '@/lib/auth'
 import { useLanguage } from '@/lib/i18n'
 
-export default function OtpVerificationPage() {
+function OtpVerificationContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { language } = useLanguage()
@@ -153,5 +153,24 @@ export default function OtpVerificationPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function OtpVerificationPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-white flex items-center justify-center px-4 pt-20 pb-12">
+          <div className="w-full max-w-md">
+            <div className="bg-white border border-gray-200 rounded-lg p-8 shadow-lg text-center">
+              <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-black mb-4"></div>
+              <h1 className="text-2xl font-bold text-black mb-2">Loading...</h1>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <OtpVerificationContent />
+    </Suspense>
   )
 }

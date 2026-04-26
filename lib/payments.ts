@@ -16,6 +16,16 @@ const isBucketNotFoundError = (error: unknown): boolean => {
   return message.includes('bucket not found')
 }
 
+const isProofVerificationMetadataError = (error: unknown): boolean => {
+  const message = String((error as { message?: string })?.message || '').toLowerCase()
+  return (
+    message.includes('proof_verification_status') ||
+    message.includes('proof_verified_by') ||
+    message.includes('proof_verified_at') ||
+    message.includes('pgrst204')
+  )
+}
+
 export const paymentService = {
   // Create payment record
   async createPayment(paymentData: {
@@ -174,17 +184,54 @@ export const paymentService = {
   // Submit proof for manual transfer and mark payment as waiting for admin verification
   async submitPaymentProof(orderId: string, file: File): Promise<Payment> {
     try {
+      const PAYMENT_REJECTION_PREFIX = '[PAYMENT_REJECTION]'
       const payment = await this.getPaymentByOrderId(orderId)
 
       if (!payment) {
         throw new Error('PAYMENT_NOT_FOUND')
       }
 
-      await this.uploadPaymentProof(payment.id, file)
+      const publicUrl = await this.uploadPaymentProof(payment.id, file)
 
-      const updatedPayment = await this.updatePaymentStatus(payment.id, 'processing')
+      // Clear previous rejection notice after user uploads a new proof.
+      const { data: orderMeta } = await supabase
+        .from('orders')
+        .select('admin_notes')
+        .eq('id', orderId)
+        .maybeSingle()
 
-      return updatedPayment
+      if (orderMeta?.admin_notes?.startsWith(PAYMENT_REJECTION_PREFIX)) {
+        await supabase
+          .from('orders')
+          .update({ admin_notes: null })
+          .eq('id', orderId)
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('payments')
+          .update({
+            status: 'processing',
+            payment_proof_url: publicUrl,
+            proof_verification_status: 'pending',
+            proof_verified_by: null,
+            proof_verified_at: null,
+          })
+          .eq('id', payment.id)
+          .select()
+          .single()
+
+        if (error) throw error
+
+        return data
+      } catch (metadataError) {
+        if (isProofVerificationMetadataError(metadataError)) {
+          // Fallback for databases that haven't added proof verification columns yet.
+          return await this.updatePaymentStatus(payment.id, 'processing')
+        }
+
+        throw metadataError
+      }
     } catch (error) {
       console.error('Error submitting payment proof:', error)
       throw error

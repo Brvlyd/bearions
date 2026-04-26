@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Product } from '@/lib/supabase'
 import { productService } from '@/lib/products'
 import { useLanguage } from '@/lib/i18n'
-import Image from 'next/image'
+import SafeImage from '@/components/SafeImage'
 import Link from 'next/link'
 import { Eye, Package, AlertCircle, Search, SlidersHorizontal, Grid, List, Pencil, Trash2, Filter, PlusCircle } from 'lucide-react'
 
@@ -316,10 +316,11 @@ export default function MonitoringPage() {
               {/* Product Image */}
               <div className="aspect-square bg-gray-50 relative">
                 {product.image_url ? (
-                  <Image
+                  <SafeImage
                     src={product.image_url}
                     alt={product.name}
                     fill
+                    category={product.category}
                     className="object-cover"
                   />
                 ) : (
@@ -406,10 +407,11 @@ export default function MonitoringPage() {
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-gray-50 rounded relative overflow-hidden shrink-0">
                         {product.image_url ? (
-                          <Image
+                          <SafeImage
                             src={product.image_url}
                             alt={product.name}
                             fill
+                            category={product.category}
                             className="object-cover"
                           />
                         ) : (

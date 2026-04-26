@@ -50,6 +50,7 @@ export default function SafeImage({
     alt: alt || 'Product image',
     className: `${className} ${hasError ? 'opacity-75' : ''}`,
     onError: handleError,
+    unoptimized: true,
     priority,
     sizes: sizes || '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw',
   }

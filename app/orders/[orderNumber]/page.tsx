@@ -24,6 +24,15 @@ export default function UserOrderDetailPage() {
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress | null>(null)
   const [payment, setPayment] = useState<Payment | null>(null)
 
+  const PAYMENT_REJECTION_PREFIX = '[PAYMENT_REJECTION]'
+
+  const rejectionReason = useMemo(() => {
+    const notes = order?.admin_notes || ''
+    if (!notes.startsWith(PAYMENT_REJECTION_PREFIX)) return null
+    const reason = notes.slice(PAYMENT_REJECTION_PREFIX.length).trim()
+    return reason || null
+  }, [order?.admin_notes])
+
   const formatPrice = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -38,10 +47,11 @@ export default function UserOrderDetailPage() {
 
     const isManual = order.payment_method === 'bank_transfer'
     const noProofUploaded = !payment.payment_proof_url
+    const rejectedProof = payment.proof_verification_status === 'rejected' || !!rejectionReason
     const notPaid = ['unpaid', 'pending', 'failed'].includes(order.payment_status)
 
-    return isManual && noProofUploaded && notPaid
-  }, [order, payment])
+    return isManual && (noProofUploaded || rejectedProof) && notPaid
+  }, [order, payment, rejectionReason])
 
   const statusBadgeClass = (status: Order['status']) => {
     const map: Record<Order['status'], string> = {
@@ -212,10 +222,20 @@ export default function UserOrderDetailPage() {
 
           {paymentActionRequired && (
             <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+              {rejectionReason && (
+                <div className="mb-3 rounded-lg border border-red-300 bg-red-50 p-3">
+                  <p className="text-sm font-semibold text-red-700 mb-1">
+                    {tr('Payment proof was rejected by admin.', 'Bukti pembayaran ditolak oleh admin.')}
+                  </p>
+                  <p className="text-sm text-red-700">
+                    {tr('Reason', 'Alasan')}: {rejectionReason}
+                  </p>
+                </div>
+              )}
               <p className="text-sm text-amber-800 mb-2">
                 {tr(
-                  'Payment proof is still required to continue verification.',
-                  'Bukti pembayaran masih diperlukan untuk lanjut verifikasi.'
+                  'Upload a new payment proof to continue verification.',
+                  'Silakan upload ulang bukti pembayaran untuk lanjut verifikasi.'
                 )}
               </p>
               <Link
@@ -223,7 +243,7 @@ export default function UserOrderDetailPage() {
                 className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-black text-white text-sm font-semibold hover:bg-gray-800"
               >
                 <CreditCard className="w-4 h-4" />
-                {tr('Upload payment proof', 'Upload bukti pembayaran')}
+                {tr('Upload payment proof again', 'Upload ulang bukti pembayaran')}
               </Link>
             </div>
           )}

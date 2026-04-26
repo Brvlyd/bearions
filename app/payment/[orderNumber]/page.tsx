@@ -7,14 +7,9 @@ import { ArrowLeft, CheckCircle2, CreditCard, FileUp, Image as ImageIcon, Receip
 import { supabase } from '@/lib/supabase'
 import { orderService } from '@/lib/orders'
 import { paymentService } from '@/lib/payments'
+import { DEFAULT_PAYMENT_METHODS, parsePaymentMethodError } from '@/lib/payment-methods'
 import { useLanguage } from '@/lib/i18n'
-import type { Order, Payment } from '@/lib/supabase'
-
-const BANK_TRANSFER_INFO = {
-  bankName: 'Bank Mandiri',
-  accountName: 'BENEDICTUS RIVOLLY A',
-  accountNumber: '1360037247548',
-}
+import type { Order, Payment, PaymentMethodConfig } from '@/lib/supabase'
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
@@ -30,10 +25,20 @@ export default function PaymentPage() {
   const [uploading, setUploading] = useState(false)
   const [order, setOrder] = useState<Order | null>(null)
   const [payment, setPayment] = useState<Payment | null>(null)
+  const [paymentMethodConfig, setPaymentMethodConfig] = useState<PaymentMethodConfig | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [fileError, setFileError] = useState('')
   const [pageError, setPageError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
+
+  const PAYMENT_REJECTION_PREFIX = '[PAYMENT_REJECTION]'
+
+  const rejectionReason = useMemo(() => {
+    const notes = order?.admin_notes || ''
+    if (!notes.startsWith(PAYMENT_REJECTION_PREFIX)) return null
+    const reason = notes.slice(PAYMENT_REJECTION_PREFIX.length).trim()
+    return reason || null
+  }, [order?.admin_notes])
 
   useEffect(() => {
     void loadPaymentData()
@@ -69,6 +74,21 @@ export default function PaymentPage() {
 
       setOrder(orderData)
       setPayment(paymentData)
+
+      const methodCode = orderData.payment_method || 'bank_transfer'
+      const { data: methodData, error: methodError } = await supabase
+        .from('payment_methods')
+        .select('*')
+        .eq('code', methodCode)
+        .maybeSingle()
+
+      if (methodError) {
+        const parsed = parsePaymentMethodError(methodError)
+        console.error('Failed to load payment method config:', parsed)
+      }
+
+      const fallbackMethod = DEFAULT_PAYMENT_METHODS.find((method) => method.code === methodCode) || DEFAULT_PAYMENT_METHODS[0] || null
+      setPaymentMethodConfig((methodData as PaymentMethodConfig | null) || fallbackMethod)
     } catch (error) {
       console.error('Error loading payment page:', error)
       setPageError(tr('Failed to load payment page', 'Gagal memuat halaman pembayaran'))
@@ -187,6 +207,10 @@ export default function PaymentPage() {
   }
 
   const totalAmount = Number(order.total || 0)
+  const transferProviderName = paymentMethodConfig?.provider_name || paymentMethodConfig?.display_name || '-'
+  const transferAccountName = paymentMethodConfig?.account_name || '-'
+  const transferAccountNumber = paymentMethodConfig?.account_number || '-'
+  const transferInstructions = paymentMethodConfig?.instructions || ''
 
   return (
     <div className="min-h-screen bg-gray-50 text-black">
@@ -217,17 +241,23 @@ export default function PaymentPage() {
               <div className="space-y-3 rounded-lg border border-gray-300 bg-gray-50 p-4">
                 <div>
                   <p className="text-xs text-gray-500">{tr('Bank', 'Bank')}</p>
-                  <p className="font-semibold text-black">{BANK_TRANSFER_INFO.bankName}</p>
+                  <p className="font-semibold text-black">{transferProviderName}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">{tr('Account Name', 'Nama Rekening')}</p>
-                  <p className="font-semibold text-black">{BANK_TRANSFER_INFO.accountName}</p>
+                  <p className="font-semibold text-black">{transferAccountName}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">{tr('Account Number', 'Nomor Rekening')}</p>
-                  <p className="text-xl font-bold tracking-wide text-black">{BANK_TRANSFER_INFO.accountNumber}</p>
+                  <p className="text-xl font-bold tracking-wide text-black">{transferAccountNumber}</p>
                 </div>
               </div>
+
+              {transferInstructions && (
+                <div className="mt-3 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 whitespace-pre-line">
+                  {transferInstructions}
+                </div>
+              )}
 
               <p className="text-xs text-gray-500 mt-4">
                 {tr(
@@ -289,6 +319,52 @@ export default function PaymentPage() {
 
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h2 className="text-lg font-semibold mb-3">{tr('Latest Uploaded Proof', 'Bukti Terupload Terakhir')}</h2>
+
+            {payment.proof_verification_status && (
+              <div className="mb-4 p-4 rounded-lg border-l-4" style={{
+                borderColor: payment.proof_verification_status === 'verified' ? '#10b981' : 
+                             payment.proof_verification_status === 'rejected' ? '#ef4444' : 
+                             '#eab308',
+                backgroundColor: payment.proof_verification_status === 'verified' ? '#f0fdf4' : 
+                                  payment.proof_verification_status === 'rejected' ? '#fef2f2' : 
+                                  '#fffbeb'
+              }}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold" style={{
+                      color: payment.proof_verification_status === 'verified' ? '#059669' : 
+                             payment.proof_verification_status === 'rejected' ? '#dc2626' : 
+                             '#ca8a04'
+                    }}>
+                      {payment.proof_verification_status === 'verified' 
+                        ? tr('✓ Verified', '✓ Terverifikasi')
+                        : payment.proof_verification_status === 'rejected'
+                        ? tr('✗ Rejected', '✗ Ditolak')
+                        : tr('⏳ Pending Verification', '⏳ Menunggu Verifikasi')}
+                    </p>
+                    {payment.proof_verification_status === 'rejected' && (
+                      <div className="text-xs mt-1" style={{color: '#dc2626'}}>
+                        <p>{tr('Please submit a new payment proof', 'Silakan submit bukti pembayaran baru')}</p>
+                        {rejectionReason && (
+                          <p className="mt-1">
+                            {tr('Reason', 'Alasan')}: {rejectionReason}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    {payment.proof_verification_status === 'verified' && (
+                      <p className="text-xs mt-1" style={{color: '#059669'}}>
+                        {payment.proof_verified_at && (
+                          <>
+                            {tr('Verified on', 'Diverifikasi pada')}: {new Date(payment.proof_verified_at).toLocaleDateString('id-ID')}
+                          </>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {payment.payment_proof_url ? (
               <div className="space-y-4">

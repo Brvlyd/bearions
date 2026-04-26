@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useLanguage } from '@/lib/i18n'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -10,7 +10,7 @@ import { cartService } from '@/lib/cart'
 import CartItem from '@/components/CartItem'
 import type { CartItem as CartItemType } from '@/lib/supabase'
 
-export default function CartPage() {
+function CartPageContent() {
   const { t, tr } = useLanguage()
   const searchParams = useSearchParams()
   const checkoutSuccess = searchParams.get('checkout') === 'success'
@@ -325,5 +325,24 @@ export default function CartPage() {
       </div>
     </div>
     </div>
+  )
+}
+
+export default function CartPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-white">
+          <div className="container mx-auto px-4 py-12 pt-24">
+            <div className="text-center">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
+              <p className="mt-4 text-gray-600">Loading cart...</p>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <CartPageContent />
+    </Suspense>
   )
 }

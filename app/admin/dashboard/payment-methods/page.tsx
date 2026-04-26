@@ -51,6 +51,9 @@ export default function AdminPaymentMethodsPage() {
   const [form, setForm] = useState<MethodForm>(DEFAULT_FORM)
   const [previewCode, setPreviewCode] = useState('')
 
+  const normalizedFormCode = form.code.trim().toLowerCase().replace(/\s+/g, '_')
+  const editingMethod = methods.find((method) => method.code === normalizedFormCode)
+
   const text = {
     title: language === 'en' ? 'Payment Methods Manager' : 'Pengelola Metode Pembayaran',
     subtitle:
@@ -73,7 +76,9 @@ export default function AdminPaymentMethodsPage() {
     requiresProof: language === 'en' ? 'Require payment proof' : 'Wajib bukti pembayaran',
     active: language === 'en' ? 'Active in checkout' : 'Aktif di checkout',
     save: language === 'en' ? 'Save Method' : 'Simpan Metode',
+    update: language === 'en' ? 'Update Method' : 'Perbarui Metode',
     addNew: language === 'en' ? 'Add New Method' : 'Tambah Metode Baru',
+    createNew: language === 'en' ? 'Create New' : 'Buat Baru',
     saving: language === 'en' ? 'Saving...' : 'Menyimpan...',
     delete: language === 'en' ? 'Delete' : 'Hapus',
     edit: language === 'en' ? 'Edit' : 'Ubah',
@@ -95,6 +100,30 @@ export default function AdminPaymentMethodsPage() {
       language === 'en'
         ? 'No active method for checkout. Activate at least one method.'
         : 'Tidak ada metode aktif untuk checkout. Aktifkan minimal satu metode.',
+    formTitleAdd: language === 'en' ? 'Create Payment Method' : 'Buat Metode Pembayaran',
+    formTitleEdit: language === 'en' ? 'Edit Payment Method' : 'Ubah Metode Pembayaran',
+    identitySection: language === 'en' ? 'Identity' : 'Identitas',
+    bankSection: language === 'en' ? 'Transfer / Account Details' : 'Detail Transfer / Rekening',
+    behaviorSection: language === 'en' ? 'Checkout Behavior' : 'Perilaku Checkout',
+    codeHint:
+      language === 'en'
+        ? 'Unique code, e.g. bank_transfer, qris, cod.'
+        : 'Kode unik, contoh: bank_transfer, qris, cod.',
+    helperFallback:
+      language === 'en'
+        ? 'You are editing a fallback method. Saving will create or update the same code in database.'
+        : 'Anda sedang mengedit metode fallback. Simpan akan membuat atau memperbarui kode yang sama di database.',
+    providerPlaceholder: language === 'en' ? 'e.g. Bank Mandiri' : 'contoh Bank Mandiri',
+    accountNamePlaceholder: language === 'en' ? 'e.g. BEARIONS STORE' : 'contoh BEARIONS STORE',
+    accountNumberPlaceholder: language === 'en' ? 'e.g. 1234567890' : 'contoh 1234567890',
+    sortOrderHint:
+      language === 'en'
+        ? 'Lower number appears first on checkout.'
+        : 'Angka lebih kecil tampil lebih atas di checkout.',
+    instructionsHint:
+      language === 'en'
+        ? 'Displayed to users on checkout and payment pages.'
+        : 'Ditampilkan ke user di checkout dan halaman pembayaran.',
   }
 
   const loadMethods = async () => {
@@ -146,10 +175,12 @@ export default function AdminPaymentMethodsPage() {
   }, [])
 
   const resetForm = () => {
+    setMessage(null)
     setForm(DEFAULT_FORM)
   }
 
   const handleEdit = (method: PaymentMethodConfig) => {
+    setMessage(null)
     setForm({
       id: method.id,
       code: method.code,
@@ -186,7 +217,7 @@ export default function AdminPaymentMethodsPage() {
       setMessage(null)
 
       const payload = {
-        code: form.code.trim().toLowerCase().replace(/\s+/g, '_'),
+        code: normalizedFormCode,
         display_name: form.display_name.trim(),
         description: form.description.trim() || null,
         instructions: form.instructions.trim() || null,
@@ -199,22 +230,15 @@ export default function AdminPaymentMethodsPage() {
         updated_at: new Date().toISOString(),
       }
 
-      if (form.id) {
-        const { error } = await supabase
-          .from('payment_methods')
-          .update(payload)
-          .eq('id', form.id)
+      // Upsert by unique code ensures fallback default method can be edited and persisted.
+      const { error } = await supabase
+        .from('payment_methods')
+        .upsert(payload, { onConflict: 'code' })
 
-        if (error) throw error
-      } else {
-        const { error } = await supabase
-          .from('payment_methods')
-          .insert(payload)
-
-        if (error) throw error
-      }
+      if (error) throw error
 
       setMessage({ type: 'success', text: text.saveSuccess })
+      setPreviewCode(payload.code)
       resetForm()
       await loadMethods()
     } catch (error) {
@@ -270,162 +294,222 @@ export default function AdminPaymentMethodsPage() {
     <div>
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-black mb-2">{text.title}</h2>
-        <p className="text-gray-600">{text.subtitle}</p>
+        <p className="text-gray-600 text-sm">{text.subtitle}</p>
       </div>
 
       {schemaMissing && (
-        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <h3 className="font-semibold text-yellow-900 mb-1">{text.setupRequired}</h3>
-          <p className="text-sm text-yellow-800">{text.setupHelp}</p>
+        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-300 rounded-xl">
+          <h3 className="font-semibold text-yellow-900 mb-2">{text.setupRequired}</h3>
+          <p className="text-sm text-yellow-800 leading-relaxed">{text.setupHelp}</p>
         </div>
       )}
 
       {message && (
-        <div className={`mb-6 p-4 rounded-lg ${
+        <div className={`mb-6 p-4 rounded-xl ${
           message.type === 'success'
-            ? 'bg-green-50 border border-green-200 text-green-800'
-            : 'bg-red-50 border border-red-200 text-red-800'
+            ? 'bg-green-50 border border-green-300 text-green-800'
+            : 'bg-red-50 border border-red-300 text-red-800'
         }`}>
-          {message.text}
+          <p className="text-sm font-medium">{message.text}</p>
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         <div className="space-y-6">
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-black">{form.id ? text.edit : text.addNew}</h3>
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-black">{form.id ? text.formTitleEdit : text.formTitleAdd}</h3>
               <button
                 type="button"
                 onClick={resetForm}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-300 text-xs text-gray-700 hover:bg-gray-50"
+                className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-300 text-xs font-medium text-gray-700 hover:bg-gray-100 transition"
               >
                 <Plus className="w-3.5 h-3.5" />
-                {text.addNew}
+                {text.createNew}
               </button>
             </div>
 
-            <div className="space-y-3">
-              <input
-                value={form.code}
-                onChange={(event) => setForm((prev) => ({ ...prev, code: event.target.value }))}
-                placeholder={text.code}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-black"
-              />
-              <input
-                value={form.display_name}
-                onChange={(event) => setForm((prev) => ({ ...prev, display_name: event.target.value }))}
-                placeholder={text.displayName}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-black"
-              />
-              <input
-                value={form.description}
-                onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
-                placeholder={text.description}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-black"
-              />
-              <textarea
-                value={form.instructions}
-                onChange={(event) => setForm((prev) => ({ ...prev, instructions: event.target.value }))}
-                placeholder={text.instructions}
-                rows={3}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-black"
-              />
-              <input
-                value={form.provider_name}
-                onChange={(event) => setForm((prev) => ({ ...prev, provider_name: event.target.value }))}
-                placeholder={text.provider}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-black"
-              />
-              <input
-                value={form.account_name}
-                onChange={(event) => setForm((prev) => ({ ...prev, account_name: event.target.value }))}
-                placeholder={text.accountName}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-black"
-              />
-              <input
-                value={form.account_number}
-                onChange={(event) => setForm((prev) => ({ ...prev, account_number: event.target.value }))}
-                placeholder={text.accountNumber}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-black"
-              />
-              <input
-                type="number"
-                value={form.sort_order}
-                onChange={(event) => setForm((prev) => ({ ...prev, sort_order: Number(event.target.value) }))}
-                placeholder={text.sortOrder}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-black"
-              />
+            {form.id && editingMethod?.id?.startsWith('default-') && (
+              <div className="mb-6 rounded-lg border border-blue-300 bg-blue-50 px-4 py-3 text-xs text-blue-700 leading-relaxed">
+                {text.helperFallback}
+              </div>
+            )}
 
-              <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={form.requires_proof}
-                  onChange={(event) => setForm((prev) => ({ ...prev, requires_proof: event.target.checked }))}
-                />
-                {text.requiresProof}
-              </label>
+            <div className="space-y-5">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-700 mb-3">{text.identitySection}</p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">{text.code}</label>
+                    <input
+                      value={form.code}
+                      onChange={(event) => setForm((prev) => ({ ...prev, code: event.target.value }))}
+                      placeholder={text.code}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">{text.codeHint}</p>
+                  </div>
 
-              <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={form.is_active}
-                  onChange={(event) => setForm((prev) => ({ ...prev, is_active: event.target.checked }))}
-                />
-                {text.active}
-              </label>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">{text.displayName}</label>
+                    <input
+                      value={form.display_name}
+                      onChange={(event) => setForm((prev) => ({ ...prev, display_name: event.target.value }))}
+                      placeholder={text.displayName}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">{text.description}</label>
+                    <input
+                      value={form.description}
+                      onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
+                      placeholder={text.description}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-700 mb-3">{text.bankSection}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">{text.provider}</label>
+                    <input
+                      value={form.provider_name}
+                      onChange={(event) => setForm((prev) => ({ ...prev, provider_name: event.target.value }))}
+                      placeholder={text.providerPlaceholder}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">{text.accountName}</label>
+                    <input
+                      value={form.account_name}
+                      onChange={(event) => setForm((prev) => ({ ...prev, account_name: event.target.value }))}
+                      placeholder={text.accountNamePlaceholder}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">{text.accountNumber}</label>
+                    <input
+                      value={form.account_number}
+                      onChange={(event) => setForm((prev) => ({ ...prev, account_number: event.target.value }))}
+                      placeholder={text.accountNumberPlaceholder}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">{text.instructions}</label>
+                    <textarea
+                      value={form.instructions}
+                      onChange={(event) => setForm((prev) => ({ ...prev, instructions: event.target.value }))}
+                      placeholder={text.instructions}
+                      rows={4}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">{text.instructionsHint}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-700 mb-3">{text.behaviorSection}</p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">{text.sortOrder}</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={form.sort_order}
+                      onChange={(event) => setForm((prev) => ({ ...prev, sort_order: Number(event.target.value) }))}
+                      placeholder={text.sortOrder}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">{text.sortOrderHint}</p>
+                  </div>
+
+                  <div className="space-y-4 p-4 rounded-lg bg-gray-50 border border-gray-200">
+                    <label className="flex items-center gap-3 text-sm font-medium text-gray-700 cursor-pointer hover:text-black transition">
+                      <input
+                        type="checkbox"
+                        checked={form.requires_proof}
+                        onChange={(event) => setForm((prev) => ({ ...prev, requires_proof: event.target.checked }))}
+                        className="w-5 h-5 rounded cursor-pointer accent-blue-600"
+                      />
+                      <span>{text.requiresProof}</span>
+                    </label>
+
+                    <label className="flex items-center gap-3 text-sm font-medium text-gray-700 cursor-pointer hover:text-black transition">
+                      <input
+                        type="checkbox"
+                        checked={form.is_active}
+                        onChange={(event) => setForm((prev) => ({ ...prev, is_active: event.target.checked }))}
+                        className="w-5 h-5 rounded cursor-pointer accent-blue-600"
+                      />
+                      <span>{text.active}</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
 
               <button
                 type="button"
                 onClick={handleSave}
                 disabled={saving || schemaMissing}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 disabled:bg-gray-400"
+                className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-black text-white font-semibold rounded-lg hover:bg-gray-800 disabled:bg-gray-400 transition text-sm"
               >
                 <Save className="w-4 h-4" />
-                {saving ? text.saving : text.save}
+                {saving ? text.saving : form.id ? text.update : text.save}
               </button>
             </div>
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
             <h3 className="text-lg font-semibold text-black mb-4">{text.listTitle}</h3>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               {methods.length === 0 && (
-                <p className="text-sm text-gray-500">{text.noMethods}</p>
+                <p className="text-sm text-gray-500 text-center py-4">{text.noMethods}</p>
               )}
 
               {methods.map((method) => (
-                <div key={method.id} className="border border-gray-200 rounded-lg p-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="font-semibold text-black text-sm">{method.display_name}</p>
-                      <p className="text-xs text-gray-500">{method.code}</p>
-                      <span className={`inline-flex mt-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                <div key={method.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md hover:border-gray-300 transition">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <p className="font-bold text-black text-sm">{method.display_name}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{method.code}</p>
+                      {method.provider_name && (
+                        <p className="text-xs text-gray-600 mt-1">{method.provider_name}</p>
+                      )}
+                      <span className={`inline-flex mt-2 text-[10px] font-semibold px-2 py-1 rounded ${
                         method.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
                       }`}>
                         {method.is_active ? text.statusActive : text.statusInactive}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => handleEdit(method)}
-                        className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50"
+                        className="px-3 py-1.5 text-xs font-semibold border border-blue-600 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                       >
                         {text.edit}
                       </button>
                       <button
                         type="button"
                         onClick={() => void handleDelete(method.id)}
-                        className="px-2 py-1 text-xs border border-red-300 text-red-600 rounded hover:bg-red-50"
+                        className="px-3 py-1.5 text-xs font-semibold border border-red-600 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
                       >
                         {text.delete}
                       </button>
                     </div>
                   </div>
                   {method.description && (
-                    <p className="text-xs text-gray-600 mt-2">{method.description}</p>
+                    <p className="text-xs text-gray-600 mt-3 leading-relaxed">{method.description}</p>
                   )}
                 </div>
               ))}
@@ -433,14 +517,14 @@ export default function AdminPaymentMethodsPage() {
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
           <h3 className="text-lg font-semibold text-black mb-4 flex items-center gap-2">
             <Eye className="w-5 h-5" />
             {text.previewTitle}
           </h3>
 
           {previewMethods.length === 0 ? (
-            <div className="rounded-lg border border-amber-300 bg-amber-50 text-amber-700 text-sm px-3 py-2">
+            <div className="rounded-lg border border-amber-300 bg-amber-50 text-amber-700 text-sm px-4 py-3 leading-relaxed">
               {text.noActiveMethods}
             </div>
           ) : (
@@ -459,11 +543,11 @@ export default function AdminPaymentMethodsPage() {
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div>
-                        <p className="font-semibold text-black">{method.display_name}</p>
+                        <p className="font-bold text-black text-sm">{method.display_name}</p>
                         {method.description && <p className="text-sm text-gray-600 mt-1">{method.description}</p>}
                       </div>
                       {selectedPreview?.code === method.code && (
-                        <span className="text-xs font-semibold px-2 py-1 rounded bg-black text-white">
+                        <span className="text-xs font-bold px-2 py-1 rounded-lg bg-black text-white whitespace-nowrap">
                           {text.selected}
                         </span>
                       )}
@@ -473,23 +557,23 @@ export default function AdminPaymentMethodsPage() {
               </div>
 
               {selectedPreview && (
-                <div className="rounded-lg border border-gray-300 bg-gray-50 p-4">
-                  <p className="text-sm font-semibold text-black mb-2">{text.selectedPreview}</p>
-                  <div className="space-y-2 text-sm text-gray-700">
-                    <p><span className="font-medium">{text.displayName}:</span> {selectedPreview.display_name}</p>
+                <div className="rounded-xl border border-gray-300 bg-gray-50 p-5">
+                  <p className="text-sm font-semibold text-black mb-3">{text.selectedPreview}</p>
+                  <div className="space-y-2 text-sm text-gray-700 leading-relaxed">
+                    <p><span className="font-semibold">{text.displayName}:</span> {selectedPreview.display_name}</p>
                     {selectedPreview.provider_name && (
-                      <p><span className="font-medium">{text.provider}:</span> {selectedPreview.provider_name}</p>
+                      <p><span className="font-semibold">{text.provider}:</span> {selectedPreview.provider_name}</p>
                     )}
                     {selectedPreview.account_name && (
-                      <p><span className="font-medium">{text.accountName}:</span> {selectedPreview.account_name}</p>
+                      <p><span className="font-semibold">{text.accountName}:</span> {selectedPreview.account_name}</p>
                     )}
                     {selectedPreview.account_number && (
-                      <p><span className="font-medium">{text.accountNumber}:</span> {selectedPreview.account_number}</p>
+                      <p><span className="font-semibold">{text.accountNumber}:</span> <span className="font-mono">{selectedPreview.account_number}</span></p>
                     )}
                     {selectedPreview.instructions && (
                       <p className="mt-2 whitespace-pre-line">{selectedPreview.instructions}</p>
                     )}
-                    <p className="text-xs text-gray-500 pt-1">
+                    <p className="text-xs text-gray-600 pt-2 font-medium">
                       {selectedPreview.requires_proof
                         ? (language === 'en' ? 'This method requires payment proof upload.' : 'Metode ini mewajibkan upload bukti pembayaran.')
                         : (language === 'en' ? 'This method does not require payment proof.' : 'Metode ini tidak mewajibkan bukti pembayaran.')}
@@ -500,7 +584,7 @@ export default function AdminPaymentMethodsPage() {
             </>
           )}
 
-          <div className="mt-4 text-xs text-gray-500 flex items-center gap-1">
+          <div className="mt-6 text-xs text-gray-600 flex items-center gap-2">
             <CreditCard className="w-3.5 h-3.5" />
             <span>
               {language === 'en'

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Order } from '@/lib/supabase'
+import { Order, Payment, supabase } from '@/lib/supabase'
 import { orderService } from '@/lib/orders'
 import { useLanguage } from '@/lib/i18n'
 import Link from 'next/link'
@@ -9,14 +9,17 @@ import { ShoppingBag, Eye, Search, Filter, Package, DollarSign, Clock, CheckCirc
 
 type FilterStatus = 'all' | Order['status']
 type FilterPayment = 'all' | Order['payment_status']
+type FilterProof = 'all' | 'pending'
 
 export default function OrdersPage() {
   const { tr } = useLanguage()
   const [orders, setOrders] = useState<Order[]>([])
+  const [proofStatusMap, setProofStatusMap] = useState<Record<string, Payment['proof_verification_status']>>({})
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all')
   const [paymentFilter, setPaymentFilter] = useState<FilterPayment>('all')
+  const [proofFilter, setProofFilter] = useState<FilterProof>('all')
   const [showStatusMenu, setShowStatusMenu] = useState(false)
   const [showPaymentMenu, setShowPaymentMenu] = useState(false)
 
@@ -29,6 +32,26 @@ export default function OrdersPage() {
       setLoading(true)
       const data = await orderService.getAllOrders()
       setOrders(data)
+
+      if (data.length > 0) {
+        const orderIds = data.map((order) => order.id)
+        const { data: payments } = await supabase
+          .from('payments')
+          .select('order_id, proof_verification_status, created_at, payment_proof_url')
+          .in('order_id', orderIds)
+          .not('payment_proof_url', 'is', null)
+          .order('created_at', { ascending: false })
+
+        const mapped: Record<string, Payment['proof_verification_status']> = {}
+        for (const payment of payments || []) {
+          if (!mapped[payment.order_id]) {
+            mapped[payment.order_id] = payment.proof_verification_status || 'pending'
+          }
+        }
+        setProofStatusMap(mapped)
+      } else {
+        setProofStatusMap({})
+      }
     } catch (error) {
       console.error('Error loading orders:', error)
     } finally {
@@ -90,6 +113,24 @@ export default function OrdersPage() {
     )
   }
 
+  const getProofBadge = (status?: Payment['proof_verification_status']) => {
+    if (!status) return null
+
+    const statusConfig = {
+      unverified: { label: tr('Proof: Unverified', 'Bukti: Belum Diverifikasi'), color: 'bg-gray-100 text-gray-700' },
+      pending: { label: tr('Proof: Pending', 'Bukti: Menunggu'), color: 'bg-yellow-100 text-yellow-800' },
+      verified: { label: tr('Proof: Verified', 'Bukti: Terverifikasi'), color: 'bg-green-100 text-green-800' },
+      rejected: { label: tr('Proof: Rejected', 'Bukti: Ditolak'), color: 'bg-red-100 text-red-800' },
+    }
+
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.unverified
+    return (
+      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${config.color}`}>
+        {config.label}
+      </span>
+    )
+  }
+
   const getFilteredOrders = () => {
     let filtered = [...orders]
 
@@ -103,6 +144,14 @@ export default function OrdersPage() {
       filtered = filtered.filter(o => o.payment_status === paymentFilter)
     }
 
+    // Payment proof verification filter
+    if (proofFilter === 'pending') {
+      filtered = filtered.filter((o) => {
+        const proofStatus = proofStatusMap[o.id]
+        return proofStatus === 'pending' || proofStatus === 'unverified'
+      })
+    }
+
     // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase()
@@ -114,6 +163,23 @@ export default function OrdersPage() {
       )
     }
 
+    // Keep pending proof verification items prioritized at the top.
+    if (proofFilter === 'pending') {
+      const getProofPriority = (orderId: string) => {
+        const status = proofStatusMap[orderId]
+        if (status === 'unverified') return 0
+        if (status === 'pending') return 1
+        return 2
+      }
+
+      filtered.sort((a, b) => {
+        const priorityDiff = getProofPriority(a.id) - getProofPriority(b.id)
+        if (priorityDiff !== 0) return priorityDiff
+
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      })
+    }
+
     return filtered
   }
 
@@ -122,6 +188,10 @@ export default function OrdersPage() {
   // Calculate stats
   const totalOrders = orders.length
   const pendingOrders = orders.filter(o => o.status === 'pending').length
+  const pendingProofVerification = orders.filter((o) => {
+    const proofStatus = proofStatusMap[o.id]
+    return proofStatus === 'pending' || proofStatus === 'unverified'
+  }).length
   // Orders yang sudah dibayar tapi belum dikirim (ready to ship)
   const readyToShip = orders.filter(o => 
     o.payment_status === 'paid' && 
@@ -183,6 +253,22 @@ export default function OrdersPage() {
             <Clock className="w-12 h-12 text-yellow-500" />
           </div>
         </div>
+        <div className="bg-blue-50 p-6 rounded-lg border border-blue-200 cursor-pointer hover:shadow-lg transition-shadow"
+             onClick={() => {
+               setProofFilter('pending')
+               setStatusFilter('all')
+               setPaymentFilter('all')
+               setSearchQuery('')
+             }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">{tr('Pending Proofs', 'Bukti Pending')}</p>
+              <p className="text-3xl font-bold text-blue-700">{pendingProofVerification}</p>
+              <p className="text-xs text-blue-600 mt-1">{tr('Need admin verification', 'Perlu verifikasi admin')}</p>
+            </div>
+            <CheckCircle className="w-12 h-12 text-blue-500" />
+          </div>
+        </div>
         <div className="bg-purple-50 p-6 rounded-lg border border-purple-200">
           <div className="flex items-center justify-between">
             <div>
@@ -200,10 +286,11 @@ export default function OrdersPage() {
           onClick={() => {
             setStatusFilter('all')
             setPaymentFilter('all')
+            setProofFilter('all')
             setSearchQuery('')
           }}
           className={`px-4 py-2 rounded-lg font-medium transition-all ${
-            statusFilter === 'all' && paymentFilter === 'all'
+            statusFilter === 'all' && paymentFilter === 'all' && proofFilter === 'all'
               ? 'bg-black text-white'
               : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
           }`}
@@ -214,6 +301,7 @@ export default function OrdersPage() {
           onClick={() => {
             setStatusFilter('all')
             setPaymentFilter('paid')
+            setProofFilter('all')
             setSearchQuery('')
           }}
           className="px-4 py-2 rounded-lg font-medium bg-orange-100 text-orange-700 border border-orange-300 hover:bg-orange-200 transition-all flex items-center gap-2"
@@ -225,6 +313,7 @@ export default function OrdersPage() {
           onClick={() => {
             setStatusFilter('pending')
             setPaymentFilter('all')
+            setProofFilter('all')
             setSearchQuery('')
           }}
           className="px-4 py-2 rounded-lg font-medium bg-yellow-100 text-yellow-700 border border-yellow-300 hover:bg-yellow-200 transition-all"
@@ -235,11 +324,27 @@ export default function OrdersPage() {
           onClick={() => {
             setStatusFilter('delivered')
             setPaymentFilter('all')
+            setProofFilter('all')
             setSearchQuery('')
           }}
           className="px-4 py-2 rounded-lg font-medium bg-green-100 text-green-700 border border-green-300 hover:bg-green-200 transition-all"
         >
           {tr('Delivered', 'Terkirim')}
+        </button>
+        <button
+          onClick={() => {
+            setProofFilter('pending')
+            setStatusFilter('all')
+            setPaymentFilter('all')
+            setSearchQuery('')
+          }}
+          className={`px-4 py-2 rounded-lg font-medium border transition-all ${
+            proofFilter === 'pending'
+              ? 'bg-blue-600 border-blue-600 text-white'
+              : 'bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-200'
+          }`}
+        >
+          {tr('Pending Proof Verification', 'Bukti Menunggu Verifikasi')} ({pendingProofVerification})
         </button>
       </div>
 
@@ -333,6 +438,7 @@ export default function OrdersPage() {
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{tr('Date', 'Tanggal')}</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{tr('Total', 'Total')}</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{tr('Payment', 'Pembayaran')}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{tr('Proof', 'Bukti')}</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{tr('Status', 'Status')}</th>
                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">{tr('Action', 'Aksi')}</th>
               </tr>
@@ -340,7 +446,7 @@ export default function OrdersPage() {
             <tbody className="divide-y divide-gray-200">
               {filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
                     <ShoppingBag className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                     <p>{tr('No orders found', 'Tidak ada pesanan')}</p>
                   </td>
@@ -384,6 +490,9 @@ export default function OrdersPage() {
                       </td>
                       <td className="px-6 py-4">
                         {getPaymentBadge(order.payment_status)}
+                      </td>
+                      <td className="px-6 py-4">
+                        {getProofBadge(proofStatusMap[order.id]) || <span className="text-xs text-gray-400">-</span>}
                       </td>
                       <td className="px-6 py-4">
                         {getStatusBadge(order.status)}

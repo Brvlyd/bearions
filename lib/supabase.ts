@@ -182,6 +182,9 @@ export type Payment = {
   payment_url: string | null
   payment_proof_url: string | null
   gateway_response: unknown
+  proof_verification_status?: 'unverified' | 'pending' | 'verified' | 'rejected'
+  proof_verified_by?: string | null
+  proof_verified_at?: string | null
   created_at: string
   updated_at: string
   paid_at: string | null

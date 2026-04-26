@@ -38,11 +38,24 @@ USING (
 
 -- Payments policies
 DROP POLICY IF EXISTS "Admins can view all payments" ON payments;
+DROP POLICY IF EXISTS "Admins can update payments" ON payments;
 
 CREATE POLICY "Admins can view all payments"
 ON payments FOR SELECT
 TO authenticated
 USING (
+  EXISTS (SELECT 1 FROM admins WHERE admins.id = auth.uid())
+  OR EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'admin')
+);
+
+CREATE POLICY "Admins can update payments"
+ON payments FOR UPDATE
+TO authenticated
+USING (
+  EXISTS (SELECT 1 FROM admins WHERE admins.id = auth.uid())
+  OR EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'admin')
+)
+WITH CHECK (
   EXISTS (SELECT 1 FROM admins WHERE admins.id = auth.uid())
   OR EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'admin')
 );
