@@ -1,0 +1,310 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useLanguage } from '@/lib/i18n'
+import Link from 'next/link'
+import { Product } from '@/lib/supabase'
+import { productService } from '@/lib/products'
+import { cartService } from '@/lib/cart'
+import { supabase } from '@/lib/supabase'
+import { ArrowLeft, ShoppingCart, Plus, Minus } from 'lucide-react'
+import ImageCarousel from '@/components/ImageCarousel'
+
+export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const router = useRouter()
+  const { t, tr } = useLanguage()
+  const [product, setProduct] = useState<Product | null>(null)
+  const [images, setImages] = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
+  const [productId, setProductId] = useState<string>('')
+  const [quantity, setQuantity] = useState(1)
+  const [selectedSize, setSelectedSize] = useState<string>('')
+  const [selectedColor, setSelectedColor] = useState<string>('')
+  const [addingToCart, setAddingToCart] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+
+  useEffect(() => {
+    params.then(p => setProductId(p.id))
+  }, [params])
+
+  useEffect(() => {
+    if (productId) {
+      loadProduct()
+    }
+  }, [productId])
+
+  const loadProduct = async () => {
+    try {
+      setLoading(true)
+      const data = await productService.getProductById(productId)
+      setProduct(data)
+      
+      // Load product images
+      const productImages = await productService.getProductImages(productId)
+      const imageUrls = productImages.map((img: { image_url: string }) => img.image_url)
+      
+      // Use images from product_images table, or fallback to main image_url
+      if (imageUrls.length > 0) {
+        setImages(imageUrls)
+      } else if (data.image_url) {
+        setImages([data.image_url])
+      }
+    } catch (error) {
+      console.error('Error loading product:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(price)
+  }
+
+  const handleAddToCart = async () => {
+    if (!product) return
+
+    try {
+      setAddingToCart(true)
+      setMessage(null)
+
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setMessage({ type: 'error', text: t('login.pleaseLoginFirst') })
+        setAddingToCart(false)
+        return
+      }
+
+      await cartService.addToCart(
+        user.id,
+        product.id,
+        quantity,
+        selectedSize || undefined,
+        selectedColor || undefined
+      )
+
+      setMessage({ type: 'success', text: t('product.addToCart') + '!' })
+      
+      // Reset selections after adding
+      setTimeout(() => {
+        setMessage(null)
+      }, 3000)
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error ?? '')
+
+      if (message.includes('CART_POLICY_ERROR')) {
+        setMessage({
+          type: 'error',
+          text: tr(
+            'Your cart policy is not configured yet. Please contact admin to run cart SQL fix in Supabase.',
+            'Policy cart untuk akun ini belum benar. Mohon admin jalankan SQL fix cart di Supabase.'
+          ),
+        })
+      } else {
+        setMessage({ type: 'error', text: message || tr('Failed to add to cart', 'Gagal menambahkan ke keranjang') })
+      }
+    } finally {
+      setAddingToCart(false)
+    }
+  }
+
+  const incrementQuantity = () => {
+    if (product && quantity < product.stock) {
+      setQuantity(quantity + 1)
+    }
+  }
+
+  const decrementQuantity = () => {
+    if (quantity > 1) {
+      setQuantity(quantity - 1)
+    }
+  }
+
+  const colorOptions = ['Black', 'White', 'Navy', 'Gray', 'Beige']
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
+          <p className="mt-4 text-gray-600">{t('common.loading')}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">{t('catalog.noProducts')}</h1>
+          <Link href="/catalog" className="text-black underline">
+            {t('nav.catalog')}
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-white pt-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center space-x-2 text-gray-600 hover:text-black mb-8"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span>{t('checkout.back')}</span>
+        </button>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
+          {/* Product Image Carousel */}
+          <div className="w-full max-w-xl mx-auto">
+            <div className="aspect-square bg-white rounded-lg overflow-hidden relative">
+              {images.length > 0 ? (
+                <ImageCarousel images={images} alt={product.name} autoPlay={true} interval={3000} />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                  {tr('No Image', 'Tidak Ada Gambar')}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Product Info */}
+          <div className="flex flex-col">
+            <div className="mb-4">
+              <span className="inline-block px-3 py-1 bg-gray-100 text-sm rounded text-black">
+                {product.category}
+              </span>
+            </div>
+            <h1 className="text-2xl lg:text-4xl font-bold mb-4 text-black">{product.name}</h1>
+            <p className="text-2xl lg:text-3xl font-bold mb-6 text-black">{formatPrice(product.price)}</p>
+            
+            {product.description && (
+              <div className="mb-6">
+                <h2 className="text-lg font-semibold mb-2 text-black">{tr('Description', 'Deskripsi')}</h2>
+                <p className="text-black">{product.description}</p>
+              </div>
+            )}
+
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold mb-2 text-black">{tr('Availability', 'Ketersediaan')}</h2>
+              <p className={`text-lg font-semibold ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {product.stock > 0
+                  ? `${tr('In Stock', 'Stok Tersedia')} (${product.stock} ${tr('available', 'tersedia')})`
+                  : tr('Out of Stock', 'Stok Habis')}
+              </p>
+            </div>
+
+            {product.stock > 0 && (
+              <>
+                <div className="mb-6">
+                  <h2 className="text-base lg:text-lg font-semibold mb-3 text-black">{tr('Size', 'Ukuran')}</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {['S', 'M', 'L', 'XL', 'XXL'].map((size) => (
+                      <button
+                        key={size}
+                        onClick={() => setSelectedSize(size)}
+                        className={`px-4 lg:px-6 py-2 border-2 rounded-lg font-semibold transition text-sm lg:text-base ${
+                          selectedSize === size
+                            ? 'border-black bg-black text-white'
+                            : 'border-gray-300 text-black hover:border-black'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Color Selection */}
+                <div className="mb-6">
+                  <h2 className="text-base lg:text-lg font-semibold mb-3 text-black">{tr('Color', 'Warna')}</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {colorOptions.map((color) => (
+                      <button
+                        key={color}
+                        onClick={() => setSelectedColor(color)}
+                        className={`px-4 lg:px-6 py-2 border-2 rounded-lg font-semibold transition text-sm lg:text-base ${
+                          selectedColor === color
+                            ? 'border-black bg-black text-white'
+                            : 'border-gray-300 text-black hover:border-black'
+                        }`}
+                      >
+                        {tr(
+                          color,
+                          color === 'Black' ? 'Hitam' :
+                          color === 'White' ? 'Putih' :
+                          color === 'Navy' ? 'Biru Navy' :
+                          color === 'Gray' ? 'Abu-abu' : 'Krem'
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Quantity Selector */}
+                <div className="mb-8">
+                  <h2 className="text-base lg:text-lg font-semibold mb-3 text-black">{tr('Quantity', 'Jumlah')}</h2>
+                  <div className="flex items-center space-x-3 lg:space-x-4">
+                    <button
+                      onClick={decrementQuantity}
+                      disabled={quantity <= 1}
+                      className="w-10 h-10 border-2 border-gray-300 rounded-lg flex items-center justify-center hover:border-black disabled:opacity-50 disabled:cursor-not-allowed btn-animate-bounce text-black"
+                    >
+                      <Minus className="w-5 h-5 stroke-[2.5]" />
+                    </button>
+                    <span className="text-lg lg:text-xl font-bold text-black w-12 text-center">{quantity}</span>
+                    <button
+                      onClick={incrementQuantity}
+                      disabled={quantity >= product.stock}
+                      className="w-10 h-10 border-2 border-gray-300 rounded-lg flex items-center justify-center hover:border-black disabled:opacity-50 disabled:cursor-not-allowed btn-animate-bounce text-black"
+                    >
+                      <Plus className="w-5 h-5 stroke-[2.5]" />
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {product.stock > 0 ? (
+              <button
+                onClick={handleAddToCart}
+                disabled={addingToCart}
+                className="w-full py-4 flex items-center justify-center space-x-2 btn-primary-animated"
+              >
+                <ShoppingCart className="w-5 h-5" />
+                <span>{addingToCart ? tr('Adding...', 'Menambahkan...') : tr('Add to Cart', 'Tambah ke Keranjang')}</span>
+              </button>
+            ) : (
+              <button
+                disabled
+                className="w-full bg-gray-300 text-gray-500 py-4 rounded-lg font-semibold cursor-not-allowed"
+              >
+                {tr('Out of Stock', 'Stok Habis')}
+              </button>
+            )}
+            
+            {/* Notification message below button */}
+            {message && (
+              <div className={`mt-4 p-4 rounded-lg ${message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-yellow-50 text-yellow-800 border border-yellow-200'}`}>
+                <p>{message.text}</p>
+                {message.type === 'error' && (
+                  <Link href="/login" className="inline-block mt-2 text-sm font-semibold underline hover:no-underline">
+                    {t('nav.login')}
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
