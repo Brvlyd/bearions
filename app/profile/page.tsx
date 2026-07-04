@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { orderService } from '@/lib/orders'
 import { shippingService } from '@/lib/shipping'
 import type { Order, ShippingAddress } from '@/lib/supabase'
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
 import {
   ArrowRight,
   Check,
@@ -82,6 +83,10 @@ export default function UserProfilePage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+
+  // Delete address modal state
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [addressToDelete, setAddressToDelete] = useState<ShippingAddress | null>(null)
 
   useEffect(() => {
     void loadProfilePageData()
@@ -256,20 +261,27 @@ export default function UserProfilePage() {
     }
   }
 
-  const handleDeleteAddress = async (addressId: string) => {
-    if (!profile?.id) return
-    if (!window.confirm(tr('Delete this address?', 'Hapus alamat ini?'))) return
+  const handleDeleteAddress = async (address: ShippingAddress) => {
+    // Open the modal
+    setAddressToDelete(address)
+    setDeleteModalOpen(true)
+  }
+
+  const confirmDeleteAddress = async () => {
+    if (!profile?.id || !addressToDelete) return
 
     try {
       setIsSubmitting(true)
       setError('')
       setMessage('')
 
-      await shippingService.deleteAddress(addressId, profile.id)
+      await shippingService.deleteAddress(addressToDelete.id, profile.id)
 
       const refreshedAddresses = await shippingService.getUserAddresses(profile.id)
       setAddresses(refreshedAddresses)
       setMessage(tr('Address deleted successfully.', 'Alamat berhasil dihapus.'))
+      setDeleteModalOpen(false)
+      setAddressToDelete(null)
     } catch (deleteError) {
       console.error('Error deleting address:', deleteError)
       const messageText = deleteError instanceof Error ? deleteError.message : ''
@@ -286,6 +298,7 @@ export default function UserProfilePage() {
       } else {
         setError(tr('Failed to delete address.', 'Gagal menghapus alamat.'))
       }
+      setDeleteModalOpen(false)
     } finally {
       setIsSubmitting(false)
     }
@@ -600,7 +613,7 @@ export default function UserProfilePage() {
                           <button
                             type="button"
                             onClick={() => {
-                              void handleDeleteAddress(address.id)
+                              void handleDeleteAddress(address)
                             }}
                             className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-red-300 text-red-600 hover:bg-red-50"
                           >
@@ -769,6 +782,23 @@ export default function UserProfilePage() {
           </section>
         </div>
       </div>
+
+      {/* Delete Address Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={deleteModalOpen}
+        title={tr('Delete Address', 'Hapus Alamat')}
+        description={tr('Are you sure you want to delete this address? This action cannot be undone.', 'Apakah Anda yakin ingin menghapus alamat ini? Tindakan ini tidak dapat dibatalkan.')}
+        itemName={addressToDelete ? `${addressToDelete.recipient_name} • ${addressToDelete.address_line1}` : undefined}
+        isLoading={isSubmitting}
+        onConfirm={confirmDeleteAddress}
+        onCancel={() => {
+          setDeleteModalOpen(false)
+          setAddressToDelete(null)
+        }}
+        confirmText={tr('Delete Address', 'Hapus Alamat')}
+        cancelText={tr('Cancel', 'Batal')}
+        isDangerous={true}
+      />
     </div>
   )
 }

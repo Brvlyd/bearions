@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Product } from '@/lib/supabase'
-import { productService } from '@/lib/products'
 import { useLanguage } from '@/lib/i18n'
+import { useRealtimeProducts } from '@/lib/hooks/useRealtimeProducts'
 import { Package, TrendingUp, AlertCircle, ShoppingBag } from 'lucide-react'
 import Link from 'next/link'
 
@@ -12,21 +12,11 @@ export default function AdminDashboardPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    loadProducts()
-  }, [])
-
-  const loadProducts = async () => {
-    try {
-      setLoading(true)
-      const data = await productService.getAllProducts()
-      setProducts(data)
-    } catch (error) {
-      console.error('Error loading products:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Setup realtime subscriptions
+  useRealtimeProducts({
+    onProductsChange: setProducts,
+    onLoading: setLoading
+  })
 
   // Calculate analytics
   const totalProducts = products.length

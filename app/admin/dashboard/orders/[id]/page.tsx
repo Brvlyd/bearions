@@ -202,7 +202,23 @@ export default function OrderDetailPage() {
       }),
     })
 
-    const result = await response.json().catch(() => ({}))
+    // Check content type
+    const contentType = response.headers.get('content-type')
+    let result: any = {}
+
+    if (contentType?.includes('application/json')) {
+      result = await response.json().catch(() => ({}))
+    } else {
+      // API returned HTML instead of JSON (likely 404 or error page)
+      console.error('API returned non-JSON response:', {
+        status: response.status,
+        contentType,
+        statusText: response.statusText,
+      })
+      const text = await response.text()
+      console.error('Response body:', text.substring(0, 500))
+      throw new Error(`API Error (${response.status}): ${response.statusText}. Check server logs.`)
+    }
 
     if (!response.ok) {
       throw new Error(result.message || tr('Failed to verify payment proof.', 'Gagal memverifikasi bukti pembayaran.'))

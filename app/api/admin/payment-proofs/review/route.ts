@@ -82,16 +82,21 @@ const isAdminUser = async (supabaseClient: ReturnType<typeof getSupabaseSessionC
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('📦 Payment proof review request received')
+
     const authHeader = request.headers.get('authorization') || ''
     const accessToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
 
     if (!accessToken) {
+      console.warn('⚠️ No access token provided')
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
     }
 
+    console.log('✅ Access token found, parsing body...')
     const body = (await request.json()) as ReviewRequestBody
 
     if (!body.paymentId || !body.orderId || !body.action) {
+      console.warn('⚠️ Missing required fields:', { paymentId: !!body.paymentId, orderId: !!body.orderId, action: !!body.action })
       return NextResponse.json(
         { message: 'Missing required fields: paymentId, orderId, action' },
         { status: 400 }
@@ -99,26 +104,34 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.action === 'reject' && !body.rejectionReason?.trim()) {
+      console.warn('⚠️ Rejection reason missing')
       return NextResponse.json(
         { message: 'Rejection reason is required for reject action' },
         { status: 400 }
       )
     }
 
+    console.log('🔐 Creating Supabase client with access token...')
     const supabaseAdmin = getSupabaseSessionClient(accessToken)
 
+    console.log('👤 Verifying user...')
     const { data: userData, error: userError } = await supabaseAdmin.auth.getUser()
 
     if (userError || !userData.user) {
+      console.warn('⚠️ User verification failed:', userError?.message)
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
     }
 
+    console.log('✅ User verified:', userData.user.id)
+    console.log('🔍 Checking admin status...')
     const isAdmin = await isAdminUser(supabaseAdmin, userData.user.id)
 
     if (!isAdmin) {
+      console.warn('⚠️ User is not an admin:', userData.user.id)
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 })
     }
 
+    console.log('✅ Admin verified, fetching payment...')
     const { data: payment, error: paymentFetchError } = await supabaseAdmin
       .from('payments')
       .select('id, order_id, payment_proof_url')
@@ -127,14 +140,17 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
 
     if (paymentFetchError) {
+      console.error('❌ Payment fetch error:', paymentFetchError)
       throw new Error(getErrorMessage(paymentFetchError))
     }
 
     if (!payment) {
+      console.warn('⚠️ Payment not found')
       return NextResponse.json({ message: 'Payment record not found' }, { status: 404 })
     }
 
     if (body.action === 'approve' && !payment.payment_proof_url) {
+      console.warn('⚠️ No payment proof URL found')
       return NextResponse.json(
         { message: 'Payment proof is required before approval' },
         { status: 400 }
@@ -146,6 +162,7 @@ export async function POST(request: NextRequest) {
 
     let paymentUpdateWarning: string | null = null
 
+    console.log('💾 Updating payment record...')
     const { error: updatePaymentError } = await supabaseAdmin
       .from('payments')
       .update({
@@ -158,6 +175,7 @@ export async function POST(request: NextRequest) {
 
     if (updatePaymentError) {
       const updatePaymentMessage = getErrorMessage(updatePaymentError)
+      console.warn('⚠️ Payment update error:', updatePaymentMessage)
 
       if (isPermissionOrSchemaIssue(updatePaymentMessage)) {
         paymentUpdateWarning =
@@ -167,6 +185,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    console.log('📋 Fetching existing order...')
     const { data: existingOrder, error: orderFetchError } = await supabaseAdmin
       .from('orders')
       .select('admin_notes')
@@ -174,6 +193,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
 
     if (orderFetchError) {
+      console.error('❌ Order fetch error:', orderFetchError)
       throw new Error(getErrorMessage(orderFetchError))
     }
 
@@ -185,6 +205,7 @@ export async function POST(request: NextRequest) {
       ? null
       : currentAdminNotes
 
+    console.log('💾 Updating order record...')
     const { error: updateOrderError } = await supabaseAdmin
       .from('orders')
       .update({
@@ -194,9 +215,11 @@ export async function POST(request: NextRequest) {
       .eq('id', body.orderId)
 
     if (updateOrderError) {
+      console.error('❌ Order update error:', updateOrderError)
       throw new Error(getErrorMessage(updateOrderError))
     }
 
+    console.log('✅ Payment proof review completed successfully')
     return NextResponse.json(
       {
         message: paymentUpdateWarning
@@ -215,7 +238,7 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     )
   } catch (error) {
-    console.error('Error in payment proof review API:', error)
+    console.error('❌ Error in payment proof review API:', error)
     return NextResponse.json(
       {
         message: getErrorMessage(error),

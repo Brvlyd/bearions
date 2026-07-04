@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Order, Payment, supabase } from '@/lib/supabase'
-import { orderService } from '@/lib/orders'
+import { useState } from 'react'
+import { Order, Payment } from '@/lib/supabase'
 import { useLanguage } from '@/lib/i18n'
+import { useRealtimeOrders } from '@/lib/hooks/useRealtimeOrders'
 import Link from 'next/link'
 import { ShoppingBag, Eye, Search, Filter, Package, DollarSign, Clock, CheckCircle, XCircle, Truck } from 'lucide-react'
 
@@ -23,41 +23,12 @@ export default function OrdersPage() {
   const [showStatusMenu, setShowStatusMenu] = useState(false)
   const [showPaymentMenu, setShowPaymentMenu] = useState(false)
 
-  useEffect(() => {
-    loadOrders()
-  }, [])
-
-  const loadOrders = async () => {
-    try {
-      setLoading(true)
-      const data = await orderService.getAllOrders()
-      setOrders(data)
-
-      if (data.length > 0) {
-        const orderIds = data.map((order) => order.id)
-        const { data: payments } = await supabase
-          .from('payments')
-          .select('order_id, proof_verification_status, created_at, payment_proof_url')
-          .in('order_id', orderIds)
-          .not('payment_proof_url', 'is', null)
-          .order('created_at', { ascending: false })
-
-        const mapped: Record<string, Payment['proof_verification_status']> = {}
-        for (const payment of payments || []) {
-          if (!mapped[payment.order_id]) {
-            mapped[payment.order_id] = payment.proof_verification_status || 'pending'
-          }
-        }
-        setProofStatusMap(mapped)
-      } else {
-        setProofStatusMap({})
-      }
-    } catch (error) {
-      console.error('Error loading orders:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Setup realtime subscriptions
+  useRealtimeOrders({
+    onOrdersChange: setOrders,
+    onProofStatusChange: setProofStatusMap,
+    onLoading: setLoading
+  })
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('id-ID', {

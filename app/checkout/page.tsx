@@ -17,6 +17,7 @@ import {
   type WilayahOption,
 } from '@/lib/wilayah'
 import { useLanguage } from '@/lib/i18n'
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
 import type { CartItem, ShippingAddress, PaymentMethodConfig } from '@/lib/supabase'
 
 type Step = 'shipping' | 'payment' | 'review'
@@ -71,6 +72,10 @@ export default function CheckoutPage() {
   
   // Processing
   const [processing, setProcessing] = useState(false)
+
+  // Delete address modal state
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [addressToDelete, setAddressToDelete] = useState<ShippingAddress | null>(null)
 
   useEffect(() => {
     checkAuth()
@@ -343,51 +348,55 @@ export default function CheckoutPage() {
     }
   }
 
-  const handleDeleteAddress = async (addressId: string) => {
-    if (!userId) return
+  const handleDeleteAddress = async (address: ShippingAddress) => {
+    // Open the modal
+    setAddressToDelete(address)
+    setDeleteModalOpen(true)
+  }
 
-    const confirmed = window.confirm(
-      tr('Delete this address?', 'Hapus alamat ini?')
-    )
-
-    if (!confirmed) return
+  const confirmDeleteAddress = async () => {
+    if (!userId || !addressToDelete) return
 
     try {
-      await shippingService.deleteAddress(addressId, userId)
+      await shippingService.deleteAddress(addressToDelete.id, userId)
 
       const refreshedAddresses = await shippingService.getUserAddresses(userId)
       setAddresses(refreshedAddresses)
 
-      if (selectedAddress?.id === addressId) {
+      if (selectedAddress?.id === addressToDelete.id) {
         const defaultAddr = refreshedAddresses.find((address) => address.is_default) || refreshedAddresses[0]
         setSelectedAddress(defaultAddr || null)
       }
 
-      if (editingAddressId === addressId) {
+      if (editingAddressId === addressToDelete.id) {
         setShowAddressForm(false)
         resetAddressForm()
       }
+
+      setDeleteModalOpen(false)
+      setAddressToDelete(null)
     } catch (error) {
       console.error('Error deleting address:', error)
       const message = error instanceof Error ? error.message : ''
 
       if (message.includes('ADDRESS_DELETE_NOT_ALLOWED')) {
-        alert(
+        setAddressFormError(
           tr(
             'You do not have permission to delete this address.',
             'Anda tidak memiliki izin untuk menghapus alamat ini.'
           )
         )
       } else if (message.includes('ADDRESS_DELETE_REQUIRES_DB_MIGRATION')) {
-        alert(
+        setAddressFormError(
           tr(
             'Address deletion for previous orders needs database migration. Run allow-delete-used-shipping-address.sql in Supabase SQL Editor.',
             'Penghapusan alamat yang pernah dipakai order memerlukan migration database. Jalankan allow-delete-used-shipping-address.sql di Supabase SQL Editor.'
           )
         )
       } else {
-        alert(tr('Failed to delete address', 'Gagal menghapus alamat'))
+        setAddressFormError(tr('Failed to delete address', 'Gagal menghapus alamat'))
       }
+      setDeleteModalOpen(false)
     }
   }
 
@@ -621,7 +630,7 @@ export default function CheckoutPage() {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation()
-                              handleDeleteAddress(address.id)
+                              handleDeleteAddress(address)
                             }}
                             className="text-xs px-2 py-1 border border-red-300 rounded text-red-600 hover:bg-red-50"
                           >
@@ -1093,6 +1102,23 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+
+    {/* Delete Address Confirmation Modal */}
+    <ConfirmDeleteModal
+      isOpen={deleteModalOpen}
+      title={tr('Delete Address', 'Hapus Alamat')}
+      description={tr('Are you sure you want to delete this address? This action cannot be undone.', 'Apakah Anda yakin ingin menghapus alamat ini? Tindakan ini tidak dapat dibatalkan.')}
+      itemName={addressToDelete ? `${addressToDelete.recipient_name} • ${addressToDelete.address_line1}` : undefined}
+      isLoading={false}
+      onConfirm={confirmDeleteAddress}
+      onCancel={() => {
+        setDeleteModalOpen(false)
+        setAddressToDelete(null)
+      }}
+      confirmText={tr('Delete Address', 'Hapus Alamat')}
+      cancelText={tr('Cancel', 'Batal')}
+      isDangerous={true}
+    />
     </div>
   )
 }
