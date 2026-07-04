@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status *)",
+      "Bash(node \"C:\\\\Users\\\\USER\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--ebeb-Tugas-Codingan-Bearions\\\\8363f8bb-d3ff-4691-b0cb-d808e31689a8\\\\scratchpad\\\\create-user.mjs\")",
+      "Bash(node scripts/_tmp-create-user.mjs)",
+      "Bash(cat .gitignore)",
+      "Bash(git check-ignore *)"
+    ]
+  }
+}
