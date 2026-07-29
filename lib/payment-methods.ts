@@ -23,6 +23,21 @@ export const DEFAULT_PAYMENT_METHODS: PaymentMethodConfig[] = [
     created_at: new Date(0).toISOString(),
     updated_at: new Date(0).toISOString(),
   },
+  {
+    id: 'default-qris',
+    code: 'qris',
+    display_name: 'QRIS (QR Code Indonesian Standard)',
+    description: 'Bayar dengan memindai QRIS menggunakan aplikasi perbankan atau dompet digital.',
+    instructions: 'Buka aplikasi pembayaran Anda, pilih fitur scan QR, lalu scan kode QR yang tampil di layar.',
+    provider_name: 'QRIS',
+    account_name: null,
+    account_number: null,
+    requires_proof: false,
+    is_active: true,
+    sort_order: 2,
+    created_at: new Date(0).toISOString(),
+    updated_at: new Date(0).toISOString(),
+  },
 ]
 
 export const parsePaymentMethodError = (error: unknown, unknownErrorText = 'Unknown error') => {
@@ -68,6 +83,15 @@ export const loadActivePaymentMethods = async () => {
   }
 
   const methods = (data || []) as PaymentMethodConfig[]
+  // Ensure any DEFAULT_PAYMENT_METHODS not present in DB are included as fallback (e.g., QRIS)
+  const existingCodes = new Set(methods.map((m) => m.code))
+  for (const def of DEFAULT_PAYMENT_METHODS) {
+    if (!existingCodes.has(def.code) && def.is_active) {
+      methods.push(def)
+    }
+  }
+  // Sort by sort_order after merging
+  methods.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
   if (methods.length === 0) {
     return {
       methods: DEFAULT_PAYMENT_METHODS,

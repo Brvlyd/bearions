@@ -232,40 +232,55 @@ export default function PaymentPage() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
-                <CreditCard className="w-5 h-5" />
-                {tr('Transfer Destination', 'Tujuan Transfer')}
-              </h2>
+            {paymentMethodConfig?.code === 'qris' ? (
+              <div className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col items-center">
+                <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                  <CreditCard className="w-5 h-5" />
+                  {tr('QRIS Payment', 'Pembayaran QRIS')}
+                </h2>
 
-              <div className="space-y-3 rounded-lg border border-gray-300 bg-gray-50 p-4">
-                <div>
-                  <p className="text-xs text-gray-500">{tr('Bank', 'Bank')}</p>
-                  <p className="font-semibold text-black">{transferProviderName}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">{tr('Account Name', 'Nama Rekening')}</p>
-                  <p className="font-semibold text-black">{transferAccountName}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">{tr('Account Number', 'Nomor Rekening')}</p>
-                  <p className="text-xl font-bold tracking-wide text-black">{transferAccountNumber}</p>
+                <div className="rounded-lg border border-gray-300 bg-gray-50 p-6 w-full flex flex-col items-center gap-4">
+                  <img src="/qris/bearion-qris.jpeg" alt="QRIS" className="max-w-xs w-full h-auto" />
+                  <p className="text-sm text-gray-700 text-center">{tr('Scan this QR with your banking or e-wallet app to pay the exact amount.', 'Scan QR ini dengan aplikasi perbankan atau dompet digital untuk melakukan pembayaran.')}</p>
+                  <p className="text-sm text-gray-500">{tr('After payment, your order will be updated automatically or you may upload proof if required.', 'Setelah membayar, pesanan akan diperbarui otomatis atau Anda bisa mengupload bukti jika diperlukan.')}</p>
                 </div>
               </div>
+            ) : (
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                  <CreditCard className="w-5 h-5" />
+                  {tr('Transfer Destination', 'Tujuan Transfer')}
+                </h2>
 
-              {transferInstructions && (
-                <div className="mt-3 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 whitespace-pre-line">
-                  {transferInstructions}
+                <div className="space-y-3 rounded-lg border border-gray-300 bg-gray-50 p-4">
+                  <div>
+                    <p className="text-xs text-gray-500">{tr('Bank', 'Bank')}</p>
+                    <p className="font-semibold text-black">{transferProviderName}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">{tr('Account Name', 'Nama Rekening')}</p>
+                    <p className="font-semibold text-black">{transferAccountName}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">{tr('Account Number', 'Nomor Rekening')}</p>
+                    <p className="text-xl font-bold tracking-wide text-black">{transferAccountNumber}</p>
+                  </div>
                 </div>
-              )}
 
-              <p className="text-xs text-gray-500 mt-4">
-                {tr(
-                  'Transfer first, then upload your proof below so the order can be processed by admin.',
-                  'Silakan transfer terlebih dahulu, lalu upload bukti agar pesanan dapat diproses admin.'
+                {transferInstructions && (
+                  <div className="mt-3 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 whitespace-pre-line">
+                    {transferInstructions}
+                  </div>
                 )}
-              </p>
-            </div>
+
+                <p className="text-xs text-gray-500 mt-4">
+                  {tr(
+                    'Transfer first, then upload your proof below so the order can be processed by admin.',
+                    'Silakan transfer terlebih dahulu, lalu upload bukti agar pesanan dapat diproses admin.'
+                  )}
+                </p>
+              </div>
+            )}
 
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">

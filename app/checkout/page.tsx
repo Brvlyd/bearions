@@ -110,7 +110,9 @@ export default function CheckoutPage() {
       setPaymentMethods(result.methods)
 
       if (result.methods.length > 0) {
-        setPaymentMethod((prev) => prev || result.methods[0].code)
+        setPaymentMethod((prev) =>
+          prev || result.methods.find((m) => m.code === 'qris')?.code || result.methods[0].code
+        )
       }
 
       if (result.tableMissing) {
@@ -929,6 +931,22 @@ export default function CheckoutPage() {
 
                       {selectedPaymentMethod.instructions && (
                         <p className="text-sm text-gray-700 whitespace-pre-line">{selectedPaymentMethod.instructions}</p>
+                      )}
+
+                      {selectedPaymentMethod.code === 'qris' && (
+                        <div className="mt-4 flex flex-col items-center gap-3">
+                          <img
+                            src="/qris/bearion-qris.jpeg"
+                            alt={tr('QRIS', 'QRIS')}
+                            className="max-w-xs w-full h-auto rounded-lg border border-gray-200"
+                          />
+                          <p className="text-sm text-gray-600 text-center">
+                            {tr(
+                              'Scan this QR with your banking or e-wallet app to pay the exact amount.',
+                              'Scan QR ini dengan aplikasi perbankan atau dompet digital untuk melakukan pembayaran.'
+                            )}
+                          </p>
+                        </div>
                       )}
                     </div>
 
