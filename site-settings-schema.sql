@@ -1,27 +1,30 @@
--- Site settings single-row table (browser tab title + favicon)
+-- Site settings single-row table (browser tab title + favicon + navbar logo)
 CREATE TABLE IF NOT EXISTS site_settings (
   id INTEGER PRIMARY KEY,
-  site_title TEXT NOT NULL DEFAULT 'Bearions - Modern Fashion Store',
+  site_title TEXT NOT NULL DEFAULT 'Bearion - Modern Fashion Store',
   site_description TEXT NOT NULL DEFAULT 'Premium clothing and fashion accessories',
   favicon_url TEXT,
+  logo_url TEXT,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_by UUID,
   CONSTRAINT site_settings_singleton_check CHECK (id = 1)
 );
 
 -- Ensure existing tables (from older schema) get new columns with safe defaults
+-- NULL logo_url means "use the bundled /images/bearion-logo.png".
 ALTER TABLE site_settings
   ADD COLUMN IF NOT EXISTS site_title TEXT,
   ADD COLUMN IF NOT EXISTS site_description TEXT,
-  ADD COLUMN IF NOT EXISTS favicon_url TEXT;
+  ADD COLUMN IF NOT EXISTS favicon_url TEXT,
+  ADD COLUMN IF NOT EXISTS logo_url TEXT;
 
 ALTER TABLE site_settings
-  ALTER COLUMN site_title SET DEFAULT 'Bearions - Modern Fashion Store',
+  ALTER COLUMN site_title SET DEFAULT 'Bearion - Modern Fashion Store',
   ALTER COLUMN site_description SET DEFAULT 'Premium clothing and fashion accessories';
 
 UPDATE site_settings
 SET
-  site_title = COALESCE(site_title, 'Bearions - Modern Fashion Store'),
+  site_title = COALESCE(site_title, 'Bearion - Modern Fashion Store'),
   site_description = COALESCE(site_description, 'Premium clothing and fashion accessories')
 WHERE site_title IS NULL OR site_description IS NULL;
 
@@ -29,11 +32,12 @@ ALTER TABLE site_settings
   ALTER COLUMN site_title SET NOT NULL,
   ALTER COLUMN site_description SET NOT NULL;
 
-INSERT INTO site_settings (id, site_title, site_description, favicon_url)
+INSERT INTO site_settings (id, site_title, site_description, favicon_url, logo_url)
 VALUES (
   1,
-  'Bearions - Modern Fashion Store',
+  'Bearion - Modern Fashion Store',
   'Premium clothing and fashion accessories',
+  NULL,
   NULL
 )
 ON CONFLICT (id) DO UPDATE

@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
-import { loadSiteSettings, resolveFaviconLink } from '@/lib/site-settings'
+import { createContext, useContext, useEffect, useState } from 'react'
+import { SiteSettings, supabase } from '@/lib/supabase'
+import { DEFAULT_SITE_SETTINGS, loadSiteSettings, resolveFaviconLink } from '@/lib/site-settings'
 
 const FAVICON_LINK_ID = 'site-settings-favicon'
 const ICON_LINK_SELECTOR = 'link[rel~="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]'
@@ -44,12 +44,27 @@ const applyFavicon = (faviconUrl: string | null, version: string) => {
   })
 }
 
+const SiteSettingsContext = createContext<SiteSettings>(DEFAULT_SITE_SETTINGS)
+
+/** Reads the live site settings (tab title, favicon, navbar logo). */
+export const useSiteSettings = () => useContext(SiteSettingsContext)
+
 /**
- * Applies the admin-configured tab title and favicon on the client. The server
- * already renders them into the initial HTML via `generateMetadata`; this keeps
- * statically prerendered pages current and reacts to admin edits without a reload.
+ * Holds the admin-configured site settings for the whole tree and applies the
+ * tab title and favicon on the client. The server already renders those into
+ * the initial HTML via `generateMetadata`, and seeds `initialSettings` here so
+ * the navbar logo is correct on first paint; this keeps statically prerendered
+ * pages current and reacts to admin edits without a reload.
  */
-export default function SiteSettingsApplier() {
+export default function SiteSettingsProvider({
+  initialSettings,
+  children,
+}: {
+  initialSettings?: SiteSettings
+  children: React.ReactNode
+}) {
+  const [settings, setSettings] = useState<SiteSettings>(initialSettings || DEFAULT_SITE_SETTINGS)
+
   useEffect(() => {
     let isMounted = true
 
@@ -57,6 +72,7 @@ export default function SiteSettingsApplier() {
       const { data, tableMissing } = await loadSiteSettings()
       if (!isMounted || tableMissing) return
 
+      setSettings(data)
       if (data.site_title) document.title = data.site_title
       applyFavicon(data.favicon_url, data.updated_at)
     }
@@ -84,5 +100,5 @@ export default function SiteSettingsApplier() {
     }
   }, [])
 
-  return null
+  return <SiteSettingsContext.Provider value={settings}>{children}</SiteSettingsContext.Provider>
 }

@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Upload, Image as ImageIcon, X, Plus, Pencil, Trash2 } from 'lucide-react'
+import { Upload, Image as ImageIcon, X, Crop } from 'lucide-react'
 import { getImageUrl } from '@/lib/image-utils'
 import { useLanguage } from '@/lib/i18n'
+import { getErrorMessage } from '@/lib/errors'
+import ImageEditorModal from '@/components/ImageEditorModal'
 
 interface LandingPageImage {
   id: string
@@ -14,39 +16,30 @@ interface LandingPageImage {
   updated_at?: string
 }
 
-interface Category {
-  id: string
-  name: string
-  description?: string
-  created_at?: string
-  updated_at?: string
-}
-
 const MAX_LANDING_IMAGES = 6
 const LANDING_IMAGE_SLOTS = Array.from({ length: MAX_LANDING_IMAGES }, (_, index) => index + 1)
 const LANDING_IMAGE_SIZE_GUIDE = [
-  { count: 1, ratio: '16:9', size: '2560 x 1440 px' },
-  { count: 2, ratio: '4:5', size: '1600 x 2000 px' },
-  { count: 3, ratio: '2:3', size: '1400 x 2100 px' },
-  { count: 4, ratio: '16:9', size: '1920 x 1080 px' },
-  { count: 5, ratio: '4:3', size: '1600 x 1200 px' },
-  { count: 6, ratio: '4:3', size: '1600 x 1200 px' }
+  { count: 1, ratio: '16:9', size: '2560 x 1440 px', width: 2560, height: 1440 },
+  { count: 2, ratio: '4:5', size: '1600 x 2000 px', width: 1600, height: 2000 },
+  { count: 3, ratio: '2:3', size: '1400 x 2100 px', width: 1400, height: 2100 },
+  { count: 4, ratio: '16:9', size: '1920 x 1080 px', width: 1920, height: 1080 },
+  { count: 5, ratio: '4:3', size: '1600 x 1200 px', width: 1600, height: 1200 },
+  { count: 6, ratio: '4:3', size: '1600 x 1200 px', width: 1600, height: 1200 }
 ]
 
 export default function LandingPageManager() {
   const { language } = useLanguage()
   const [images, setImages] = useState<LandingPageImage[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState<number | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  // Slot currently open in the live editor: a fresh file, or the stored image.
+  const [editorTarget, setEditorTarget] = useState<
+    { position: number; file: File | null; sourceUrl: string | null } | null
+  >(null)
 
   const text = {
     failedLoadImages: language === 'en' ? 'Failed to load images' : 'Gagal memuat gambar',
-    categoriesTableMissing:
-      language === 'en'
-        ? 'Categories table not found. Please run categories-schema.sql in Supabase SQL Editor first.'
-        : 'Tabel kategori tidak ditemukan. Jalankan categories-schema.sql di Supabase SQL Editor terlebih dahulu.',
     imageUploadSuccess: (position: number) =>
       language === 'en' ? `Image ${position} uploaded successfully!` : `Gambar ${position} berhasil diunggah!`,
     imageRemovedSuccess: (position: number) =>
@@ -55,22 +48,6 @@ export default function LandingPageManager() {
     failedDeleteImage: language === 'en' ? 'Failed to delete image' : 'Gagal menghapus gambar',
     selectImageFile: language === 'en' ? 'Please select an image file' : 'Silakan pilih file gambar',
     imageSizeLimit: language === 'en' ? 'Image size must be less than 5MB' : 'Ukuran gambar harus kurang dari 5MB',
-    categoryNameRequired: language === 'en' ? 'Category name is required' : 'Nama kategori wajib diisi',
-    failedUpdateCategory: language === 'en' ? 'Failed to update category' : 'Gagal memperbarui kategori',
-    categoryUpdated: language === 'en' ? 'Category updated successfully!' : 'Kategori berhasil diperbarui!',
-    categoriesRunSchemaFirst:
-      language === 'en'
-        ? 'Categories table not found. Please run categories-schema.sql in Supabase first.'
-        : 'Tabel kategori tidak ditemukan. Jalankan categories-schema.sql di Supabase terlebih dahulu.',
-    duplicateCategory:
-      language === 'en'
-        ? 'A category with this name already exists.'
-        : 'Kategori dengan nama ini sudah ada.',
-    failedAddCategory: language === 'en' ? 'Failed to add category' : 'Gagal menambahkan kategori',
-    categoryAdded: language === 'en' ? 'Category added successfully!' : 'Kategori berhasil ditambahkan!',
-    failedSaveCategory: language === 'en' ? 'Failed to save category' : 'Gagal menyimpan kategori',
-    failedDeleteCategory: language === 'en' ? 'Failed to delete category' : 'Gagal menghapus kategori',
-    categoryDeleted: language === 'en' ? 'Category deleted successfully!' : 'Kategori berhasil dihapus!',
     pageTitle: language === 'en' ? 'Landing Page Images' : 'Gambar Landing Page',
     pageSubtitle:
       language === 'en'
@@ -113,51 +90,24 @@ export default function LandingPageManager() {
     tableIdealRatio: language === 'en' ? 'Ideal Ratio' : 'Rasio Ideal',
     tableSuggestedSize: language === 'en' ? 'Suggested Per-Image Size' : 'Saran Ukuran per Gambar',
     imageCount: (count: number) => (language === 'en' ? `${count} image${count > 1 ? 's' : ''}` : `${count} gambar`),
-    productCategories: language === 'en' ? 'Product Categories' : 'Kategori Produk',
-    categoriesSubtitle: language === 'en' ? 'Manage product categories for your store' : 'Kelola kategori produk untuk toko Anda',
-    addCategory: language === 'en' ? 'Add Category' : 'Tambah Kategori',
-    setupRequired: language === 'en' ? 'Setup Required' : 'Perlu Setup',
-    setupCategoriesHelp:
+    adjustSize: language === 'en' ? 'Adjust size' : 'Atur ukuran',
+    adjustSizeAria: (position: number) =>
+      language === 'en' ? `Adjust size of image ${position}` : `Atur ukuran gambar ${position}`,
+    editorTitle: (position: number) =>
+      language === 'en' ? `Adjust landing image ${position}` : `Sesuaikan gambar landing ${position}`,
+    editorDescription:
       language === 'en'
-        ? 'If this is your first time using categories, please run the SQL schema file first:'
-        : 'Jika ini pertama kali Anda menggunakan kategori, jalankan file schema SQL berikut terlebih dahulu:',
-    setupStep1: language === 'en' ? 'Open Supabase Dashboard -> SQL Editor' : 'Buka Supabase Dashboard -> SQL Editor',
-    setupStep2: language === 'en' ? 'Copy and paste the content from' : 'Salin lalu tempel isi dari',
-    setupStep3: language === 'en' ? 'Click "Run" to create the categories table' : 'Klik "Run" untuk membuat tabel kategori',
-    setupStep4: language === 'en' ? 'Refresh this page' : 'Refresh halaman ini',
-    edit: language === 'en' ? 'Edit' : 'Ubah',
-    noCategories:
-      language === 'en'
-        ? 'No categories yet. Click "Add Category" to create one.'
-        : 'Belum ada kategori. Klik "Tambah Kategori" untuk membuat kategori baru.',
-    editCategory: language === 'en' ? 'Edit Category' : 'Ubah Kategori',
-    addNewCategory: language === 'en' ? 'Add New Category' : 'Tambah Kategori Baru',
-    categoryName: language === 'en' ? 'Category Name *' : 'Nama Kategori *',
-    categoryNamePlaceholder: language === 'en' ? 'e.g., T-Shirts' : 'contoh: Kaos',
-    descriptionOptional: language === 'en' ? 'Description (Optional)' : 'Deskripsi (Opsional)',
-    categoryDescPlaceholder:
-      language === 'en' ? 'Brief description of this category' : 'Deskripsi singkat untuk kategori ini',
-    cancel: language === 'en' ? 'Cancel' : 'Batal',
-    update: language === 'en' ? 'Update' : 'Perbarui',
-    deleteCategory: language === 'en' ? 'Delete Category' : 'Hapus Kategori',
-    deleteCategoryConfirm:
-      language === 'en'
-        ? 'Are you sure you want to delete this category? This action cannot be undone.'
-        : 'Yakin ingin menghapus kategori ini? Tindakan ini tidak dapat dibatalkan.',
-    delete: language === 'en' ? 'Delete' : 'Hapus',
+        ? 'The landing slot crops to fill, so frame the subject here before publishing.'
+        : 'Slot landing memotong gambar agar penuh, jadi atur framing di sini sebelum dipublikasikan.',
   }
-  
-  // Category modal states
-  const [showCategoryModal, setShowCategoryModal] = useState(false)
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null)
-  const [categoryName, setCategoryName] = useState('')
-  const [categoryDescription, setCategoryDescription] = useState('')
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null)
+
+  // Suggested export size follows the guide for the number of published slots.
+  const activeSizeGuide =
+    LANDING_IMAGE_SIZE_GUIDE.find((guide) => guide.count === Math.max(1, images.length)) ||
+    LANDING_IMAGE_SIZE_GUIDE[0]
 
   useEffect(() => {
     loadImages()
-    loadCategories()
   }, [])
 
   const loadImages = async () => {
@@ -171,35 +121,11 @@ export default function LandingPageManager() {
 
       if (error) throw error
       setImages(data || [])
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error loading images:', error)
       setMessage({ type: 'error', text: text.failedLoadImages })
     } finally {
       setLoading(false)
-    }
-  }
-
-  const loadCategories = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .order('name', { ascending: true })
-
-      if (error) {
-        console.error('Error loading categories:', error)
-        // Show error if table doesn't exist
-        if (error.message?.includes('relation "categories" does not exist')) {
-          setMessage({ 
-            type: 'error', 
-            text: text.categoriesTableMissing 
-          })
-        }
-        return
-      }
-      setCategories(data || [])
-    } catch (error: any) {
-      console.error('Error loading categories:', error)
     }
   }
 
@@ -244,9 +170,9 @@ export default function LandingPageManager() {
 
       setMessage({ type: 'success', text: text.imageUploadSuccess(position) })
       loadImages()
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error uploading image:', error)
-      setMessage({ type: 'error', text: error.message || text.failedUploadImage })
+      setMessage({ type: 'error', text: getErrorMessage(error) || text.failedUploadImage })
     } finally {
       setUploading(null)
     }
@@ -266,9 +192,9 @@ export default function LandingPageManager() {
 
       setMessage({ type: 'success', text: text.imageRemovedSuccess(position) })
       loadImages()
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error deleting image:', error)
-      setMessage({ type: 'error', text: error.message || text.failedDeleteImage })
+      setMessage({ type: 'error', text: getErrorMessage(error) || text.failedDeleteImage })
     } finally {
       setUploading(null)
     }
@@ -290,115 +216,18 @@ export default function LandingPageManager() {
       return
     }
 
-    handleImageUpload(position, file)
+    // Frame it first: the slot crops hard, so let the admin see the result live.
+    setMessage(null)
+    setEditorTarget({ position, file, sourceUrl: null })
+    e.target.value = ''
   }
 
-  // Category Management Functions
-  const openAddCategoryModal = () => {
-    setEditingCategory(null)
-    setCategoryName('')
-    setCategoryDescription('')
-    setShowCategoryModal(true)
-  }
+  const handleEditorApply = async (editedFile: File) => {
+    const target = editorTarget
+    if (!target) return
 
-  const openEditCategoryModal = (category: Category) => {
-    setEditingCategory(category)
-    setCategoryName(category.name)
-    setCategoryDescription(category.description || '')
-    setShowCategoryModal(true)
-  }
-
-  const closeCategoryModal = () => {
-    setShowCategoryModal(false)
-    setEditingCategory(null)
-    setCategoryName('')
-    setCategoryDescription('')
-  }
-
-  const handleSaveCategory = async () => {
-    if (!categoryName.trim()) {
-      setMessage({ type: 'error', text: text.categoryNameRequired })
-      return
-    }
-
-    try {
-      if (editingCategory) {
-        // Update existing category
-        const { error } = await supabase
-          .from('categories')
-          .update({ 
-            name: categoryName.trim(), 
-            description: categoryDescription.trim() 
-          })
-          .eq('id', editingCategory.id)
-
-        if (error) {
-          console.error('Update error:', error)
-          throw new Error(error.message || text.failedUpdateCategory)
-        }
-        setMessage({ type: 'success', text: text.categoryUpdated })
-      } else {
-        // Insert new category
-        const { error } = await supabase
-          .from('categories')
-          .insert({ 
-            name: categoryName.trim(), 
-            description: categoryDescription.trim() 
-          })
-
-        if (error) {
-          console.error('Insert error:', error)
-          if (error.message?.includes('relation "categories" does not exist')) {
-            throw new Error(text.categoriesRunSchemaFirst)
-          }
-          if (error.message?.includes('duplicate key')) {
-            throw new Error(text.duplicateCategory)
-          }
-          throw new Error(error.message || text.failedAddCategory)
-        }
-        setMessage({ type: 'success', text: text.categoryAdded })
-      }
-
-      loadCategories()
-      closeCategoryModal()
-    } catch (error: any) {
-      console.error('Error saving category:', error)
-      setMessage({ type: 'error', text: error.message || text.failedSaveCategory })
-    }
-  }
-
-  const openDeleteModal = (categoryId: string) => {
-    setCategoryToDelete(categoryId)
-    setShowDeleteModal(true)
-  }
-
-  const closeDeleteModal = () => {
-    setShowDeleteModal(false)
-    setCategoryToDelete(null)
-  }
-
-  const handleDeleteCategory = async () => {
-    if (!categoryToDelete) return
-
-    try {
-      const { error } = await supabase
-        .from('categories')
-        .delete()
-        .eq('id', categoryToDelete)
-
-      if (error) {
-        console.error('Delete error:', error)
-        throw new Error(error.message || text.failedDeleteCategory)
-      }
-
-      setMessage({ type: 'success', text: text.categoryDeleted })
-      loadCategories()
-      closeDeleteModal()
-    } catch (error: any) {
-      console.error('Error deleting category:', error)
-      setMessage({ type: 'error', text: error.message || text.failedDeleteCategory })
-      closeDeleteModal()
-    }
+    setEditorTarget(null)
+    await handleImageUpload(target.position, editedFile)
   }
 
   if (loading) {
@@ -477,6 +306,19 @@ export default function LandingPageManager() {
                 {image && (
                   <button
                     type="button"
+                    onClick={() => setEditorTarget({ position, file: null, sourceUrl: getImageUrl(image.image_url) })}
+                    disabled={isUploading}
+                    className="px-3 rounded-lg border border-gray-300 text-black hover:bg-gray-50 transition disabled:opacity-50"
+                    aria-label={text.adjustSizeAria(position)}
+                    title={text.adjustSize}
+                  >
+                    <Crop className="w-5 h-5" />
+                  </button>
+                )}
+
+                {image && (
+                  <button
+                    type="button"
                     onClick={() => handleImageDelete(position)}
                     disabled={isUploading}
                     className="px-3 rounded-lg bg-red-600 text-white hover:bg-red-700 transition disabled:bg-red-300 disabled:cursor-not-allowed"
@@ -538,153 +380,18 @@ export default function LandingPageManager() {
         </div>
       </div>
 
-      {/* Category Management Section */}
-      <div className="mt-12 border-t pt-8">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-black mb-1">{text.productCategories}</h2>
-            <p className="text-gray-600">{text.categoriesSubtitle}</p>
-          </div>
-          <button
-            onClick={openAddCategoryModal}
-            className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            {text.addCategory}
-          </button>
-        </div>
-
-        {/* Setup Instructions if no categories */}
-        {categories.length === 0 && (
-          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <h4 className="font-semibold text-yellow-900 mb-2">⚠️ {text.setupRequired}</h4>
-            <p className="text-sm text-yellow-800 mb-2">
-              {text.setupCategoriesHelp}
-            </p>
-            <ol className="text-sm text-yellow-800 list-decimal list-inside space-y-1">
-              <li>{text.setupStep1}</li>
-              <li>{text.setupStep2} <code className="bg-yellow-100 px-1 rounded">categories-schema.sql</code></li>
-              <li>{text.setupStep3}</li>
-              <li>{text.setupStep4}</li>
-            </ol>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {categories.map((category) => (
-            <div key={category.id} className="border border-gray-200 rounded-lg p-4 bg-white">
-              <h3 className="font-bold text-black text-lg mb-1">{category.name}</h3>
-              {category.description && (
-                <p className="text-sm text-gray-600 mb-3">{category.description}</p>
-              )}
-              <div className="flex gap-2 mt-3">
-                <button
-                  onClick={() => openEditCategoryModal(category)}
-                  className="flex-1 bg-gray-100 text-black px-3 py-2 rounded text-sm hover:bg-gray-200 transition flex items-center justify-center gap-1"
-                >
-                  <Pencil className="w-4 h-4" />
-                  {text.edit}
-                </button>
-                <button
-                  onClick={() => openDeleteModal(category.id)}
-                  className="bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700 transition flex items-center justify-center"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {categories.length === 0 && (
-          <div className="text-center py-12 text-gray-500 border border-dashed border-gray-300 rounded-lg">
-            {text.noCategories}
-          </div>
-        )}
-      </div>
-
-      {/* Category Add/Edit Modal */}
-      {showCategoryModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-bold text-black mb-4">
-              {editingCategory ? text.editCategory : text.addNewCategory}
-            </h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">
-                  {text.categoryName}
-                </label>
-                <input
-                  type="text"
-                  value={categoryName}
-                  onChange={(e) => setCategoryName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-black"
-                  placeholder={text.categoryNamePlaceholder}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">
-                  {text.descriptionOptional}
-                </label>
-                <textarea
-                  value={categoryDescription}
-                  onChange={(e) => setCategoryDescription(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-black"
-                  placeholder={text.categoryDescPlaceholder}
-                  rows={3}
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-3 justify-end mt-6">
-              <button
-                onClick={closeCategoryModal}
-                className="px-4 py-2 bg-gray-100 text-black rounded hover:bg-gray-200 transition font-medium"
-              >
-                {text.cancel}
-              </button>
-              <button
-                onClick={handleSaveCategory}
-                className="px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition font-medium"
-              >
-                {editingCategory ? text.update : text.addCategory}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Category Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-bold text-black mb-4">
-              {text.deleteCategory}
-            </h3>
-            <p className="text-gray-600 mb-6">
-              {text.deleteCategoryConfirm}
-            </p>
-
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={closeDeleteModal}
-                className="px-4 py-2 bg-gray-100 text-black rounded hover:bg-gray-200 transition font-medium"
-              >
-                {text.cancel}
-              </button>
-              <button
-                onClick={handleDeleteCategory}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition font-medium"
-              >
-                {text.delete}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ImageEditorModal
+        open={!!editorTarget}
+        file={editorTarget?.file || null}
+        sourceUrl={editorTarget?.sourceUrl || null}
+        defaultFit="cover"
+        recommendedWidth={activeSizeGuide.width}
+        recommendedHeight={activeSizeGuide.height}
+        title={editorTarget ? text.editorTitle(editorTarget.position) : undefined}
+        description={text.editorDescription}
+        onCancel={() => setEditorTarget(null)}
+        onApply={handleEditorApply}
+      />
     </div>
   )
 }

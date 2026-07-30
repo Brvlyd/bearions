@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import MultiImageUpload from '@/components/MultiImageUpload'
 import Notification from '@/components/Notification'
+import { getErrorMessage } from '@/lib/errors'
 
 interface Category {
   id: string
@@ -27,8 +28,11 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info', message: string } | null>(null)
   const [formData, setFormData] = useState({
     name: '',
+    name_id: '',
     description: '',
+    description_id: '',
     price: '',
+    price_usd: '',
     stock: '',
     category: '',
     image_url: '',
@@ -70,13 +74,16 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
       
       // Load product images
       const images = await productService.getProductImages(productId)
-      const imageUrls = images.map((img: any) => img.image_url)
+      const imageUrls = (images || []).map((img: { image_url: string }) => img.image_url)
       
       setProduct(data)
       setFormData({
         name: data.name,
+        name_id: data.name_id || '',
         description: data.description || '',
+        description_id: data.description_id || '',
         price: data.price.toString(),
+        price_usd: data.price_usd != null ? data.price_usd.toString() : '',
         stock: data.stock.toString(),
         category: data.category,
         image_url: data.image_url || '',
@@ -100,8 +107,11 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     try {
       await productService.updateProduct(productId, {
         name: formData.name,
+        name_id: formData.name_id || null,
         description: formData.description || null,
+        description_id: formData.description_id || null,
         price: parseFloat(formData.price),
+        price_usd: formData.price_usd ? parseFloat(formData.price_usd) : null,
         stock: parseInt(formData.stock),
         category: formData.category,
         image_url: formData.images[0] || null // Use first image as main
@@ -116,9 +126,9 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
       setTimeout(() => {
         router.push('/admin/dashboard')
       }, 1500)
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating product:', error)
-      setNotification({ type: 'error', message: tr('Failed to update product', 'Gagal memperbarui produk') + ': ' + error.message })
+      setNotification({ type: 'error', message: tr('Failed to update product', 'Gagal memperbarui produk') + ': ' + getErrorMessage(error) })
     } finally {
       setSaving(false)
     }
@@ -164,7 +174,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
           <div>
             <label htmlFor="name" className="block text-sm font-medium mb-2 text-black">
-              {tr('Product Name *', 'Nama Produk *')}
+              {tr('Product Name (English) *', 'Nama Produk (Inggris) *')}
             </label>
             <input
               id="name"
@@ -178,8 +188,23 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
           </div>
 
           <div>
+            <label htmlFor="name_id" className="block text-sm font-medium mb-2 text-black">
+              {tr('Product Name (Indonesian)', 'Nama Produk (Indonesia)')}
+            </label>
+            <input
+              id="name_id"
+              name="name_id"
+              type="text"
+              value={formData.name_id}
+              onChange={handleChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
+              placeholder={tr('Example: Kaos Bearion Absolute', 'Contoh: Kaos Bearion Absolute')}
+            />
+          </div>
+
+          <div>
             <label htmlFor="description" className="block text-sm font-medium mb-2 text-black">
-              {tr('Description', 'Deskripsi')}
+              {tr('Description (English)', 'Deskripsi (Inggris)')}
             </label>
             <textarea
               id="description"
@@ -191,7 +216,22 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="description_id" className="block text-sm font-medium mb-2 text-black">
+              {tr('Description (Indonesian)', 'Deskripsi (Indonesia)')}
+            </label>
+            <textarea
+              id="description_id"
+              name="description_id"
+              value={formData.description_id}
+              onChange={handleChange}
+              rows={4}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
+              placeholder={tr('Product description in Indonesian...', 'Deskripsi produk...')}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="price" className="block text-sm font-medium mb-2 text-black">
                 {tr('Price (IDR) *', 'Harga (IDR) *')}
@@ -206,6 +246,29 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
               />
+            </div>
+
+            <div>
+              <label htmlFor="price_usd" className="block text-sm font-medium mb-2 text-black">
+                {tr('Price (USD)', 'Harga (USD)')}
+              </label>
+              <input
+                id="price_usd"
+                name="price_usd"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.price_usd}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
+                placeholder="25.00"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {tr(
+                  'Optional. Set by hand — it is not converted from IDR. Leave empty to show the IDR price to English visitors.',
+                  'Opsional. Diisi manual — tidak dikonversi dari IDR. Kosongkan agar pengunjung bahasa Inggris tetap melihat harga IDR.'
+                )}
+              </p>
             </div>
 
             <div>

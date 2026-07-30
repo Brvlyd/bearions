@@ -1,6 +1,6 @@
-# 🐻 Bearions - Modern E-commerce Platform
+# 🐻 Bearion - Modern E-commerce Platform
 
-Website e-commerce modern untuk clothing brand Bearions, dibangun dengan Next.js 16, TypeScript, dan Supabase.
+Website e-commerce modern untuk clothing brand Bearion, dibangun dengan Next.js 16, TypeScript, dan Supabase.
 
 ![Next.js](https://img.shields.io/badge/Next.js-16.1.1-black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)
@@ -38,8 +38,8 @@ Sebelum setup, pastikan kamu punya:
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/Brvlyd/bearions.git
-cd bearions
+git clone https://github.com/Brvlyd/bearion.git
+cd bearion
 ```
 
 ### 2. Install Dependencies
@@ -150,7 +150,7 @@ Setelah database sudah jalan, buat admin account:
 INSERT INTO admins (id, email, role, full_name)
 VALUES (
   'paste-user-id-disini',
-  'admin@bearions.com',
+  'admin@bearion.com',
   'admin',
   'Admin Name'
 );
@@ -161,7 +161,7 @@ Sekarang bisa login sebagai admin di `/login`!
 ## 📁 Project Structure
 
 ```
-bearions/
+bearion/
 ├── app/                          # Next.js App Router
 │   ├── admin/                   # Admin pages
 │   │   ├── dashboard/          # Admin dashboard
@@ -279,7 +279,7 @@ npm run lint         # Run ESLint
 ## 📞 Contact
 
 - **Developer**: Brvlyd
-- **Repository**: [github.com/Brvlyd/bearions](https://github.com/Brvlyd/bearions)
+- **Repository**: [github.com/Brvlyd/bearion](https://github.com/Brvlyd/bearion)
 
 ---
 
@@ -348,11 +348,11 @@ Jangan lupa set environment variables di Vercel dashboard!
 
 ## 📞 Support
 
-Untuk pertanyaan atau issues, hubungi team Bearions.
+Untuk pertanyaan atau issues, hubungi team Bearion.
 
 ---
 
-**Made with ❤️ for Bearions Fashion**
+**Made with ❤️ for Bearion Fashion**
 
 ## Deploy on Vercel
 

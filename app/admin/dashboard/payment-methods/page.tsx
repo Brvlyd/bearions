@@ -114,7 +114,7 @@ export default function AdminPaymentMethodsPage() {
         ? 'You are editing a fallback method. Saving will create or update the same code in database.'
         : 'Anda sedang mengedit metode fallback. Simpan akan membuat atau memperbarui kode yang sama di database.',
     providerPlaceholder: language === 'en' ? 'e.g. Bank Mandiri' : 'contoh Bank Mandiri',
-    accountNamePlaceholder: language === 'en' ? 'e.g. BEARIONS STORE' : 'contoh BEARIONS STORE',
+    accountNamePlaceholder: language === 'en' ? 'e.g. BEARION STORE' : 'contoh BEARION STORE',
     accountNumberPlaceholder: language === 'en' ? 'e.g. 1234567890' : 'contoh 1234567890',
     sortOrderHint:
       language === 'en'
@@ -433,22 +433,22 @@ export default function AdminPaymentMethodsPage() {
                   </div>
 
                   <div className="space-y-4 p-4 rounded-lg bg-gray-50 border border-gray-200">
-                    <label className="flex items-center gap-3 text-sm font-medium text-gray-700 cursor-pointer hover:text-black transition">
+                    <label className="flex items-center gap-3 min-h-11 text-sm font-medium text-gray-700 cursor-pointer hover:text-black transition">
                       <input
                         type="checkbox"
                         checked={form.requires_proof}
                         onChange={(event) => setForm((prev) => ({ ...prev, requires_proof: event.target.checked }))}
-                        className="w-5 h-5 rounded cursor-pointer accent-blue-600"
+                        className="w-6 h-6 rounded cursor-pointer accent-blue-600"
                       />
                       <span>{text.requiresProof}</span>
                     </label>
 
-                    <label className="flex items-center gap-3 text-sm font-medium text-gray-700 cursor-pointer hover:text-black transition">
+                    <label className="flex items-center gap-3 min-h-11 text-sm font-medium text-gray-700 cursor-pointer hover:text-black transition">
                       <input
                         type="checkbox"
                         checked={form.is_active}
                         onChange={(event) => setForm((prev) => ({ ...prev, is_active: event.target.checked }))}
-                        className="w-5 h-5 rounded cursor-pointer accent-blue-600"
+                        className="w-6 h-6 rounded cursor-pointer accent-blue-600"
                       />
                       <span>{text.active}</span>
                     </label>
@@ -495,14 +495,14 @@ export default function AdminPaymentMethodsPage() {
                       <button
                         type="button"
                         onClick={() => handleEdit(method)}
-                        className="px-3 py-1.5 text-xs font-semibold border border-blue-600 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                        className="px-3 py-1.5 min-h-11 text-xs font-semibold border border-blue-600 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                       >
                         {text.edit}
                       </button>
                       <button
                         type="button"
                         onClick={() => void handleDelete(method.id)}
-                        className="px-3 py-1.5 text-xs font-semibold border border-red-600 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                        className="px-3 py-1.5 min-h-11 text-xs font-semibold border border-red-600 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
                       >
                         {text.delete}
                       </button>

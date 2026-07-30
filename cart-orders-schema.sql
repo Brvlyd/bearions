@@ -1,4 +1,4 @@
--- Cart Schema for Bearions E-commerce
+-- Cart Schema for Bearion E-commerce
 -- This schema handles shopping cart, orders, payments, and shipping
 
 -- ============================================

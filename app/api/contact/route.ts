@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     await sendTransactionalEmail({
       to: { email: receiverEmail },
-      subject: `[Kontak Bearions] ${body.subject}`,
+      subject: `[Kontak Bearion] ${body.subject}`,
       htmlContent,
       replyTo: { email: body.email, name: body.name },
     })

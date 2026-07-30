@@ -11,6 +11,7 @@ import { createClient } from '@supabase/supabase-js'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { getErrorMessage } from '../lib/errors'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -75,7 +76,7 @@ async function uploadImage(
       return {
         filename,
         success: false,
-        error: error.message
+        error: getErrorMessage(error)
       }
     }
 
@@ -89,11 +90,11 @@ async function uploadImage(
       success: true,
       publicUrl: urlData.publicUrl
     }
-  } catch (error: any) {
+  } catch (error) {
     return {
       filename,
       success: false,
-      error: error.message
+      error: getErrorMessage(error)
     }
   }
 }

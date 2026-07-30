@@ -1,12 +1,12 @@
 /**
- * Image Utility Functions for Bearions E-commerce
+ * Image Utility Functions for Bearion E-commerce
  * Handles image URLs, placeholders, and Supabase storage
  */
 
 import { supabase } from './supabase'
 
 // Placeholder image URL (using a reliable CDN)
-export const PLACEHOLDER_IMAGE = 'https://placehold.co/600x600/e5e7eb/1f2937?text=Bearions+Product'
+export const PLACEHOLDER_IMAGE = 'https://placehold.co/600x600/e5e7eb/1f2937?text=Bearion+Product'
 
 /**
  * Get optimized image URL from Supabase or fallback to placeholder

@@ -138,7 +138,7 @@ export default function ContactPage() {
                 <Mail className="w-5 h-5 text-gray-500 mt-1" />
                 <div>
                   <h3 className="font-medium text-black">{t('contact.email')}</h3>
-                  <p className="text-gray-600">hello@bearions.com</p>
+                  <p className="text-gray-600">hello@bearion.com</p>
                 </div>
               </div>
 

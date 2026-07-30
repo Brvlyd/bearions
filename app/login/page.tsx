@@ -207,7 +207,7 @@ function LoginPageContent() {
 
     try {
       setResetLoading(true)
-      await authService.sendPasswordResetEmail(email.trim().toLowerCase())
+      await authService.sendPasswordResetEmail(email.trim().toLowerCase(), language)
         setSuccess(
           language === 'en'
             ? '📩 Password reset link has been sent. Please check your inbox and spam/junk folder.'

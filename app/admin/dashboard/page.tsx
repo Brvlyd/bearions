@@ -117,12 +117,15 @@ export default function AdminDashboardPage() {
             <ShoppingBag className="w-5 h-5" />
             {tr('Products by Category', 'Produk per Kategori')}
           </h3>
-          <div className="space-y-4">
-            {Object.entries(categoryData).map(([category, count], index) => (
+          {/* Scrolls once there are many categories, so the card keeps its size */}
+          <div className="space-y-4 max-h-80 overflow-y-auto overscroll-contain pr-1">
+            {Object.entries(categoryData)
+              .sort(([, a], [, b]) => b - a)
+              .map(([category, count], index) => (
               <div key={index}>
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-gray-700">{category}</span>
-                  <span className="font-semibold text-black">{tr('{count} products', '{count} produk', { count })}</span>
+                <div className="flex justify-between items-baseline gap-3 text-sm mb-2">
+                  <span className="text-gray-700 truncate" title={category}>{category}</span>
+                  <span className="font-semibold text-black whitespace-nowrap">{tr('{count} products', '{count} produk', { count })}</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3">
                   <div

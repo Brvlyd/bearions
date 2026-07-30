@@ -204,7 +204,7 @@ export const orderService = {
         }
       }
 
-      const updateData: any = { status }
+      const updateData: Record<string, string> = { status }
 
       // Set timestamp based on status
       if (status === 'confirmed') {

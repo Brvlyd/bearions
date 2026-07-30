@@ -10,7 +10,7 @@ type SupabaseErrorLike = {
 export const DEFAULT_ABOUT_US_CONTENT: AboutUsContent = {
   id: 1,
   title: 'About Us',
-  headline: 'Bearions builds everyday essentials with practical quality and honest pricing.',
+  headline: 'Bearion builds everyday essentials with practical quality and honest pricing.',
   content_blocks: [
     {
       id: 'default-text',
@@ -24,10 +24,11 @@ export const DEFAULT_ABOUT_US_CONTENT: AboutUsContent = {
   updated_by: null,
 }
 
-const isValidContentBlock = (value: any): value is AboutUsContentBlock => {
+const isValidContentBlock = (value: unknown): value is AboutUsContentBlock => {
   if (!value || typeof value !== 'object') return false
-  if (value.type !== 'text' && value.type !== 'image') return false
-  if (typeof value.id !== 'string') return false
+  const block = value as { type?: unknown; id?: unknown }
+  if (block.type !== 'text' && block.type !== 'image') return false
+  if (typeof block.id !== 'string') return false
   return true
 }
 
@@ -58,7 +59,7 @@ const normalizeContentBlocks = (value: unknown): AboutUsContentBlock[] => {
   return DEFAULT_ABOUT_US_CONTENT.content_blocks || []
 }
 
-const normalizeAboutContent = (raw: any): AboutUsContent => {
+const normalizeAboutContent = (raw: Record<string, unknown> | null | undefined): AboutUsContent => {
   const legacyBody =
     raw?.body ||
     raw?.body_en ||

@@ -12,7 +12,7 @@ Saat ini Supabase memerlukan email confirmation setelah registration. Ada 2 cara
 
 1. **Buka Supabase Dashboard**
    - Login ke https://supabase.com
-   - Pilih project Bearions
+   - Pilih project Bearion
 
 2. **Navigate ke Authentication Settings**
    - Sidebar kiri → Authentication → Settings

@@ -1,9 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Search, Pencil, Trash2 } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n'
+import { getErrorMessage } from '@/lib/errors'
+import { usePagination } from '@/lib/hooks/usePagination'
+import Pagination from '@/components/Pagination'
+
+const USERS_PER_PAGE = 10
 
 interface User {
   id: string
@@ -45,7 +50,7 @@ export default function UsersManagementPage() {
 
       if (error) throw error
       setUsers(data || [])
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error loading users:', error)
       setMessage({ type: 'error', text: tr('Failed to load users', 'Gagal memuat pengguna') })
     } finally {
@@ -92,9 +97,9 @@ export default function UsersManagementPage() {
       setMessage({ type: 'success', text: tr('User updated successfully!', 'Pengguna berhasil diperbarui!') })
       loadUsers()
       closeEditModal()
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating user:', error)
-      setMessage({ type: 'error', text: error.message || tr('Failed to update user', 'Gagal memperbarui pengguna') })
+      setMessage({ type: 'error', text: getErrorMessage(error) || tr('Failed to update user', 'Gagal memperbarui pengguna') })
     }
   }
 
@@ -122,14 +127,14 @@ export default function UsersManagementPage() {
       setMessage({ type: 'success', text: tr('User deleted successfully!', 'Pengguna berhasil dihapus!') })
       loadUsers()
       closeDeleteModal()
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error deleting user:', error)
-      setMessage({ type: 'error', text: error.message || tr('Failed to delete user', 'Gagal menghapus pengguna') })
+      setMessage({ type: 'error', text: getErrorMessage(error) || tr('Failed to delete user', 'Gagal menghapus pengguna') })
       closeDeleteModal()
     }
   }
 
-  const getFilteredUsers = () => {
+  const filteredUsers = useMemo(() => {
     let filtered = [...users]
 
     // Filter by search query
@@ -142,9 +147,15 @@ export default function UsersManagementPage() {
     }
 
     return filtered
-  }
+  }, [users, searchQuery])
 
-  const filteredUsers = getFilteredUsers()
+  const { page, setPage, totalPages, pageItems, firstItemIndex, lastItemIndex, totalItems } =
+    usePagination(filteredUsers, USERS_PER_PAGE)
+
+  // A new search starts the list over at page 1.
+  useEffect(() => {
+    setPage(1)
+  }, [searchQuery, setPage])
 
   if (loading) {
     return (
@@ -217,7 +228,7 @@ export default function UsersManagementPage() {
       </div>
 
       {/* Users Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div id="users-table" className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -244,7 +255,7 @@ export default function UsersManagementPage() {
                   </td>
                 </tr>
               ) : (
-                filteredUsers.map((user) => (
+                pageItems.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div className="flex items-center">
@@ -289,6 +300,17 @@ export default function UsersManagementPage() {
           </table>
         </div>
       </div>
+
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        firstItemIndex={firstItemIndex}
+        lastItemIndex={lastItemIndex}
+        totalItems={totalItems}
+        itemLabel={{ en: 'users', id: 'pengguna' }}
+        scrollTargetId="users-table"
+      />
 
       {/* Edit User Modal */}
       {showEditModal && selectedUser && (

@@ -1,12 +1,20 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { User, Menu, X, LogOut, Globe } from 'lucide-react'
 import { authService } from '@/lib/auth'
 import CartButton from './CartButton'
 import { useLanguage } from '@/lib/i18n'
+import { useSiteSettings } from './SiteSettingsProvider'
+import {
+  LOGO_ASPECT_RATIO,
+  LOGO_DISPLAY_HEIGHT,
+  LOGO_DISPLAY_WIDTH,
+  resolveLogoUrl,
+} from '@/lib/site-settings'
 
 export default function Header() {
   const pathname = usePathname()
@@ -16,29 +24,8 @@ export default function Header() {
   const [userName, setUserName] = useState<string>('')
   const [scrolled, setScrolled] = useState(false)
   const { language, setLanguage, t, tr } = useLanguage()
-
-  useEffect(() => {
-    checkAuth()
-    
-    // Listen for auth state changes
-    const { data: authListener } = authService.onAuthStateChange((event) => {
-      console.log('Auth state changed:', event)
-      checkAuth()
-    })
-    
-    // Detect scroll for header effect
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 10)
-    }
-    window.addEventListener('scroll', handleScroll)
-    
-    return () => {
-      window.removeEventListener('scroll', handleScroll)
-      if (authListener?.subscription) {
-        authListener.subscription.unsubscribe()
-      }
-    }
-  }, [])
+  const siteSettings = useSiteSettings()
+  const logoSrc = resolveLogoUrl(siteSettings.logo_url, siteSettings.updated_at)
 
   const checkAuth = async () => {
     try {
@@ -59,6 +46,32 @@ export default function Header() {
       setUserName('')
     }
   }
+
+  useEffect(() => {
+    // Every setState inside checkAuth runs after an await, so nothing is set
+    // synchronously here; the compiler cannot see through the async boundary.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    checkAuth()
+
+    // Listen for auth state changes
+    const { data: authListener } = authService.onAuthStateChange((event) => {
+      console.log('Auth state changed:', event)
+      checkAuth()
+    })
+
+    // Detect scroll for header effect
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10)
+    }
+    window.addEventListener('scroll', handleScroll)
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      if (authListener?.subscription) {
+        authListener.subscription.unsubscribe()
+      }
+    }
+  }, [])
 
   const handleLogout = async () => {
     try {
@@ -87,16 +100,34 @@ export default function Header() {
     } text-white border-b border-white/10`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo with hover effect */}
-          <Link href="/" className="flex items-center space-x-2 group">
-            <div className="w-10 h-10 bg-white text-black flex items-center justify-center font-bold text-xl rounded transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 group-hover:shadow-lg">
-              B
-            </div>
-            <span className="text-xl font-bold transition-all duration-300 group-hover:text-gray-300">BEARIONS</span>
+          {/* Logo — image only, editable from Admin > Site Settings. The box is
+              fixed to the bundled mark's dimensions so any uploaded logo is
+              contained in the same slot and the header never reflows.
+              The bundled mark is black artwork and this bar is black, so the
+              logo sits on a light plate to stay legible — that also holds for
+              whatever colour an uploaded replacement happens to be. */}
+          <Link
+            href="/"
+            className="flex items-center group shrink-0"
+            aria-label={siteSettings.site_title}
+          >
+            <span className="flex items-center justify-center rounded-xl bg-white px-2.5 py-1.5 shadow-sm ring-1 ring-white/25 transition-transform duration-300 group-hover:scale-105">
+              <Image
+                src={logoSrc}
+                alt={siteSettings.site_title}
+                width={LOGO_DISPLAY_WIDTH}
+                height={LOGO_DISPLAY_HEIGHT}
+                style={{ aspectRatio: LOGO_ASPECT_RATIO }}
+                className="h-9 w-auto object-contain"
+                priority
+              />
+            </span>
           </Link>
 
-          {/* Desktop Navigation with modern hover effects */}
-          <nav className="hidden md:flex items-center space-x-1">
+          {/* Desktop Navigation with modern hover effects. Below lg the links
+              plus the account buttons no longer fit beside the logo, so the
+              whole set collapses into the mobile menu instead of overlapping. */}
+          <nav className="hidden lg:flex items-center space-x-1">
             <Link 
               href="/catalog" 
               className="px-4 py-2 rounded-lg transition-all duration-300 hover:bg-white/10 hover:scale-105 relative group"
@@ -128,7 +159,7 @@ export default function Header() {
           </nav>
 
           {/* Right Side with enhanced animations */}
-          <div className="hidden md:flex items-center space-x-2 shrink-0">
+          <div className="hidden lg:flex items-center space-x-2 shrink-0">
             {/* Cart Button with pulse animation */}
             <CartButton />
             
@@ -153,9 +184,9 @@ export default function Header() {
                   <span className="font-medium truncate">
                     {userName ? (
                       <>
-                        <span className="hidden lg:inline">{tr('Hello', 'Halo')}, </span>
-                        <span className="hidden lg:inline">{userName.length > 12 ? userName.substring(0, 12) + '...' : userName}</span>
-                        <span className="lg:hidden">{userName.split(' ')[0]}</span>
+                        <span className="hidden xl:inline">{tr('Hello', 'Halo')}, </span>
+                        <span className="hidden xl:inline">{userName.length > 12 ? userName.substring(0, 12) + '...' : userName}</span>
+                        <span className="xl:hidden">{userName.split(' ')[0]}</span>
                       </>
                     ) : (
                       userRole === 'admin' ? t('nav.dashboard') : t('nav.profile')
@@ -192,7 +223,7 @@ export default function Header() {
 
           {/* Mobile: keep the cart (and its item count) reachable in one tap
               instead of hiding it behind the menu */}
-          <div className="flex items-center gap-1 md:hidden">
+          <div className="flex items-center gap-1 lg:hidden">
             <CartButton />
             <button
               className="p-2 rounded-lg transition-all duration-300 hover:bg-white/10 hover:scale-110"
@@ -206,8 +237,8 @@ export default function Header() {
         </div>
 
         {/* Mobile Navigation with slide animation */}
-        <div className={`md:hidden overflow-hidden transition-all duration-300 ${
-          mobileMenuOpen ? 'max-h-[32rem] opacity-100 pb-4' : 'max-h-0 opacity-0'
+        <div className={`lg:hidden overflow-hidden transition-all duration-300 ${
+          mobileMenuOpen ? 'max-h-128 opacity-100 pb-4' : 'max-h-0 opacity-0'
         }`}>
           <div className="pt-4 space-y-2">
             <Link 
@@ -238,14 +269,7 @@ export default function Header() {
             >
               {t('nav.contact')}
             </Link>
-            <Link
-              href="/contact"
-              className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              {t('nav.contact')}
-            </Link>
-            
+
             {/* Mobile Language Switcher */}
             <button
               onClick={toggleLanguage}

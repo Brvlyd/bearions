@@ -1,6 +1,6 @@
 # Authentication System Setup
 
-Sistem autentikasi untuk Bearions telah dibuat dengan dukungan untuk **Admin** dan **User**.
+Sistem autentikasi untuk Bearion telah dibuat dengan dukungan untuk **Admin** dan **User**.
 
 ## 🚀 Setup Database
 
@@ -25,7 +25,7 @@ Jika Anda ingin membuat akun admin, jalankan SQL berikut di Supabase:
 -- Insert admin ke auth.users dulu (lewat Supabase Auth UI atau signup biasa)
 -- Kemudian tambahkan ke table admins:
 INSERT INTO admins (id, email, role, full_name)
-VALUES ('USER_ID_FROM_AUTH', 'admin@bearions.com', 'admin', 'Admin Name');
+VALUES ('USER_ID_FROM_AUTH', 'admin@bearion.com', 'admin', 'Admin Name');
 ```
 
 Atau gunakan Supabase Dashboard:

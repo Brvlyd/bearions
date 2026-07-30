@@ -38,6 +38,21 @@ export const DEFAULT_PAYMENT_METHODS: PaymentMethodConfig[] = [
     created_at: new Date(0).toISOString(),
     updated_at: new Date(0).toISOString(),
   },
+  {
+    id: 'default-paypal',
+    code: 'paypal',
+    display_name: 'PayPal',
+    description: 'Pay securely with PayPal. Amount is converted from IDR to USD at checkout.',
+    instructions: 'Klik tombol PayPal di bawah untuk menyelesaikan pembayaran melalui akun PayPal Anda.',
+    provider_name: 'PayPal',
+    account_name: null,
+    account_number: null,
+    requires_proof: false,
+    is_active: true,
+    sort_order: 3,
+    created_at: new Date(0).toISOString(),
+    updated_at: new Date(0).toISOString(),
+  },
 ]
 
 export const parsePaymentMethodError = (error: unknown, unknownErrorText = 'Unknown error') => {

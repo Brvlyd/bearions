@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS about_us_content (
   id INTEGER PRIMARY KEY,
   title TEXT NOT NULL DEFAULT 'About Us',
-  headline TEXT NOT NULL DEFAULT 'Bearions builds everyday essentials with practical quality and honest pricing.',
+  headline TEXT NOT NULL DEFAULT 'Bearion builds everyday essentials with practical quality and honest pricing.',
   content_blocks JSONB NOT NULL DEFAULT '[{"id":"default-text","type":"text","text":"We focus on useful products, consistent service, and a smooth shopping experience."}]'::jsonb,
   background_image_url TEXT,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -18,13 +18,13 @@ ALTER TABLE about_us_content
 
 ALTER TABLE about_us_content
   ALTER COLUMN title SET DEFAULT 'About Us',
-  ALTER COLUMN headline SET DEFAULT 'Bearions builds everyday essentials with practical quality and honest pricing.',
+  ALTER COLUMN headline SET DEFAULT 'Bearion builds everyday essentials with practical quality and honest pricing.',
   ALTER COLUMN content_blocks SET DEFAULT '[{"id":"default-text","type":"text","text":"We focus on useful products, consistent service, and a smooth shopping experience."}]'::jsonb;
 
 UPDATE about_us_content
 SET
   title = COALESCE(title, 'About Us'),
-  headline = COALESCE(headline, 'Bearions builds everyday essentials with practical quality and honest pricing.'),
+  headline = COALESCE(headline, 'Bearion builds everyday essentials with practical quality and honest pricing.'),
   content_blocks = COALESCE(
     content_blocks,
     '[{"id":"default-text","type":"text","text":"We focus on useful products, consistent service, and a smooth shopping experience."}]'::jsonb
@@ -40,7 +40,7 @@ INSERT INTO about_us_content (id, title, headline, content_blocks)
 VALUES (
   1,
   'About Us',
-  'Bearions builds everyday essentials with practical quality and honest pricing.',
+  'Bearion builds everyday essentials with practical quality and honest pricing.',
   '[{"id":"default-text","type":"text","text":"We focus on useful products, consistent service, and a smooth shopping experience."}]'::jsonb
 )
 ON CONFLICT (id) DO UPDATE

@@ -1,6 +1,6 @@
-# 📦 DEPLOYMENT GUIDE - BEARIONS
+# 📦 DEPLOYMENT GUIDE - BEARION
 
-Website Bearions siap untuk di-deploy! Berikut panduan deployment ke berbagai platform.
+Website Bearion siap untuk di-deploy! Berikut panduan deployment ke berbagai platform.
 
 ---
 
@@ -13,7 +13,7 @@ Vercel adalah platform terbaik untuk Next.js apps dan dibuat oleh creator Next.j
 1. **Push ke GitHub**
    ```bash
    git add .
-   git commit -m "Initial Bearions website"
+   git commit -m "Initial Bearion website"
    git push origin main
    ```
 
@@ -21,7 +21,7 @@ Vercel adalah platform terbaik untuk Next.js apps dan dibuat oleh creator Next.j
    - Kunjungi [vercel.com](https://vercel.com)
    - Sign up/Login dengan GitHub
    - Click "Add New Project"
-   - Import repository Bearions
+   - Import repository Bearion
    - Click "Import"
 
 3. **Configure Environment Variables**
@@ -148,13 +148,13 @@ CMD ["node", "server.js"]
 
 ```bash
 # Build
-docker build -t bearions .
+docker build -t bearion .
 
 # Run
 docker run -p 3000:3000 \
   -e NEXT_PUBLIC_SUPABASE_URL=your-url \
   -e NEXT_PUBLIC_SUPABASE_ANON_KEY=your-key \
-  bearions
+  bearion
 ```
 
 ---
@@ -186,7 +186,7 @@ sudo npm install -g pm2
 
 # Clone repo
 git clone your-repo
-cd bearions
+cd bearion
 
 # Install dependencies
 npm install
@@ -195,7 +195,7 @@ npm install
 npm run build
 
 # Start with PM2
-pm2 start npm --name bearions -- start
+pm2 start npm --name bearion -- start
 
 # Save PM2 config
 pm2 save
@@ -245,7 +245,7 @@ pm2 startup
 ### Vercel
 
 1. Go to Project Settings → Domains
-2. Add your domain: `bearions.com`
+2. Add your domain: `bearion.com`
 3. Update DNS records:
    ```
    Type: A
@@ -441,7 +441,7 @@ After successful deployment:
 
 ---
 
-**Your Bearions website is now LIVE! 🎉**
+**Your Bearion website is now LIVE! 🎉**
 
 Production URL: `https://your-domain.vercel.app`
 Admin Panel: `https://your-domain.vercel.app/admin/login`

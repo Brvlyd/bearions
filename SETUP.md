@@ -1,4 +1,4 @@
-# 📋 SETUP INSTRUCTIONS - BEARIONS
+# 📋 SETUP INSTRUCTIONS - BEARION
 
 ## Langkah 1: Install Dependencies ✅
 
@@ -12,7 +12,7 @@ Sudah selesai! Dependencies sudah terinstall.
 2. Sign up / Login
 3. Klik "New Project"
 4. Isi:
-   - **Project Name**: bearions
+   - **Project Name**: bearion
    - **Database Password**: Buat password yang kuat (SIMPAN!)
    - **Region**: Pilih yang terdekat
 5. Tunggu project selesai dibuat (~2 menit)
@@ -55,7 +55,7 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 2. Klik **Users** tab
 3. Klik **Add user** → **Create new user**
 4. Isi:
-   - **Email**: admin@bearions.com (atau email pilihan Anda)
+   - **Email**: admin@bearion.com (atau email pilihan Anda)
    - **Password**: Buat password yang kuat
    - **Auto Confirm User**: ✅ Centang ini
 5. Klik **Create user**
@@ -68,7 +68,7 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ```sql
 INSERT INTO admins (id, email) 
-VALUES ('PASTE-USER-ID-DISINI', 'admin@bearions.com');
+VALUES ('PASTE-USER-ID-DISINI', 'admin@bearion.com');
 ```
 
 Ganti `PASTE-USER-ID-DISINI` dengan User ID yang Anda copy di step 4.1
@@ -101,7 +101,7 @@ Buka browser dan kunjungi:
 
 ## 🎉 Selesai!
 
-Website Bearions Anda sudah siap digunakan!
+Website Bearion Anda sudah siap digunakan!
 
 ### Fitur yang Tersedia:
 

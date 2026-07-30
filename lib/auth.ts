@@ -238,10 +238,37 @@ export const authService = {
     }
   },
 
-  // Send password reset email
-  async sendPasswordResetEmail(email: string) {
+  // Send password reset email through our own Brevo template.
+  // Falls back to Supabase's built-in email when the API route is unavailable,
+  // so a missing Brevo/service-role key never leaves users unable to recover.
+  async sendPasswordResetEmail(email: string, language: 'en' | 'id' = 'id') {
+    const normalizedEmail = email.trim().toLowerCase()
+
     try {
-      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: normalizedEmail, language }),
+      })
+
+      if (response.ok) {
+        return await response.json()
+      }
+
+      // 400 (bad email) and 429 (rate limited) are meant for the user to read.
+      if (response.status !== 500) {
+        const body = await response.json().catch(() => ({}))
+        throw new Error(body.message || 'Failed to send reset password email.')
+      }
+
+      console.warn('Forgot-password API unavailable, falling back to Supabase email')
+    } catch (error) {
+      if (error instanceof Error && !error.message.includes('fetch')) throw error
+      console.warn('Forgot-password request failed, falling back to Supabase email:', error)
+    }
+
+    try {
+      const { data, error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
         redirectTo: buildResetPasswordRedirectUrl(),
       })
 

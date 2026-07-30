@@ -1,4 +1,4 @@
--- Database Schema untuk Bearions
+-- Database Schema untuk Bearion
 -- Jalankan SQL ini di Supabase SQL Editor
 
 -- Table untuk products

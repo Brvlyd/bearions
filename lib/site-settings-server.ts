@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { SiteSettings } from '@/lib/supabase'
 import { DEFAULT_SITE_SETTINGS } from '@/lib/site-settings'
@@ -22,7 +23,11 @@ const createAnonClient = () => {
   })
 }
 
-export const getSiteSettingsForMetadata = async (): Promise<SiteSettings> => {
+/**
+ * Server-side settings read, shared by `generateMetadata` and the layout's
+ * SiteSettingsProvider seed. `cache` keeps it to a single query per request.
+ */
+export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
   try {
     const { data, error } = await createAnonClient()
       .from('site_settings')
@@ -41,9 +46,11 @@ export const getSiteSettingsForMetadata = async (): Promise<SiteSettings> => {
         typeof data.favicon_url === 'string' && data.favicon_url.trim()
           ? data.favicon_url.trim()
           : null,
+      logo_url:
+        typeof data.logo_url === 'string' && data.logo_url.trim() ? data.logo_url.trim() : null,
     }
   } catch {
     // Settings table not provisioned yet, or Supabase unreachable at build time.
     return DEFAULT_SITE_SETTINGS
   }
-}
+})

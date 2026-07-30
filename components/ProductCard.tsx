@@ -6,13 +6,17 @@ import { useLanguage } from '@/lib/i18n'
 import { useState, useEffect } from 'react'
 import { productService } from '@/lib/products'
 import { getImageUrl } from '@/lib/image-utils'
+import { formatProductPrice } from '@/lib/price'
 import SafeImage from './SafeImage'
 
 interface ProductCardProps {
   product: Product
+  /** Pre-fetched images from a batched parent query. When provided the card
+   *  skips its own request, which is what keeps grid views off spinners. */
+  images?: string[]
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product, images: providedImages }: ProductCardProps) {
   const { t, language } = useLanguage()
   
   const getProductName = () => {
@@ -28,18 +32,27 @@ export default function ProductCard({ product }: ProductCardProps) {
     }
     return product.description
   }
-  const [images, setImages] = useState<string[]>([])
-  const [loading, setLoading] = useState(true)
+  const hasProvidedImages = providedImages !== undefined
+  const [images, setImages] = useState<string[]>(
+    hasProvidedImages ? providedImages : []
+  )
+  const [loading, setLoading] = useState(!hasProvidedImages)
 
   useEffect(() => {
+    if (hasProvidedImages) {
+      setImages(providedImages)
+      return
+    }
     loadImages()
-  }, [product.id])
+  }, [product.id, hasProvidedImages, providedImages])
 
   const loadImages = async () => {
     try {
       const productImages = await productService.getProductImages(product.id)
-      const imageUrls = productImages.map((img: any) => img.image_url)
-      
+      const imageUrls = (productImages || []).map(
+        (img: { image_url: string }) => img.image_url
+      )
+
       // If no images in product_images table, use main image_url
       if (imageUrls.length > 0) {
         setImages(imageUrls)
@@ -55,14 +68,6 @@ export default function ProductCard({ product }: ProductCardProps) {
     } finally {
       setLoading(false)
     }
-  }
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(price)
   }
 
   return (
@@ -91,7 +96,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         <h3 className="font-semibold text-lg mb-1 group-hover:text-gray-600 transition text-black">
           {getProductName()}
         </h3>
-        <p className="text-black font-bold">{formatPrice(product.price)}</p>
+        <p className="text-black font-bold">{formatProductPrice(product, language)}</p>
         <p className="text-sm text-gray-500 mt-1">{t('product.stock')}: {product.stock}</p>
       </div>
     </Link>

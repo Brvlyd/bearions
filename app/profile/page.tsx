@@ -9,6 +9,8 @@ import { orderService } from '@/lib/orders'
 import { shippingService } from '@/lib/shipping'
 import type { Order, ShippingAddress } from '@/lib/supabase'
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
+import Pagination from '@/components/Pagination'
+import { usePagination } from '@/lib/hooks/usePagination'
 import {
   ArrowRight,
   Check,
@@ -60,9 +62,12 @@ const EMPTY_ADDRESS_FORM: AddressFormState = {
   is_default: false,
 }
 
+const ADDRESSES_PER_PAGE = 4
+const ORDERS_PER_PAGE = 6
+
 export default function UserProfilePage() {
   const router = useRouter()
-  const { t, tr } = useLanguage()
+  const { t, tr, language } = useLanguage()
 
   const [loading, setLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -87,6 +92,9 @@ export default function UserProfilePage() {
   // Delete address modal state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [addressToDelete, setAddressToDelete] = useState<ShippingAddress | null>(null)
+
+  const addressPagination = usePagination(addresses, ADDRESSES_PER_PAGE)
+  const orderPagination = usePagination(orders, ORDERS_PER_PAGE)
 
   useEffect(() => {
     void loadProfilePageData()
@@ -331,7 +339,7 @@ export default function UserProfilePage() {
       setSendingReset(true)
       setError('')
       setMessage('')
-      await authService.sendPasswordResetEmail(profile.email)
+      await authService.sendPasswordResetEmail(profile.email, language)
       setMessage(
         tr(
           'Password reset link has been sent to your email.',
@@ -561,8 +569,8 @@ export default function UserProfilePage() {
                   {tr('No saved addresses yet.', 'Belum ada alamat tersimpan.')}
                 </p>
               ) : (
-                <div className="space-y-3">
-                  {addresses.map((address) => (
+                <div id="saved-addresses" className="space-y-3">
+                  {addressPagination.pageItems.map((address) => (
                     <div key={address.id} className="rounded-lg border border-gray-200 p-4 hover:border-black transition">
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -624,6 +632,17 @@ export default function UserProfilePage() {
                       </div>
                     </div>
                   ))}
+
+                  <Pagination
+                    page={addressPagination.page}
+                    totalPages={addressPagination.totalPages}
+                    onPageChange={addressPagination.setPage}
+                    firstItemIndex={addressPagination.firstItemIndex}
+                    lastItemIndex={addressPagination.lastItemIndex}
+                    totalItems={addressPagination.totalItems}
+                    itemLabel={{ en: 'addresses', id: 'alamat' }}
+                    scrollTargetId="saved-addresses"
+                  />
                 </div>
               )}
             </section>
@@ -728,7 +747,7 @@ export default function UserProfilePage() {
               <div className="flex items-center gap-2 mb-4">
                 <ClipboardList className="w-5 h-5 text-black" />
                 <h2 className="text-lg font-semibold text-black">
-                  {tr('Recent Order History', 'Riwayat Pesanan Terbaru')}
+                  {tr('Order History', 'Riwayat Pesanan')}
                 </h2>
               </div>
 
@@ -737,8 +756,8 @@ export default function UserProfilePage() {
                   {tr('You do not have any orders yet.', 'Anda belum memiliki pesanan.')}
                 </p>
               ) : (
-                <div className="space-y-3">
-                  {orders.slice(0, 6).map((order) => (
+                <div id="order-history" className="space-y-3">
+                  {orderPagination.pageItems.map((order) => (
                     <Link
                       key={order.id}
                       href={`/orders/${order.order_number}`}
@@ -765,6 +784,17 @@ export default function UserProfilePage() {
                       </p>
                     </Link>
                   ))}
+
+                  <Pagination
+                    page={orderPagination.page}
+                    totalPages={orderPagination.totalPages}
+                    onPageChange={orderPagination.setPage}
+                    firstItemIndex={orderPagination.firstItemIndex}
+                    lastItemIndex={orderPagination.lastItemIndex}
+                    totalItems={orderPagination.totalItems}
+                    itemLabel={{ en: 'orders', id: 'pesanan' }}
+                    scrollTargetId="order-history"
+                  />
                 </div>
               )}
 

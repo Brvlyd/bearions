@@ -1,6 +1,6 @@
 # Responsive Design Implementation - Complete ✅
 
-Semua halaman website Bearions sekarang sudah **fully responsive** untuk semua ukuran device (mobile, tablet, desktop).
+Semua halaman website Bearion sekarang sudah **fully responsive** untuk semua ukuran device (mobile, tablet, desktop).
 
 ## 📱 Komponen yang Sudah Responsive
 

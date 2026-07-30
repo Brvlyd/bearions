@@ -204,7 +204,7 @@ export default function OrderDetailPage() {
 
     // Check content type
     const contentType = response.headers.get('content-type')
-    let result: any = {}
+    let result: { message?: string; error?: string } = {}
 
     if (contentType?.includes('application/json')) {
       result = await response.json().catch(() => ({}))

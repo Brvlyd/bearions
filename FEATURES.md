@@ -1,4 +1,4 @@
-# 🎯 FITUR LENGKAP BEARIONS
+# 🎯 FITUR LENGKAP BEARION
 
 ## 👥 User Features (Tanpa Login)
 
@@ -45,7 +45,7 @@
 - 🛒 Add to Cart button (disabled jika out of stock)
 
 ### 🌐 Navigation
-- Header dengan logo Bearions
+- Header dengan logo Bearion
 - Menu:
   - Catalog
   - Community

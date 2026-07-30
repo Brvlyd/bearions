@@ -2,7 +2,7 @@
 -- Payment Proof Verification System
 -- =====================================================
 -- This migration adds payment proof verification workflow
--- to the Bearions payment system.
+-- to the Bearion payment system.
 --
 -- Features:
 -- - Track proof verification status (unverified, pending, verified, rejected)

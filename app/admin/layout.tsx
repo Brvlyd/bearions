@@ -13,28 +13,36 @@ export default function AdminLayout({
   const router = useRouter()
   const pathname = usePathname()
   const { tr } = useLanguage()
-  const [loading, setLoading] = useState(pathname !== '/admin/login')
-
-  useEffect(() => {
-    if (pathname === '/admin/login') return
-    checkAuth()
-  }, [pathname])
+  // The login page is public, so it is never "verifying". Deriving this from
+  // the route instead of resetting a flag in an effect is what stops the
+  // spinner sticking forever when the guard redirects us here.
+  const isLoginRoute = pathname === '/admin/login'
+  const [verifying, setVerifying] = useState(true)
+  const loading = !isLoginRoute && verifying
 
   const checkAuth = async () => {
     try {
       const isAdmin = await authService.isAdmin()
-      
+
       if (!isAdmin) {
         router.push('/admin/login')
         return
       }
-      
-      setLoading(false)
+
+      setVerifying(false)
     } catch (error) {
       console.error('Auth check failed:', error)
       router.push('/admin/login')
     }
   }
+
+  useEffect(() => {
+    if (isLoginRoute) return
+    // setVerifying only runs after an await inside checkAuth, so nothing is
+    // set synchronously here; the compiler cannot see past the async boundary.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    checkAuth()
+  }, [pathname])
 
   if (loading) {
     return (

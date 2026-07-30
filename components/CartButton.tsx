@@ -11,6 +11,15 @@ export default function CartButton() {
   const [userId, setUserId] = useState<string | null>(null)
   const [isAnimating, setIsAnimating] = useState(false)
 
+  const loadCartCount = async (uid: string) => {
+    try {
+      const count = await cartService.getCartCount(uid)
+      setCartCount(count)
+    } catch (error) {
+      console.error('Error loading cart count:', error)
+    }
+  }
+
   useEffect(() => {
     // Get current user
     supabase.auth.getUser().then(({ data }) => {
@@ -35,15 +44,6 @@ export default function CartButton() {
 
     return () => subscription.unsubscribe()
   }, [])
-
-  const loadCartCount = async (uid: string) => {
-    try {
-      const count = await cartService.getCartCount(uid)
-      setCartCount(count)
-    } catch (error) {
-      console.error('Error loading cart count:', error)
-    }
-  }
 
   const handleClick = () => {
     setIsAnimating(true)

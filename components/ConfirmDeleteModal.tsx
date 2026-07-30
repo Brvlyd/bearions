@@ -30,11 +30,13 @@ export default function ConfirmDeleteModal({
   const { tr } = useLanguage()
   const [isVisible, setIsVisible] = useState(false)
 
-  useEffect(() => {
-    if (isOpen) {
-      setIsVisible(true)
-    }
-  }, [isOpen])
+  // Adjusting state during render (React's documented pattern for deriving
+  // state from props) rather than in an effect: it avoids the extra commit
+  // that made the modal flash before its open transition ran. isVisible stays
+  // true briefly after isOpen goes false so the exit animation can play.
+  if (isOpen && !isVisible) {
+    setIsVisible(true)
+  }
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {

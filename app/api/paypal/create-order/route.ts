@@ -1,22 +1,117 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+import { createPayPalOrder, convertIdrToUsd, getIdrPerUsdRate } from '@/lib/paypal'
 
+const getErrorMessage = (error: unknown) => (error instanceof Error ? error.message : 'Unknown error')
+
+const getSupabaseSessionClient = (accessToken: string) => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+}
+
+const getSupabaseServiceClient = () => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+}
+
+// POST /api/paypal/create-order
+// Creates a live PayPal order for an existing internal order, converting IDR -> USD server-side.
+// The client only ever sends an orderNumber — amounts are always recomputed from the database.
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json().catch(() => ({}));
+    const authHeader = request.headers.get('authorization') || ''
+    const accessToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
 
-    return NextResponse.json({
-      ok: true,
-      message: 'PayPal create-order endpoint is ready.',
-      received: body,
-    });
+    if (!accessToken) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json().catch(() => ({}))
+    const orderNumber = typeof body.orderNumber === 'string' ? body.orderNumber.trim() : ''
+
+    if (!orderNumber) {
+      return NextResponse.json({ message: 'Missing orderNumber' }, { status: 400 })
+    }
+
+    const sessionClient = getSupabaseSessionClient(accessToken)
+    const { data: userData, error: userError } = await sessionClient.auth.getUser()
+
+    if (userError || !userData.user) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    }
+
+    // RLS scopes this SELECT to the caller's own orders; the explicit user_id check below is defense in depth.
+    const { data: order, error: orderError } = await sessionClient
+      .from('orders')
+      .select('id, order_number, total, user_id, payment_status')
+      .eq('order_number', orderNumber)
+      .maybeSingle()
+
+    if (orderError || !order || order.user_id !== userData.user.id) {
+      return NextResponse.json({ message: 'Order not found' }, { status: 404 })
+    }
+
+    if (order.payment_status === 'paid') {
+      return NextResponse.json({ message: 'Order is already paid' }, { status: 409 })
+    }
+
+    const serviceClient = getSupabaseServiceClient()
+
+    const { data: payment, error: paymentError } = await serviceClient
+      .from('payments')
+      .select('id, status')
+      .eq('order_id', order.id)
+      .eq('payment_gateway', 'paypal')
+      .maybeSingle()
+
+    if (paymentError || !payment) {
+      return NextResponse.json(
+        { message: 'PayPal payment record not found for this order' },
+        { status: 404 }
+      )
+    }
+
+    if (payment.status === 'success') {
+      return NextResponse.json({ message: 'Payment already completed' }, { status: 409 })
+    }
+
+    const idrPerUsd = await getIdrPerUsdRate()
+    const usdAmount = convertIdrToUsd(order.total, idrPerUsd)
+
+    const { paypalOrderId } = await createPayPalOrder({
+      usdAmount,
+      orderNumber: order.order_number,
+    })
+
+    const { error: updateError } = await serviceClient
+      .from('payments')
+      .update({
+        transaction_id: paypalOrderId,
+        amount: Number(usdAmount),
+        currency: 'USD',
+        gateway_response: { idrPerUsd, idrAmount: order.total, stage: 'created' },
+      })
+      .eq('id', payment.id)
+
+    if (updateError) {
+      console.error('Failed to store PayPal order id on payment record:', updateError)
+    }
+
+    return NextResponse.json({ paypalOrderId, usdAmount }, { status: 200 })
   } catch (error) {
+    console.error('Error in PayPal create-order API:', error)
     return NextResponse.json(
-      {
-        ok: false,
-        message: 'Failed to process PayPal create-order request.',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { message: 'Failed to create PayPal order', error: getErrorMessage(error) },
       { status: 500 }
-    );
+    )
   }
 }

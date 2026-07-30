@@ -1,7 +1,7 @@
 # Image Management & Production Setup Guide
 
 ## 🚀 Overview
-Panduan lengkap untuk setup image management di Bearions untuk production deployment.
+Panduan lengkap untuk setup image management di Bearion untuk production deployment.
 
 ## 📁 Supabase Storage Setup
 

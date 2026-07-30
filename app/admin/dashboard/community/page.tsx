@@ -3,8 +3,11 @@
 import { useEffect, useState } from 'react'
 import { supabase, CommunityPost } from '@/lib/supabase'
 import { getImageUrl } from '@/lib/image-utils'
-import { Upload, Image as ImageIcon, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
+import { Upload, Image as ImageIcon, Trash2, ArrowUp, ArrowDown, Crop } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n'
+import ImageEditorModal from '@/components/ImageEditorModal'
+import Pagination from '@/components/Pagination'
+import { usePagination } from '@/lib/hooks/usePagination'
 import {
   DEFAULT_COMMUNITY_LAYOUT_SIZE,
   getCommunityTileClassName,
@@ -25,6 +28,21 @@ type Message = {
 }
 
 const MAX_UPLOAD_DIMENSION = 4096
+const POSTS_PER_PAGE = 16
+
+// Each tile shape crops to a fixed ratio in the public grid, so the editor
+// starts from the ratio the chosen layout will actually render at.
+const LAYOUT_ASPECT: Record<CommunityLayoutSize, number> = { s: 1, m: 0.5, w: 2, l: 1 }
+const LAYOUT_EXPORT_WIDTH: Record<CommunityLayoutSize, number> = { s: 1080, m: 1080, w: 2160, l: 2160 }
+
+type EditorTarget = {
+  /** 'new' frames the post being composed, 'existing' re-frames a published one. */
+  kind: 'new' | 'existing'
+  postId?: string
+  layoutSize: CommunityLayoutSize
+  file: File | null
+  sourceUrl: string | null
+}
 
 const parseErrorInfo = (error: unknown, unknownErrorText = 'Unknown error') => {
   const err = (error || {}) as SupabaseErrorLike
@@ -67,6 +85,11 @@ export default function AdminCommunityGalleryPage() {
   const [caption, setCaption] = useState('')
   const [schemaMissing, setSchemaMissing] = useState(false)
   const [message, setMessage] = useState<Message | null>(null)
+  const [editorTarget, setEditorTarget] = useState<EditorTarget | null>(null)
+  const [selectedPreview, setSelectedPreview] = useState<string | null>(null)
+
+  const { page, setPage, totalPages, pageItems, firstItemIndex, lastItemIndex, totalItems } =
+    usePagination(posts, POSTS_PER_PAGE)
 
   const text = {
     unknownError: language === 'en' ? 'Unknown error' : 'Error tidak diketahui',
@@ -134,11 +157,35 @@ export default function AdminCommunityGalleryPage() {
     noPostsYet: language === 'en' ? 'No community posts yet.' : 'Belum ada posting komunitas.',
     noCaption: language === 'en' ? 'No caption' : 'Tanpa caption',
     deletePostAria: language === 'en' ? 'Delete post' : 'Hapus posting',
+    adjustSize: language === 'en' ? 'Adjust size' : 'Atur ukuran',
+    adjustPostAria: language === 'en' ? 'Adjust post image size' : 'Atur ukuran gambar posting',
+    editorTitle: language === 'en' ? 'Adjust post image' : 'Sesuaikan gambar posting',
+    editorDescription:
+      language === 'en'
+        ? 'Gallery tiles crop to fill, so frame the subject here before it goes public.'
+        : 'Tile galeri dipotong agar penuh, jadi atur framing di sini sebelum tayang.',
+    postImageUpdated: language === 'en' ? 'Post image updated' : 'Gambar posting diperbarui',
+    updatePostImageFailed:
+      language === 'en' ? 'Failed to update post image' : 'Gagal memperbarui gambar posting',
+    selectedPreviewLabel: language === 'en' ? 'Ready to post' : 'Siap diposting',
   }
 
   useEffect(() => {
     loadPosts()
   }, [])
+
+  // Preview the framed file exactly as it will be uploaded.
+  useEffect(() => {
+    if (!selectedFile) {
+      setSelectedPreview(null)
+      return
+    }
+
+    const objectUrl = URL.createObjectURL(selectedFile)
+    setSelectedPreview(objectUrl)
+
+    return () => URL.revokeObjectURL(objectUrl)
+  }, [selectedFile])
 
   const loadPosts = async () => {
     try {
@@ -256,8 +303,66 @@ export default function AdminCommunityGalleryPage() {
       return
     }
 
+    // Frame it before it becomes the post image.
     setMessage(null)
-    setSelectedFile(file)
+    setEditorTarget({ kind: 'new', layoutSize: selectedLayoutSize, file, sourceUrl: null })
+    event.target.value = ''
+  }
+
+  /** Applies the framed result: staged for a new post, uploaded for an existing one. */
+  const handleEditorApply = async (editedFile: File) => {
+    const target = editorTarget
+    if (!target) return
+
+    if (target.kind === 'new') {
+      setSelectedFile(editedFile)
+      try {
+        setSelectedDimensions(await getImageDimensions(editedFile))
+      } catch {
+        setSelectedDimensions(null)
+      }
+      setEditorTarget(null)
+      return
+    }
+
+    if (!target.postId) return
+
+    try {
+      setUploading(true)
+      setMessage(null)
+
+      const fileExt = editedFile.name.split('.').pop()
+      const filePath = `community/community-${Date.now()}.${fileExt}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, editedFile)
+
+      if (uploadError) throw uploadError
+
+      const { data: publicUrlData } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath)
+
+      const { error: updateError } = await supabase
+        .from('community_posts')
+        .update({ image_url: publicUrlData.publicUrl, updated_at: new Date().toISOString() })
+        .eq('id', target.postId)
+
+      if (updateError) throw updateError
+
+      setPosts((prev) => prev.map((post) => (
+        post.id === target.postId ? { ...post, image_url: publicUrlData.publicUrl } : post
+      )))
+      setMessage({ type: 'success', text: text.postImageUpdated })
+    } catch (error) {
+      const parsed = parseErrorInfo(error, text.unknownError)
+      console.error('Error updating post image:', parsed)
+      setMessage({ type: 'error', text: `${text.updatePostImageFailed}: ${parsed.message} (${parsed.code})` })
+    } finally {
+      setUploading(false)
+      setEditorTarget(null)
+    }
   }
 
   const handleUploadPost = async () => {
@@ -443,6 +548,34 @@ export default function AdminCommunityGalleryPage() {
                 {text.selectedDimensionLabel}: {selectedDimensions.width} x {selectedDimensions.height}px
               </p>
             )}
+
+            {selectedPreview && selectedFile && (
+              <div className="mt-3 flex items-start gap-3">
+                <div className="h-24 w-24 shrink-0 rounded-lg border border-gray-200 bg-gray-50 overflow-hidden">
+                  <img
+                    src={selectedPreview}
+                    alt={text.selectedPreviewLabel}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setEditorTarget({
+                      kind: 'new',
+                      layoutSize: selectedLayoutSize,
+                      file: selectedFile,
+                      sourceUrl: null,
+                    })
+                  }
+                  disabled={uploading || schemaMissing}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-xs text-black hover:bg-gray-50 disabled:opacity-50"
+                >
+                  <Crop className="w-3.5 h-3.5" />
+                  {text.adjustSize}
+                </button>
+              </div>
+            )}
           </div>
 
           <div>
@@ -505,8 +638,11 @@ export default function AdminCommunityGalleryPage() {
           <p className="text-gray-600">{text.noPostsYet}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 auto-rows-[120px] md:auto-rows-[140px] grid-flow-dense gap-4">
-          {posts.map((post, index) => (
+        <div id="community-posts" className="grid grid-cols-2 md:grid-cols-4 auto-rows-[120px] md:auto-rows-[140px] grid-flow-dense gap-4">
+          {pageItems.map((post, pageIndex) => {
+            // Reordering compares against the whole list, not just this page.
+            const index = firstItemIndex - 1 + pageIndex
+            return (
             <div
               key={post.id}
               className={`relative bg-white border border-gray-200 rounded-lg overflow-hidden group shadow-sm transition-all duration-300 hover:-translate-y-1 hover:scale-[1.01] hover:shadow-lg ${getCommunityTileClassName(post.layout_size)}`}
@@ -532,7 +668,7 @@ export default function AdminCommunityGalleryPage() {
                       type="button"
                       onClick={() => handleMovePost(post.id, 'up')}
                       disabled={index === 0}
-                      className="h-6 w-6 inline-flex items-center justify-center rounded bg-white/85 text-black disabled:opacity-40"
+                      className="h-9 w-9 inline-flex items-center justify-center rounded bg-white/85 text-black disabled:opacity-40"
                       aria-label={text.moveUp}
                     >
                       <ArrowUp className="w-3.5 h-3.5" />
@@ -541,7 +677,7 @@ export default function AdminCommunityGalleryPage() {
                       type="button"
                       onClick={() => handleMovePost(post.id, 'down')}
                       disabled={index === posts.length - 1}
-                      className="h-6 w-6 inline-flex items-center justify-center rounded bg-white/85 text-black disabled:opacity-40"
+                      className="h-9 w-9 inline-flex items-center justify-center rounded bg-white/85 text-black disabled:opacity-40"
                       aria-label={text.moveDown}
                     >
                       <ArrowDown className="w-3.5 h-3.5" />
@@ -552,7 +688,7 @@ export default function AdminCommunityGalleryPage() {
                   <select
                     value={normalizeCommunityLayoutSize(post.layout_size)}
                     onChange={(event) => handleUpdatePostLayout(post.id, event.target.value as CommunityLayoutSize)}
-                    className="h-7 rounded px-2 text-xs text-black bg-white/90"
+                    className="h-9 rounded px-2 text-xs text-black bg-white/90"
                   >
                     <option value="s">{text.layoutSmall}</option>
                     <option value="m">{text.layoutPortrait}</option>
@@ -561,8 +697,25 @@ export default function AdminCommunityGalleryPage() {
                   </select>
                   <button
                     type="button"
+                    onClick={() =>
+                      setEditorTarget({
+                        kind: 'existing',
+                        postId: post.id,
+                        layoutSize: normalizeCommunityLayoutSize(post.layout_size),
+                        file: null,
+                        sourceUrl: getImageUrl(post.image_url),
+                      })
+                    }
+                    className="h-9 w-9 inline-flex items-center justify-center rounded bg-white/85 text-black"
+                    aria-label={text.adjustPostAria}
+                    title={text.adjustSize}
+                  >
+                    <Crop className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => handleDeletePost(post.id)}
-                    className="h-7 w-7 inline-flex items-center justify-center rounded bg-red-500/90 text-white"
+                    className="h-9 w-9 inline-flex items-center justify-center rounded bg-red-500/90 text-white"
                     aria-label={text.deletePostAria}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -570,9 +723,42 @@ export default function AdminCommunityGalleryPage() {
                 </div>
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
+
+      {!loading && posts.length > 0 && (
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          firstItemIndex={firstItemIndex}
+          lastItemIndex={lastItemIndex}
+          totalItems={totalItems}
+          itemLabel={{ en: 'posts', id: 'post' }}
+          scrollTargetId="community-posts"
+        />
+      )}
+
+      <ImageEditorModal
+        open={!!editorTarget}
+        file={editorTarget?.file || null}
+        sourceUrl={editorTarget?.sourceUrl || null}
+        defaultFit="cover"
+        aspectLock={editorTarget ? LAYOUT_ASPECT[editorTarget.layoutSize] : null}
+        recommendedWidth={editorTarget ? LAYOUT_EXPORT_WIDTH[editorTarget.layoutSize] : undefined}
+        recommendedHeight={
+          editorTarget
+            ? Math.round(LAYOUT_EXPORT_WIDTH[editorTarget.layoutSize] / LAYOUT_ASPECT[editorTarget.layoutSize])
+            : undefined
+        }
+        maxOutputDimension={MAX_UPLOAD_DIMENSION}
+        title={text.editorTitle}
+        description={text.editorDescription}
+        onCancel={() => setEditorTarget(null)}
+        onApply={handleEditorApply}
+      />
     </div>
   )
 }

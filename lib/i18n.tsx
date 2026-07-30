@@ -53,7 +53,7 @@ const translations: Translations = {
   
   // Register Page
   'register.title': { en: 'Create Account', id: 'Buat Akun' },
-  'register.subtitle': { en: 'Join Bearions today', id: 'Bergabung dengan Bearions' },
+  'register.subtitle': { en: 'Join Bearion today', id: 'Bergabung dengan Bearion' },
   'register.fullName': { en: 'Full Name', id: 'Nama Lengkap' },
   'register.fullNamePlaceholder': { en: 'John Doe', id: 'Budi Santoso' },
   'register.phone': { en: 'Phone Number', id: 'Nomor Telepon' },
@@ -193,7 +193,7 @@ const translations: Translations = {
   'common.optional': { en: 'Optional', id: 'Opsional' },
   
   // Home Page
-  'home.hero.title': { en: 'Welcome to Bearions', id: 'Selamat Datang di Bearions' },
+  'home.hero.title': { en: 'Welcome to Bearion', id: 'Selamat Datang di Bearion' },
   'home.hero.subtitle': { en: 'Your One-Stop Shop for Everything', id: 'Toko Serba Ada untuk Segala Kebutuhan' },
   'home.hero.cta': { en: 'Shop Now', id: 'Belanja Sekarang' },
   'home.hero.learnMore': { en: 'Learn More', id: 'Pelajari Lebih Lanjut' },
@@ -357,9 +357,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>('en')
 
   useEffect(() => {
-    // Load language from localStorage
+    // Deliberately read localStorage after mount, not during render: the server
+    // cannot know the stored language, so rendering it directly would make the
+    // client markup disagree with the server markup and break hydration. The
+    // resulting extra render is the cost of that correctness.
     const savedLang = localStorage.getItem('language') as Language
     if (savedLang && (savedLang === 'en' || savedLang === 'id')) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLanguageState(savedLang)
     }
   }, [])

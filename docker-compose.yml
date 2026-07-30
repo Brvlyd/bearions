@@ -9,8 +9,8 @@ services:
       args:
         NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-    image: bearions-web
-    container_name: bearions-web
+    image: bearion-web
+    container_name: bearion-web
     restart: unless-stopped
     env_file:
       - .env.local

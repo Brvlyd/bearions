@@ -6,7 +6,7 @@ ALTER TABLE about_us_content
 
 ALTER TABLE about_us_content
   ALTER COLUMN title SET DEFAULT 'About Us',
-  ALTER COLUMN headline SET DEFAULT 'Bearions builds everyday essentials with practical quality and honest pricing.',
+  ALTER COLUMN headline SET DEFAULT 'Bearion builds everyday essentials with practical quality and honest pricing.',
   ALTER COLUMN content_blocks SET DEFAULT '[{"id":"default-text","type":"text","text":"We focus on useful products, consistent service, and a smooth shopping experience."}]'::jsonb;
 
 DO $$
@@ -26,7 +26,7 @@ BEGIN
           headline,
           headline_en,
           headline_id,
-          ''Bearions builds everyday essentials with practical quality and honest pricing.''
+          ''Bearion builds everyday essentials with practical quality and honest pricing.''
         ),
         content_blocks = COALESCE(
           content_blocks,
@@ -44,7 +44,7 @@ BEGIN
     UPDATE about_us_content
     SET
       title = COALESCE(title, 'About Us'),
-      headline = COALESCE(headline, 'Bearions builds everyday essentials with practical quality and honest pricing.'),
+      headline = COALESCE(headline, 'Bearion builds everyday essentials with practical quality and honest pricing.'),
       content_blocks = COALESCE(
         content_blocks,
         '[{"id":"default-text","type":"text","text":"We focus on useful products, consistent service, and a smooth shopping experience."}]'::jsonb
@@ -58,7 +58,7 @@ INSERT INTO about_us_content (id, title, headline, content_blocks)
 VALUES (
   1,
   'About Us',
-  'Bearions builds everyday essentials with practical quality and honest pricing.',
+  'Bearion builds everyday essentials with practical quality and honest pricing.',
   '[{"id":"default-text","type":"text","text":"We focus on useful products, consistent service, and a smooth shopping experience."}]'::jsonb
 )
 ON CONFLICT (id) DO UPDATE

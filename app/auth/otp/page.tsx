@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { authService } from '@/lib/auth'
 import { useLanguage } from '@/lib/i18n'
+import { getErrorMessage } from '@/lib/errors'
 
 function OtpVerificationContent() {
   const router = useRouter()
@@ -58,10 +59,10 @@ function OtpVerificationContent() {
           : 'Email verifikasi sudah dikirim ulang. Cek inbox dan folder spam/junk Anda.'
       )
       setCooldown(45)
-    } catch (err: any) {
+    } catch (err) {
       console.error('Resend OTP error:', err)
       setError(
-        err?.message ||
+        getErrorMessage(err) ||
           (language === 'en' ? 'Failed to resend verification email.' : 'Gagal mengirim ulang email verifikasi.')
       )
     } finally {
@@ -116,7 +117,7 @@ function OtpVerificationContent() {
 
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
               <p>1. {language === 'en' ? 'Open your inbox (and spam folder).' : 'Buka inbox email Anda (termasuk folder spam/junk).'}</p>
-              <p>2. {language === 'en' ? 'Click the verification link from Bearions.' : 'Klik link verifikasi dari Bearions.'}</p>
+              <p>2. {language === 'en' ? 'Click the verification link from Bearion.' : 'Klik link verifikasi dari Bearion.'}</p>
               <p>3. {language === 'en' ? 'After verified, return and login.' : 'Setelah terverifikasi, kembali lalu login.'}</p>
             </div>
 

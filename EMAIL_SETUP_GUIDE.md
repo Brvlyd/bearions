@@ -51,7 +51,7 @@
 3. Ganti content dengan ini:
 
 ```html
-<h2>Selamat datang di Bearions! 🐻</h2>
+<h2>Selamat datang di Bearion! 🐻</h2>
 
 <p>Terima kasih sudah mendaftar. Klik tombol di bawah untuk mengaktifkan akun Anda:</p>
 
@@ -71,11 +71,11 @@
 
 <hr>
 <p style="color: #666; font-size: 12px;">
-  Jika Anda tidak mendaftar di Bearions, abaikan email ini.
+  Jika Anda tidak mendaftar di Bearion, abaikan email ini.
 </p>
 ```
 
-4. **Subject Line:** `Konfirmasi Email Anda - Bearions`
+4. **Subject Line:** `Konfirmasi Email Anda - Bearion`
 5. Klik **Save**
 
 ### C. Konfigurasi Redirect URL

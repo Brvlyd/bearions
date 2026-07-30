@@ -57,7 +57,7 @@ npm install @sendgrid/mail
 Create `.env.local`:
 ```
 SENDGRID_API_KEY=your_api_key_here
-SENDGRID_FROM_EMAIL=noreply@bearions.com
+SENDGRID_FROM_EMAIL=noreply@bearion.com
 ```
 
 Update `send-email.ts` to actually call SendGrid

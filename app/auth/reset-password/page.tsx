@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { authService } from '@/lib/auth'
 import { useLanguage } from '@/lib/i18n'
+import { getErrorMessage } from '@/lib/errors'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
@@ -85,10 +86,10 @@ export default function ResetPasswordPage() {
       setTimeout(() => {
         router.push('/login?reset=success')
       }, 1200)
-    } catch (err: any) {
+    } catch (err) {
       console.error('Reset password error:', err)
       setError(
-        err?.message ||
+        getErrorMessage(err) ||
           (language === 'en'
             ? 'Failed to update password. Please request a new reset link.'
             : 'Gagal mengubah password. Silakan minta link reset baru.')
@@ -111,8 +112,8 @@ export default function ResetPasswordPage() {
             </h1>
             <p className="text-gray-600 mt-2">
               {language === 'en'
-                ? 'Set your new Bearions account password.'
-                : 'Atur kata sandi baru untuk akun Bearions Anda.'}
+                ? 'Set your new Bearion account password.'
+                : 'Atur kata sandi baru untuk akun Bearion Anda.'}
             </p>
           </div>
 

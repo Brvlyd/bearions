@@ -5,7 +5,7 @@
 ### Buka Supabase Dashboard
 ```
 1. Login ke supabase.com
-2. Pilih project "bearions"
+2. Pilih project "bearion"
 3. Klik "SQL Editor" di sidebar
 4. Copy-paste SQL di bawah:
 ```
@@ -13,7 +13,7 @@
 ### SQL Fix (Copy seluruhnya):
 ```sql
 UPDATE products 
-SET image_url = 'https://placehold.co/600x600/e5e7eb/1f2937?text=Bearions+' || category
+SET image_url = 'https://placehold.co/600x600/e5e7eb/1f2937?text=Bearion+' || category
 WHERE image_url IS NULL 
    OR image_url LIKE '/images/%' 
    OR image_url LIKE '/public/%';

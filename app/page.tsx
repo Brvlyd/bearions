@@ -99,21 +99,25 @@ export default function Home() {
         })}
       </div>
 
-      {/* Welcome Section Overlay */}
-      {/* min-h (not h-full) because the parent no longer has a fixed height;
-          py-20 keeps the panel clear of the fixed 4rem header. */}
-      <div className="relative z-10 min-h-dvh flex items-center justify-center py-20">
-        <div className="text-center px-4 sm:px-6 lg:px-8 bg-black/75 rounded-3xl p-8 md:p-12 lg:p-16 max-w-3xl mx-4">
-          <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold mb-4 lg:mb-6 text-white drop-shadow-lg">
-            {t('home.hero.title')}
-          </h1>
-          <p className="text-lg md:text-xl lg:text-2xl mb-6 lg:mb-8 text-white drop-shadow-md">
-            {t('home.hero.subtitle')}
-          </p>
+      {/* CTA Overlay — the button is the only content on the hero, so it gets a
+          bobs on a loop and sits on a halo so it reads over any photo behind it. */}
+      {/* min-h (not h-full) because the parent no longer has a fixed height.
+          items-end + pb parks the button in the lower third; pt-20 still keeps
+          it clear of the fixed 4rem header on short viewports. */}
+      <div className="relative z-10 min-h-dvh flex items-end justify-center pt-20 pb-24 md:pb-32 lg:pb-40 px-4">
+        <div className="hero-cta-bob group relative">
+          {/* Soft dark halo: guarantees contrast on light photos. */}
+          <div className="hero-cta-halo pointer-events-none absolute -inset-8 rounded-[2rem] bg-black/40 blur-2xl transition-colors duration-300 group-hover:bg-black/60" />
+
+          {/* Matte sticker look: flat pastel fill, no sheen, and a solid offset
+              shadow the button sinks into when pressed. */}
           <Link
             href="/catalog"
-            className="inline-block bg-black/90 text-white px-6 py-3 lg:px-8 lg:py-4 rounded-lg font-semibold text-base lg:text-lg shadow-md transition-all duration-300 ease-out will-change-transform hover:bg-black hover:-translate-y-1 hover:scale-105 hover:shadow-2xl active:translate-y-0 active:scale-95 active:shadow-md"
+            className="relative inline-flex items-center gap-3 rounded-2xl bg-pink-200 px-10 py-5 lg:px-14 lg:py-6 text-xl lg:text-3xl font-extrabold text-rose-950 shadow-[0_7px_0_0_#f472b6] transition-all duration-200 ease-out will-change-transform hover:-translate-y-1 hover:rotate-2 hover:scale-105 hover:bg-pink-100 hover:shadow-[0_10px_0_0_#f472b6] active:translate-y-1.5 active:rotate-0 active:scale-100 active:shadow-[0_1px_0_0_#f472b6] active:duration-75 focus-visible:outline-hidden"
           >
+            <span aria-hidden="true" className="hero-cta-mascot inline-block">
+              🐻
+            </span>
             {t('home.hero.cta')}
           </Link>
         </div>

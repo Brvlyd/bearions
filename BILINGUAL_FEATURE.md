@@ -1,4 +1,4 @@
-# 🌐 Fitur Bilingual (Indonesia & English) - Bearions
+# 🌐 Fitur Bilingual (Indonesia & English) - Bearion
 
 ## ✅ Fitur yang Telah Diimplementasi
 
@@ -48,7 +48,7 @@ File: `lib/i18n.tsx` - translations object
 
 #### ✅ **Register Page** (Ready for implementation)
 - Create Account / Buat Akun
-- Join Bearions / Bergabung dengan Bearions
+- Join Bearion / Bergabung dengan Bearion
 - Full Name / Nama Lengkap
 - Phone Number / Nomor Telepon
 - Address / Alamat

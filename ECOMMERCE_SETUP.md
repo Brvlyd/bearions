@@ -1,4 +1,4 @@
-# E-Commerce System Setup Guide - Bearions
+# E-Commerce System Setup Guide - Bearion
 
 ## 📦 Sistem Keranjang dan Pembayaran Lengkap
 
@@ -365,6 +365,6 @@ Sistem ini sudah production-ready dengan fitur:
 
 ## 🎉 Selamat!
 
-Sistem keranjang dan pembayaran lengkap untuk Bearions sudah siap digunakan!
+Sistem keranjang dan pembayaran lengkap untuk Bearion sudah siap digunakan!
 
 Untuk pertanyaan atau customization lebih lanjut, refer ke dokumentasi di masing-masing file service.

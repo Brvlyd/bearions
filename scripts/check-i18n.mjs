@@ -6,8 +6,8 @@ const SCAN_DIRS = ['app', 'components']
 const EXTENSIONS = new Set(['.tsx', '.jsx'])
 const IGNORE_DIRS = new Set(['node_modules', '.next', '.git'])
 const ALLOWED_LITERALS = new Set([
-  'BEARIONS',
-  'hello@bearions.com',
+  'BEARION',
+  'hello@bearion.com',
   'categories-schema.sql',
 ])
 

@@ -23,11 +23,11 @@ SET image_url = CONCAT(
   'https://placehold.co/600x600/e5e7eb/1f2937?text=',
   REPLACE(
     CASE 
-      WHEN category = 'Tops' THEN 'Bearions+T-Shirt'
-      WHEN category = 'Bottoms' THEN 'Bearions+Pants'
-      WHEN category = 'Accessories' THEN 'Bearions+Accessories'
-      WHEN category = 'Outerwear' THEN 'Bearions+Jacket'
-      ELSE 'Bearions+Product'
+      WHEN category = 'Tops' THEN 'Bearion+T-Shirt'
+      WHEN category = 'Bottoms' THEN 'Bearion+Pants'
+      WHEN category = 'Accessories' THEN 'Bearion+Accessories'
+      WHEN category = 'Outerwear' THEN 'Bearion+Jacket'
+      ELSE 'Bearion+Product'
     END,
     ' ', '+'
   )

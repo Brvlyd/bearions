@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
-import SiteSettingsApplier from "@/components/SiteSettingsApplier";
+import SiteSettingsProvider from "@/components/SiteSettingsProvider";
 import { LanguageProvider } from "@/lib/i18n";
 import { resolveFaviconLink } from "@/lib/site-settings";
-import { getSiteSettingsForMetadata } from "@/lib/site-settings-server";
+import { getSiteSettings } from "@/lib/site-settings-server";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -13,7 +13,7 @@ const inter = Inter({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await getSiteSettingsForMetadata();
+  const settings = await getSiteSettings();
   const favicon = resolveFaviconLink(settings.favicon_url);
 
   return {
@@ -27,19 +27,24 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Seeded into the provider so the navbar logo is already correct on first
+  // paint instead of swapping in after the client fetch resolves.
+  const settings = await getSiteSettings();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`} suppressHydrationWarning>
-        <SiteSettingsApplier />
-        <LanguageProvider>
-          <Header />
-          {children}
-        </LanguageProvider>
+        <SiteSettingsProvider initialSettings={settings}>
+          <LanguageProvider>
+            <Header />
+            {children}
+          </LanguageProvider>
+        </SiteSettingsProvider>
       </body>
     </html>
   );

@@ -12,18 +12,24 @@ export type SendTransactionalEmailParams = {
   to: BrevoRecipient | BrevoRecipient[]
   subject: string
   htmlContent: string
+  /** Plain-text alternative. Sending one alongside the HTML helps deliverability. */
+  textContent?: string
   replyTo?: BrevoRecipient
+  /** Brevo tags, useful for filtering transactional logs per email type. */
+  tags?: string[]
 }
 
 export async function sendTransactionalEmail({
   to,
   subject,
   htmlContent,
+  textContent,
   replyTo,
+  tags,
 }: SendTransactionalEmailParams): Promise<{ messageId: string }> {
   const apiKey = process.env.BREVO_API_KEY
   const senderEmail = process.env.BREVO_SENDER_EMAIL
-  const senderName = process.env.BREVO_SENDER_NAME || 'Bearions'
+  const senderName = process.env.BREVO_SENDER_NAME || 'Bearion'
 
   if (!apiKey || !senderEmail) {
     throw new Error(
@@ -43,7 +49,9 @@ export async function sendTransactionalEmail({
       to: Array.isArray(to) ? to : [to],
       subject,
       htmlContent,
+      ...(textContent ? { textContent } : {}),
       ...(replyTo ? { replyTo } : {}),
+      ...(tags && tags.length > 0 ? { tags } : {}),
     }),
   })
 

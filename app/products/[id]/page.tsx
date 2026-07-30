@@ -10,10 +10,11 @@ import { cartService } from '@/lib/cart'
 import { supabase } from '@/lib/supabase'
 import { ArrowLeft, ShoppingCart, Plus, Minus } from 'lucide-react'
 import ImageCarousel from '@/components/ImageCarousel'
+import { formatProductPrice, formatProductPriceAlt } from '@/lib/price'
 
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
-  const { t, tr } = useLanguage()
+  const { t, tr, language } = useLanguage()
   const [product, setProduct] = useState<Product | null>(null)
   const [images, setImages] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
@@ -57,13 +58,11 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     }
   }
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(price)
-  }
+  // Same fallback ProductCard uses: Indonesian copy when available, English otherwise.
+  const productName =
+    language === 'id' && product?.name_id ? product.name_id : product?.name || ''
+  const productDescription =
+    language === 'id' && product?.description_id ? product.description_id : product?.description
 
   const handleAddToCart = async () => {
     if (!product) return
@@ -167,7 +166,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           <div className="w-full max-w-xl mx-auto">
             <div className="aspect-square bg-white rounded-lg overflow-hidden relative">
               {images.length > 0 ? (
-                <ImageCarousel images={images} alt={product.name} autoPlay={true} interval={3000} />
+                <ImageCarousel images={images} alt={productName} autoPlay={true} interval={3000} />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400">
                   {tr('No Image', 'Tidak Ada Gambar')}
@@ -183,13 +182,26 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                 {product.category}
               </span>
             </div>
-            <h1 className="text-2xl lg:text-4xl font-bold mb-4 text-black">{product.name}</h1>
-            <p className="text-2xl lg:text-3xl font-bold mb-6 text-black">{formatPrice(product.price)}</p>
+            <h1 className="text-2xl lg:text-4xl font-bold mb-4 text-black">{productName}</h1>
+            <div className="mb-6">
+              <p className="text-2xl lg:text-3xl font-bold text-black">
+                {formatProductPrice(product, language)}
+              </p>
+              {/* Orders are always created and settled in IDR, so an English
+                  visitor seeing a USD price still gets the IDR figure up front. */}
+              {formatProductPriceAlt(product, language) && (
+                <p className="text-sm text-gray-500 mt-1">
+                  {language === 'en'
+                    ? `Billed as ${formatProductPriceAlt(product, language)} at checkout`
+                    : formatProductPriceAlt(product, language)}
+                </p>
+              )}
+            </div>
             
-            {product.description && (
+            {productDescription && (
               <div className="mb-6">
                 <h2 className="text-lg font-semibold mb-2 text-black">{tr('Description', 'Deskripsi')}</h2>
-                <p className="text-black">{product.description}</p>
+                <p className="text-black">{productDescription}</p>
               </div>
             )}
 

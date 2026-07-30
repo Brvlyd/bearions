@@ -57,7 +57,7 @@ export const notificationService = {
                 <p>Terima kasih telah berbelanja dengan kami!</p>
               </div>
               <div class="footer">
-                <p>&copy; 2026 Bearions. All rights reserved.</p>
+                <p>&copy; 2026 Bearion. All rights reserved.</p>
               </div>
             </div>
           </body>
@@ -122,12 +122,12 @@ export const notificationService = {
                 </ul>
                 
                 <p>Klik tombol di bawah untuk submit bukti pembayaran yang baru:</p>
-                <p><a href="https://bearions.com/payment/${orderNumber}" style="display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Upload Bukti Pembayaran</a></p>
+                <p><a href="https://bearion.com/payment/${orderNumber}" style="display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Upload Bukti Pembayaran</a></p>
                 
                 <p>Jika ada pertanyaan, silakan hubungi tim customer service kami.</p>
               </div>
               <div class="footer">
-                <p>&copy; 2026 Bearions. All rights reserved.</p>
+                <p>&copy; 2026 Bearion. All rights reserved.</p>
               </div>
             </div>
           </body>
@@ -218,7 +218,7 @@ export const notificationService = {
                 <p>Terima kasih telah berbelanja dengan kami!</p>
               </div>
               <div class="footer">
-                <p>&copy; 2026 Bearions. All rights reserved.</p>
+                <p>&copy; 2026 Bearion. All rights reserved.</p>
               </div>
             </div>
           </body>

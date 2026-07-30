@@ -1,4 +1,4 @@
--- Users Table Schema untuk Bearions
+-- Users Table Schema untuk Bearion
 -- Jalankan SQL ini di Supabase SQL Editor setelah database-schema.sql
 
 -- Table untuk users (selain admin)

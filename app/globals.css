@@ -178,6 +178,62 @@ body {
     animation: slide-in-right 0.3s ease-out;
   }
 
+  /* Landing hero CTA — the only element over the image grid, so it carries an
+     attention loop of its own plus explicit hover / press feedback. */
+  @keyframes hero-cta-halo {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.55;
+    }
+    50% {
+      transform: scale(1.12);
+      opacity: 0.9;
+    }
+  }
+
+  /* Idle bob. Lives on the wrapper, never the button itself, so it can't fight
+     the hover/press transforms. */
+  @keyframes hero-cta-bob {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  /* Little tail wiggle on the mascot when the button is hovered. */
+  @keyframes hero-cta-wiggle {
+    0%, 100% {
+      transform: rotate(-12deg);
+    }
+    50% {
+      transform: rotate(12deg);
+    }
+  }
+
+  .hero-cta-halo {
+    animation: hero-cta-halo 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .hero-cta-bob {
+    animation: hero-cta-bob 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+
+  .group:hover .hero-cta-mascot {
+    animation: hero-cta-wiggle 0.45s ease-in-out infinite;
+  }
+
+  /* Respect users who ask the OS to stop looping motion; hover/press feedback
+     stays, only the idle attention loop is dropped. */
+  @media (prefers-reduced-motion: reduce) {
+    .hero-cta-halo,
+    .hero-cta-bob,
+    .group:hover .hero-cta-mascot {
+      animation: none;
+    }
+  }
+
   /* Hide scrollbar */
   .scrollbar-hide {
     -ms-overflow-style: none;

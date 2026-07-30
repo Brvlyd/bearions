@@ -2,9 +2,11 @@
 
 import { useState, useRef, DragEvent, ChangeEvent } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Upload, X, Image as ImageIcon, GripVertical } from 'lucide-react'
+import { Upload, X, Image as ImageIcon, GripVertical, Crop } from 'lucide-react'
 import Image from 'next/image'
 import { useLanguage } from '@/lib/i18n'
+import { getErrorMessage } from '@/lib/errors'
+import ImageEditorModal from './ImageEditorModal'
 
 interface MultiImageUploadProps {
   productId?: string
@@ -18,6 +20,10 @@ export default function MultiImageUpload({ productId, onImagesChange, initialIma
   const [dragActive, setDragActive] = useState(false)
   const [images, setImages] = useState<string[]>(initialImages)
   const [error, setError] = useState('')
+  // Selected files wait here and are edited one by one before any upload runs.
+  const [editQueue, setEditQueue] = useState<File[]>([])
+  const [queueIndex, setQueueIndex] = useState(0)
+  const [reeditIndex, setReeditIndex] = useState<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleDrag = (e: DragEvent<HTMLDivElement>) => {
@@ -31,16 +37,6 @@ export default function MultiImageUpload({ productId, onImagesChange, initialIma
   }
 
   const uploadFile = async (file: File): Promise<string> => {
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      throw new Error(tr('Please upload an image file', 'Silakan unggah file gambar'))
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      throw new Error(tr('Image size should be less than 5MB', 'Ukuran gambar harus kurang dari 5MB'))
-    }
-
     // Create unique file name
     const fileExt = file.name.split('.').pop()
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
@@ -66,37 +62,82 @@ export default function MultiImageUpload({ productId, onImagesChange, initialIma
     return publicUrl
   }
 
-  const handleDrop = async (e: DragEvent<HTMLDivElement>) => {
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     e.stopPropagation()
     setDragActive(false)
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      await uploadMultipleFiles(Array.from(e.dataTransfer.files))
+      queueFilesForEditing(Array.from(e.dataTransfer.files))
     }
   }
 
-  const handleChange = async (e: ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     e.preventDefault()
     if (e.target.files && e.target.files.length > 0) {
-      await uploadMultipleFiles(Array.from(e.target.files))
+      queueFilesForEditing(Array.from(e.target.files))
     }
   }
 
-  const uploadMultipleFiles = async (files: File[]) => {
+  /** Validates the picked files and lines them up for the live editor. */
+  const queueFilesForEditing = (files: File[]) => {
+    setError('')
+
+    const invalidType = files.find(file => !file.type.startsWith('image/'))
+    if (invalidType) {
+      setError(tr('Please upload an image file', 'Silakan unggah file gambar'))
+      return
+    }
+
+    const tooLarge = files.find(file => file.size > 5 * 1024 * 1024)
+    if (tooLarge) {
+      setError(tr('Image size should be less than 5MB', 'Ukuran gambar harus kurang dari 5MB'))
+      return
+    }
+
+    setReeditIndex(null)
+    setQueueIndex(0)
+    setEditQueue(files)
+  }
+
+  const closeEditor = () => {
+    setEditQueue([])
+    setQueueIndex(0)
+    setReeditIndex(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  /** Uploads the framed result, then moves on to the next queued file. */
+  const handleEditorApply = async (editedFile: File) => {
     setUploading(true)
     setError('')
 
     try {
-      const uploadPromises = files.map(file => uploadFile(file))
-      const uploadedUrls = await Promise.all(uploadPromises)
-      
-      const newImages = [...images, ...uploadedUrls]
+      const publicUrl = await uploadFile(editedFile)
+
+      if (reeditIndex !== null) {
+        const newImages = images.map((url, index) => (index === reeditIndex ? publicUrl : url))
+        setImages(newImages)
+        onImagesChange(newImages)
+        setReeditIndex(null)
+        return
+      }
+
+      const newImages = [...images, publicUrl]
       setImages(newImages)
       onImagesChange(newImages)
-    } catch (error: any) {
+
+      if (queueIndex + 1 < editQueue.length) {
+        setQueueIndex(queueIndex + 1)
+      } else {
+        closeEditor()
+      }
+    } catch (error) {
       console.error('Upload error:', error)
-      setError(error.message || 'Failed to upload images')
+      setError(getErrorMessage(error) || 'Failed to upload images')
+      closeEditor()
     } finally {
       setUploading(false)
     }
@@ -191,6 +232,20 @@ export default function MultiImageUpload({ productId, onImagesChange, initialIma
                 <div className="absolute bottom-1 left-1 bg-black/70 text-white px-2 py-0.5 rounded text-xs">
                   {index + 1}
                 </div>
+
+                {/* Re-frame an image that is already stored */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditQueue([])
+                    setReeditIndex(index)
+                  }}
+                  className="absolute bottom-1 right-1 bg-black/70 text-white px-2 py-1 rounded text-xs inline-flex items-center gap-1 hover:bg-black transition opacity-0 group-hover:opacity-100"
+                  title={tr('Adjust image size', 'Sesuaikan ukuran gambar')}
+                >
+                  <Crop className="w-3 h-3" />
+                  {tr('Adjust', 'Atur')}
+                </button>
               </div>
             </div>
           ))}
@@ -256,10 +311,29 @@ export default function MultiImageUpload({ productId, onImagesChange, initialIma
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
         <p className="text-sm text-blue-800">
-          <strong>{tr('Tip', 'Tips')}:</strong> {tr('Upload multiple images to create a carousel.', 'Unggah beberapa gambar untuk membuat carousel.')} 
-          {tr('Drag images to reorder them. The first image will be the main display.', 'Seret gambar untuk mengurutkannya. Gambar pertama akan menjadi tampilan utama.')}
+          <strong>{tr('Tip', 'Tips')}:</strong> {tr('Every picked image opens in the live editor first, so you can crop and resize it before it goes public.', 'Setiap gambar yang dipilih dibuka dulu di editor live, jadi Anda bisa memotong dan mengubah ukurannya sebelum tayang.')}
+          {tr('The first image will be the main display.', 'Gambar pertama akan menjadi tampilan utama.')}
         </p>
       </div>
+
+      <ImageEditorModal
+        open={editQueue.length > 0 || reeditIndex !== null}
+        file={reeditIndex === null ? editQueue[queueIndex] || null : null}
+        sourceUrl={reeditIndex !== null ? images[reeditIndex] : null}
+        defaultFit="contain"
+        recommendedWidth={1200}
+        recommendedHeight={1200}
+        title={
+          reeditIndex !== null
+            ? tr(`Adjust image ${reeditIndex + 1}`, `Sesuaikan gambar ${reeditIndex + 1}`)
+            : tr(
+                `Adjust image ${queueIndex + 1} of ${editQueue.length}`,
+                `Sesuaikan gambar ${queueIndex + 1} dari ${editQueue.length}`
+              )
+        }
+        onCancel={closeEditor}
+        onApply={handleEditorApply}
+      />
     </div>
   )
 }

@@ -5,7 +5,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publish
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storageKey: 'bearions-auth',
+    storageKey: 'bearion-auth',
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
@@ -19,6 +19,8 @@ export type Product = {
   description: string | null
   description_id?: string | null
   price: number
+  /** Manual USD price from the CMS. Null keeps the product priced in IDR only. */
+  price_usd?: number | null
   stock: number
   category: string
   image_url: string | null
@@ -69,12 +71,13 @@ export type AboutUsContent = {
   updated_by: string | null
 }
 
-// Global site settings (browser tab title + favicon)
+// Global site settings (browser tab title + favicon + navbar logo)
 export type SiteSettings = {
   id: number
   site_title: string
   site_description: string
   favicon_url: string | null
+  logo_url: string | null
   updated_at: string
   updated_by: string | null
 }

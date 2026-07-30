@@ -45,7 +45,7 @@ AuthApiError: Error sending confirmation email
 
 **Subject:**
 ```
-Konfirmasi Email Anda - Bearions
+Konfirmasi Email Anda - Bearion
 ```
 
 **Body (HTML):**
@@ -64,9 +64,9 @@ Konfirmasi Email Anda - Bearions
     </div>
   </div>
 
-  <h2 style="color: #000; text-align: center;">Selamat Datang di Bearions! 🐻</h2>
+  <h2 style="color: #000; text-align: center;">Selamat Datang di Bearion! 🐻</h2>
 
-  <p>Terima kasih sudah mendaftar di Bearions. Untuk melanjutkan, silakan konfirmasi alamat email Anda dengan mengklik tombol di bawah ini:</p>
+  <p>Terima kasih sudah mendaftar di Bearion. Untuk melanjutkan, silakan konfirmasi alamat email Anda dengan mengklik tombol di bawah ini:</p>
 
   <div style="text-align: center; margin: 30px 0;">
     <a href="{{ .ConfirmationURL }}" 
@@ -85,18 +85,18 @@ Konfirmasi Email Anda - Bearions
   </p>
 
   <p style="color: #666; font-size: 14px;">
-    Setelah email Anda terkonfirmasi, Anda dapat login dan mulai berbelanja di Bearions!
+    Setelah email Anda terkonfirmasi, Anda dapat login dan mulai berbelanja di Bearion!
   </p>
 
   <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
   
   <p style="color: #999; font-size: 12px; text-align: center;">
-    Jika Anda tidak mendaftar di Bearions, abaikan email ini.<br>
+    Jika Anda tidak mendaftar di Bearion, abaikan email ini.<br>
     Email ini dikirim otomatis, mohon tidak membalas.
   </p>
 
   <p style="color: #999; font-size: 12px; text-align: center;">
-    © 2026 Bearions. All rights reserved.
+    © 2026 Bearion. All rights reserved.
   </p>
 
 </body>
@@ -197,7 +197,7 @@ Untuk production, gunakan email service profesional:
    SMTP User: your-business-email@gmail.com
    SMTP Password: [App Password - buat di Google Account]
    Sender Email: your-business-email@gmail.com
-   Sender Name: Bearions
+   Sender Name: Bearion
    ```
 
 4. **Cara buat App Password:**
@@ -227,7 +227,7 @@ Untuk production, gunakan email service profesional:
    SMTP User: apikey
    SMTP Password: [Your SendGrid API Key]
    Sender Email: noreply@yourdomain.com
-   Sender Name: Bearions
+   Sender Name: Bearion
    ```
 
 ### Option C: AWS SES (Termurah untuk Volume Tinggi)

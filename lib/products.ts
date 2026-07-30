@@ -130,6 +130,28 @@ export const productService = {
     return data
   },
 
+  // Get images for many products in one round-trip, keyed by product id.
+  // Rendering a grid of cards that each fetch their own images costs one
+  // request per card and leaves the catalog on spinners for seconds.
+  async getImagesForProducts(productIds: string[]): Promise<Record<string, string[]>> {
+    if (productIds.length === 0) return {}
+
+    const { data, error } = await supabase
+      .from('product_images')
+      .select('product_id, image_url, display_order')
+      .in('product_id', productIds)
+      .order('display_order', { ascending: true })
+
+    if (error) throw error
+
+    const byProduct: Record<string, string[]> = {}
+    for (const row of data || []) {
+      const key = row.product_id as string
+      ;(byProduct[key] ||= []).push(row.image_url as string)
+    }
+    return byProduct
+  },
+
   // Delete product image
   async deleteProductImage(imageId: string) {
     const { error } = await supabase

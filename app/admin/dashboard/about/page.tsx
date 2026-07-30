@@ -1,14 +1,23 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Upload, Image as ImageIcon, Save, Plus, Trash2, Type } from 'lucide-react'
+import { Upload, Image as ImageIcon, Save, Trash2, Type, Crop } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n'
 import { AboutUsContentBlock, supabase } from '@/lib/supabase'
 import { DEFAULT_ABOUT_US_CONTENT, loadAboutUsContent, parseAboutUsError } from '@/lib/about-us'
+import ImageEditorModal from '@/components/ImageEditorModal'
 
 type Message = {
   type: 'success' | 'error'
   text: string
+}
+
+type EditorTarget = {
+  /** 'background' edits the hero image, 'block' edits one content block. */
+  kind: 'background' | 'block'
+  blockId?: string
+  file: File | null
+  sourceUrl: string | null
 }
 
 type AboutFormState = {
@@ -39,6 +48,7 @@ export default function AdminAboutPage() {
   const [uploading, setUploading] = useState(false)
   const [schemaMissing, setSchemaMissing] = useState(false)
   const [message, setMessage] = useState<Message | null>(null)
+  const [editorTarget, setEditorTarget] = useState<EditorTarget | null>(null)
   const [form, setForm] = useState<AboutFormState>({
     title: DEFAULT_ABOUT_US_CONTENT.title,
     headline: DEFAULT_ABOUT_US_CONTENT.headline,
@@ -98,6 +108,18 @@ export default function AdminAboutPage() {
     noBackground: language === 'en' ? 'No background image selected' : 'Belum ada gambar latar belakang',
     uploadForBlockFailed: language === 'en' ? 'Failed to upload block image' : 'Gagal mengunggah gambar blok',
     blockImageAlt: language === 'en' ? 'About content image' : 'Gambar konten tentang kami',
+    adjustSize: language === 'en' ? 'Adjust size' : 'Atur ukuran',
+    editorBackgroundTitle:
+      language === 'en' ? 'Adjust background image' : 'Sesuaikan gambar latar belakang',
+    editorBlockTitle: language === 'en' ? 'Adjust content image' : 'Sesuaikan gambar konten',
+    editorBackgroundDescription:
+      language === 'en'
+        ? 'The hero background is cropped to fill the section, so frame it here first.'
+        : 'Background hero dipotong agar memenuhi section, jadi atur framing-nya di sini dulu.',
+    editorBlockDescription:
+      language === 'en'
+        ? 'Content images keep their full shape, so pick the export size that reads best.'
+        : 'Gambar konten tampil utuh, jadi pilih ukuran ekspor yang paling enak dibaca.',
   }
 
   useEffect(() => {
@@ -177,57 +199,61 @@ export default function AdminAboutPage() {
     return publicUrlData.publicUrl
   }
 
-  const handleBackgroundSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
+  /** Shared validation for both upload slots; returns false when rejected. */
+  const isAcceptedImage = (file: File) => {
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
     if (!allowedTypes.includes(file.type)) {
       setMessage({ type: 'error', text: text.imageTypeError })
-      return
+      return false
     }
 
     if (file.size > MAX_IMAGE_SIZE) {
       setMessage({ type: 'error', text: text.imageSizeError })
-      return
+      return false
     }
+
+    return true
+  }
+
+  const handleBackgroundSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file || !isAcceptedImage(file)) return
+
+    setMessage(null)
+    setEditorTarget({ kind: 'background', file, sourceUrl: null })
+  }
+
+  const handleBlockImageSelect = (event: React.ChangeEvent<HTMLInputElement>, blockId: string) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file || !isAcceptedImage(file)) return
+
+    setMessage(null)
+    setEditorTarget({ kind: 'block', blockId, file, sourceUrl: null })
+  }
+
+  /** Uploads the framed result and points the matching field at it. */
+  const handleEditorApply = async (editedFile: File) => {
+    const target = editorTarget
+    if (!target) return
 
     try {
       setUploading(true)
       setMessage(null)
 
-      const publicUrl = await uploadImageFile(file, 'about-bg')
-      updateField('background_image_url', publicUrl)
+      if (target.kind === 'background') {
+        updateField('background_image_url', await uploadImageFile(editedFile, 'about-bg'))
+      } else if (target.blockId) {
+        updateBlockImage(target.blockId, await uploadImageFile(editedFile, `about-block-${target.blockId}`))
+      }
+
+      setEditorTarget(null)
     } catch (error) {
       const parsed = parseAboutUsError(error)
-      setMessage({ type: 'error', text: `${text.uploadFailed}: ${parsed.message} (${parsed.code})` })
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  const handleBlockImageSelect = async (event: React.ChangeEvent<HTMLInputElement>, blockId: string) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-    if (!allowedTypes.includes(file.type)) {
-      setMessage({ type: 'error', text: text.imageTypeError })
-      return
-    }
-
-    if (file.size > MAX_IMAGE_SIZE) {
-      setMessage({ type: 'error', text: text.imageSizeError })
-      return
-    }
-
-    try {
-      setUploading(true)
-      const publicUrl = await uploadImageFile(file, `about-block-${blockId}`)
-      updateBlockImage(blockId, publicUrl)
-    } catch (error) {
-      const parsed = parseAboutUsError(error)
-      setMessage({ type: 'error', text: `${text.uploadForBlockFailed}: ${parsed.message} (${parsed.code})` })
+      const prefix = target.kind === 'background' ? text.uploadFailed : text.uploadForBlockFailed
+      setMessage({ type: 'error', text: `${prefix}: ${parsed.message} (${parsed.code})` })
+      setEditorTarget(null)
     } finally {
       setUploading(false)
     }
@@ -314,17 +340,33 @@ export default function AdminAboutPage() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-black mb-2">{text.backgroundImage}</label>
-              <label className="w-full border border-gray-300 rounded-lg p-4 flex items-center justify-center gap-2 cursor-pointer hover:bg-gray-50 transition">
-                <Upload className="w-5 h-5" />
-                <span className="text-sm text-gray-700">{uploading ? text.saving : text.chooseImage}</span>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png,image/webp"
-                  className="hidden"
-                  disabled={uploading || saving || schemaMissing}
-                  onChange={handleBackgroundSelect}
-                />
-              </label>
+              <div className="flex gap-2">
+                <label className="flex-1 border border-gray-300 rounded-lg p-4 flex items-center justify-center gap-2 cursor-pointer hover:bg-gray-50 transition">
+                  <Upload className="w-5 h-5" />
+                  <span className="text-sm text-gray-700">{uploading ? text.saving : text.chooseImage}</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    className="hidden"
+                    disabled={uploading || saving || schemaMissing}
+                    onChange={handleBackgroundSelect}
+                  />
+                </label>
+
+                {form.background_image_url && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setEditorTarget({ kind: 'background', file: null, sourceUrl: form.background_image_url })
+                    }
+                    disabled={uploading || saving || schemaMissing}
+                    className="px-3 rounded-lg border border-gray-300 text-black hover:bg-gray-50 disabled:opacity-50 inline-flex items-center gap-1.5 text-xs"
+                  >
+                    <Crop className="w-4 h-4" />
+                    {text.adjustSize}
+                  </button>
+                )}
+              </div>
               <p className="text-xs text-gray-500 mt-2">{text.uploadTip}</p>
             </div>
 
@@ -357,7 +399,7 @@ export default function AdminAboutPage() {
                   <button
                     type="button"
                     onClick={() => addBlock('text')}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-300 text-xs text-black hover:bg-gray-50"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 min-h-11 rounded-lg border border-gray-300 text-xs text-black hover:bg-gray-50"
                   >
                     <Type className="w-3.5 h-3.5" />
                     {text.addTextBlock}
@@ -365,7 +407,7 @@ export default function AdminAboutPage() {
                   <button
                     type="button"
                     onClick={() => addBlock('image')}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-300 text-xs text-black hover:bg-gray-50"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 min-h-11 rounded-lg border border-gray-300 text-xs text-black hover:bg-gray-50"
                   >
                     <ImageIcon className="w-3.5 h-3.5" />
                     {text.addImageBlock}
@@ -389,7 +431,7 @@ export default function AdminAboutPage() {
                       <button
                         type="button"
                         onClick={() => removeBlock(block.id)}
-                        className="inline-flex items-center gap-1 text-xs text-red-600 hover:text-red-700"
+                        className="inline-flex items-center gap-1 text-xs text-red-600 hover:text-red-700 min-h-11 px-1"
                         aria-label={text.removeBlock}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -414,17 +456,38 @@ export default function AdminAboutPage() {
                           placeholder={text.imageUrl}
                           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-black"
                         />
-                        <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer">
-                          <Upload className="w-3.5 h-3.5" />
-                          {text.imageUploadHint}
-                          <input
-                            type="file"
-                            accept="image/jpeg,image/jpg,image/png,image/webp"
-                            className="hidden"
-                            disabled={uploading || saving || schemaMissing}
-                            onChange={(event) => void handleBlockImageSelect(event, block.id)}
-                          />
-                        </label>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer">
+                            <Upload className="w-3.5 h-3.5" />
+                            {text.imageUploadHint}
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/jpg,image/png,image/webp"
+                              className="hidden"
+                              disabled={uploading || saving || schemaMissing}
+                              onChange={(event) => handleBlockImageSelect(event, block.id)}
+                            />
+                          </label>
+
+                          {block.image_url && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setEditorTarget({
+                                  kind: 'block',
+                                  blockId: block.id,
+                                  file: null,
+                                  sourceUrl: block.image_url || null,
+                                })
+                              }
+                              disabled={uploading || saving || schemaMissing}
+                              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-xs text-black hover:bg-gray-50 disabled:opacity-50"
+                            >
+                              <Crop className="w-3.5 h-3.5" />
+                              {text.adjustSize}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -508,6 +571,22 @@ export default function AdminAboutPage() {
           </div>
         </div>
       </div>
+
+      <ImageEditorModal
+        open={!!editorTarget}
+        file={editorTarget?.file || null}
+        sourceUrl={editorTarget?.sourceUrl || null}
+        defaultFit={editorTarget?.kind === 'background' ? 'cover' : 'contain'}
+        recommendedWidth={editorTarget?.kind === 'background' ? 1920 : 1200}
+        recommendedHeight={editorTarget?.kind === 'background' ? 1080 : 800}
+        maxFileSizeBytes={MAX_IMAGE_SIZE}
+        title={editorTarget?.kind === 'background' ? text.editorBackgroundTitle : text.editorBlockTitle}
+        description={
+          editorTarget?.kind === 'background' ? text.editorBackgroundDescription : text.editorBlockDescription
+        }
+        onCancel={() => setEditorTarget(null)}
+        onApply={handleEditorApply}
+      />
     </div>
   )
 }

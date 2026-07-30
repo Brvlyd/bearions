@@ -9,11 +9,34 @@ type SupabaseErrorLike = {
 
 export const DEFAULT_FAVICON_URL = '/favicon.ico'
 
+/**
+ * Bundled brand mark used whenever no logo has been uploaded in the CMS.
+ * Trimmed to the artwork's bounds — the original export padded it out to
+ * 1599x899, which left the navbar slot mostly empty and crowded the nav links.
+ */
+export const DEFAULT_LOGO_URL = '/images/bearion-logo.png'
+
+/**
+ * Intrinsic pixel size of DEFAULT_LOGO_URL. The navbar slot is derived from
+ * these numbers so an uploaded replacement occupies exactly the same box as the
+ * bundled mark and never reflows the header, whatever its own dimensions are.
+ */
+export const LOGO_NATURAL_WIDTH = 599
+export const LOGO_NATURAL_HEIGHT = 539
+export const LOGO_ASPECT_RATIO = `${LOGO_NATURAL_WIDTH} / ${LOGO_NATURAL_HEIGHT}`
+
+/** Rendered navbar logo box, scaled from the intrinsic size to fit the 64px bar. */
+export const LOGO_DISPLAY_HEIGHT = 36
+export const LOGO_DISPLAY_WIDTH = Math.round(
+  (LOGO_DISPLAY_HEIGHT * LOGO_NATURAL_WIDTH) / LOGO_NATURAL_HEIGHT
+)
+
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   id: 1,
-  site_title: 'Bearions - Modern Fashion Store',
+  site_title: 'Bearion - Modern Fashion Store',
   site_description: 'Premium clothing and fashion accessories',
   favicon_url: null,
+  logo_url: null,
   updated_at: new Date(0).toISOString(),
   updated_by: null,
 }
@@ -29,6 +52,8 @@ const normalizeSiteSettings = (value: unknown): SiteSettings => {
     site_description: String(raw.site_description ?? DEFAULT_SITE_SETTINGS.site_description),
     favicon_url:
       typeof raw.favicon_url === 'string' && raw.favicon_url.trim() ? raw.favicon_url.trim() : null,
+    logo_url:
+      typeof raw.logo_url === 'string' && raw.logo_url.trim() ? raw.logo_url.trim() : null,
     updated_at:
       typeof raw.updated_at === 'string' ? raw.updated_at : DEFAULT_SITE_SETTINGS.updated_at,
     updated_by: typeof raw.updated_by === 'string' ? raw.updated_by : null,
@@ -51,12 +76,22 @@ export const parseSiteSettingsError = (error: unknown, unknownErrorText = 'Unkno
         combined.includes('schema cache') ||
         combined.includes('could not find the table')))
 
+  // A table created before logo_url existed fails on write, not on read. The
+  // remedy is the same migration, so it surfaces the same "run the SQL" hint.
+  const isMissingColumnError =
+    code === '42703' ||
+    code === 'PGRST204' ||
+    (combined.includes('logo_url') &&
+      (combined.includes('does not exist') || combined.includes('schema cache')))
+
   return {
     message,
     details,
     hint,
     code,
     isMissingTableError,
+    isMissingColumnError,
+    isSchemaMissing: isMissingTableError || isMissingColumnError,
   }
 }
 
@@ -72,7 +107,7 @@ export const loadSiteSettings = async () => {
     return {
       data: DEFAULT_SITE_SETTINGS,
       error: parsedError,
-      tableMissing: parsedError.isMissingTableError,
+      tableMissing: parsedError.isSchemaMissing,
     }
   }
 
@@ -105,4 +140,19 @@ export const resolveFaviconLink = (faviconUrl: string | null | undefined) => {
     href,
     type: (extension && typeByExtension[extension]) || undefined,
   }
+}
+
+/**
+ * Resolves the navbar logo source, falling back to the bundled brand mark.
+ * `version` busts the image cache after an admin replaces a remote logo that
+ * reuses its URL; local paths are left alone so Next.js keeps serving them
+ * from the static asset cache.
+ */
+export const resolveLogoUrl = (logoUrl: string | null | undefined, version?: string) => {
+  const src = logoUrl?.trim() || DEFAULT_LOGO_URL
+
+  if (src.startsWith('/') || !version) return src
+
+  const separator = src.includes('?') ? '&' : '?'
+  return `${src}${separator}v=${encodeURIComponent(version)}`
 }

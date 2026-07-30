@@ -52,7 +52,7 @@ interface AdminUserRow {
   created_at: string
 }
 
-const NOTIFICATION_READ_STORAGE_KEY = 'bearions-admin-notification-read-v1'
+const NOTIFICATION_READ_STORAGE_KEY = 'bearion-admin-notification-read-v1'
 const NOTIFICATION_REFRESH_INTERVAL_MS = 60000
 
 const priorityWeight: Record<NotificationPriority, number> = {
@@ -367,7 +367,8 @@ export default function AdminHeader({ sidebarOpen, setSidebarOpen }: { sidebarOp
           <div>
             <h1 className="text-base lg:text-xl font-bold text-white">{getPageTitle()}</h1>
             <div className="hidden md:flex items-center gap-2 text-sm text-gray-400 mt-0.5">
-              <Link href="/admin/dashboard" className="hover:text-white transition">
+              {/* min-h + negative margin: 44px hit area, unchanged visual height */}
+              <Link href="/admin/dashboard" className="hover:text-white transition inline-flex items-center min-h-11 -my-3 px-1 -mx-1">
                 {t('adminSidebar.adminPanel')}
               </Link>
               <span>/</span>

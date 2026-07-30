@@ -2,9 +2,11 @@
 
 import { useState, useRef, DragEvent, ChangeEvent } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Upload, X, Image as ImageIcon } from 'lucide-react'
+import { Upload, X, Image as ImageIcon, Crop } from 'lucide-react'
 import Image from 'next/image'
 import { useLanguage } from '@/lib/i18n'
+import { getErrorMessage } from '@/lib/errors'
+import ImageEditorModal from './ImageEditorModal'
 
 interface ImageUploadProps {
   currentImageUrl?: string
@@ -18,6 +20,9 @@ export default function ImageUpload({ currentImageUrl, onImageChange, productId 
   const [dragActive, setDragActive] = useState(false)
   const [previewUrl, setPreviewUrl] = useState(currentImageUrl || '')
   const [error, setError] = useState('')
+  // Nothing reaches storage until the admin approves the framing in the editor.
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
+  const [editingUrl, setEditingUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleDrag = (e: DragEvent<HTMLDivElement>) => {
@@ -70,28 +75,60 @@ export default function ImageUpload({ currentImageUrl, onImageChange, productId 
       setPreviewUrl(publicUrl)
       onImageChange(publicUrl)
       
-    } catch (error: any) {
+    } catch (error) {
       console.error('Upload error:', error)
-      setError(error.message || 'Failed to upload image')
+      setError(getErrorMessage(error) || 'Failed to upload image')
     } finally {
       setUploading(false)
     }
   }
 
-  const handleDrop = async (e: DragEvent<HTMLDivElement>) => {
+  /** Validates a picked file, then hands it to the live editor before uploading. */
+  const openEditorFor = (file: File) => {
+    setError('')
+
+    if (!file.type.startsWith('image/')) {
+      setError(tr('Please upload an image file', 'Silakan unggah file gambar'))
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError(tr('Image size should be less than 5MB', 'Ukuran gambar harus kurang dari 5MB'))
+      return
+    }
+
+    setEditingUrl(null)
+    setPendingFile(file)
+  }
+
+  const handleEditorApply = async (editedFile: File) => {
+    setPendingFile(null)
+    setEditingUrl(null)
+    await uploadFile(editedFile)
+  }
+
+  const closeEditor = () => {
+    setPendingFile(null)
+    setEditingUrl(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     e.stopPropagation()
     setDragActive(false)
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      await uploadFile(e.dataTransfer.files[0])
+      openEditorFor(e.dataTransfer.files[0])
     }
   }
 
-  const handleChange = async (e: ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     e.preventDefault()
     if (e.target.files && e.target.files[0]) {
-      await uploadFile(e.target.files[0])
+      openEditorFor(e.target.files[0])
     }
   }
 
@@ -139,17 +176,31 @@ export default function ImageUpload({ currentImageUrl, onImageChange, productId 
                 }}
               />
             </div>
-            <button
-              type="button"
-              onClick={handleRemove}
-              className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 transition shadow-lg"
-              title={tr('Remove image', 'Hapus gambar')}
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="absolute top-2 right-2 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setPendingFile(null)
+                  setEditingUrl(previewUrl)
+                }}
+                className="bg-black text-white px-2.5 py-1.5 rounded-full hover:bg-gray-800 transition shadow-lg inline-flex items-center gap-1.5 text-xs"
+                title={tr('Adjust image size', 'Sesuaikan ukuran gambar')}
+              >
+                <Crop className="w-3.5 h-3.5" />
+                {tr('Adjust size', 'Atur ukuran')}
+              </button>
+              <button
+                type="button"
+                onClick={handleRemove}
+                className="bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 transition shadow-lg"
+                title={tr('Remove image', 'Hapus gambar')}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
           <p className="text-sm text-gray-500">
-            {tr('Click the', 'Klik tombol')} <strong>X</strong> {tr('button to remove and upload a new image', 'untuk menghapus dan mengunggah gambar baru')}
+            {tr('Use Adjust size to re-crop or resize, or the X button to remove the image.', 'Gunakan Atur ukuran untuk memotong/mengubah ukuran, atau tombol X untuk menghapus gambar.')}
           </p>
         </div>
       ) : (
@@ -211,10 +262,22 @@ export default function ImageUpload({ currentImageUrl, onImageChange, productId 
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
         <p className="text-sm text-blue-800">
-          <strong>{tr('Tip', 'Tips')}:</strong> {tr('Images are automatically stored in Supabase Storage.', 'Gambar otomatis disimpan di Supabase Storage.')} 
+          <strong>{tr('Tip', 'Tips')}:</strong> {tr('After picking a file you can crop and resize it live before it is published.', 'Setelah memilih file, Anda bisa memotong dan mengubah ukurannya secara live sebelum dipublikasikan.')}
           {tr('For best results, use square images (1:1 ratio) at least 800x800px.', 'Untuk hasil terbaik, gunakan gambar persegi (rasio 1:1) minimal 800x800px.')}
         </p>
       </div>
+
+      <ImageEditorModal
+        open={!!pendingFile || !!editingUrl}
+        file={pendingFile}
+        sourceUrl={editingUrl}
+        defaultFit="contain"
+        recommendedWidth={1200}
+        recommendedHeight={1200}
+        title={tr('Adjust product image', 'Sesuaikan gambar produk')}
+        onCancel={closeEditor}
+        onApply={handleEditorApply}
+      />
     </div>
   )
 }

@@ -9,6 +9,7 @@ import { ArrowLeft } from 'lucide-react'
 import MultiImageUpload from '@/components/MultiImageUpload'
 import { supabase } from '@/lib/supabase'
 import Notification from '@/components/Notification'
+import { getErrorMessage } from '@/lib/errors'
 
 interface Category {
   id: string
@@ -28,6 +29,7 @@ export default function AddProductPage() {
     description: '',
     description_id: '',
     price: '',
+    price_usd: '',
     stock: '',
     category: '',
     image_url: '',
@@ -68,6 +70,7 @@ export default function AddProductPage() {
         description: formData.description || null,
         description_id: formData.description_id || null,
         price: parseFloat(formData.price),
+        price_usd: formData.price_usd ? parseFloat(formData.price_usd) : null,
         stock: parseInt(formData.stock),
         category: formData.category,
         image_url: formData.images[0] || null // Use first image as main
@@ -82,9 +85,9 @@ export default function AddProductPage() {
       setTimeout(() => {
         router.push('/admin/dashboard')
       }, 1500)
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error creating product:', error)
-      setNotification({ type: 'error', message: t('adminProduct.createError') + ': ' + error.message })
+      setNotification({ type: 'error', message: t('adminProduct.createError') + ': ' + getErrorMessage(error) })
     } finally {
       setLoading(false)
     }
@@ -101,7 +104,7 @@ export default function AddProductPage() {
     <div>
       <Link
         href="/admin/dashboard"
-        className="flex items-center space-x-2 text-gray-600 hover:text-black mb-6"
+        className="inline-flex items-center space-x-2 text-gray-600 hover:text-black mb-6 min-h-11 py-2"
       >
         <ArrowLeft className="w-5 h-5" />
         <span>{tr('Back to Dashboard', 'Kembali ke Dashboard')}</span>
@@ -188,6 +191,29 @@ export default function AddProductPage() {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
                 placeholder="380000"
               />
+            </div>
+
+            <div>
+              <label htmlFor="price_usd" className="block text-sm font-medium mb-2 text-black">
+                {tr('Price (USD)', 'Harga (USD)')}
+              </label>
+              <input
+                id="price_usd"
+                name="price_usd"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.price_usd}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
+                placeholder="25.00"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {tr(
+                  'Optional. Set by hand — it is not converted from IDR. Leave empty to show the IDR price to English visitors.',
+                  'Opsional. Diisi manual — tidak dikonversi dari IDR. Kosongkan agar pengunjung bahasa Inggris tetap melihat harga IDR.'
+                )}
+              </p>
             </div>
 
             <div>

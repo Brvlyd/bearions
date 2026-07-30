@@ -188,7 +188,7 @@ npm install @sendgrid/mail
 sgMail.setApiKey(process.env.SENDGRID_API_KEY)
 await sgMail.send({
   to: 'customer@email.com',
-  from: 'noreply@bearions.com',
+  from: 'noreply@bearion.com',
   subject: subject,
   html: htmlContent,
 })
@@ -201,7 +201,7 @@ npm install resend
 
 ```typescript
 const { data, error } = await resend.emails.send({
-  from: 'Bearions <noreply@bearions.com>',
+  from: 'Bearion <noreply@bearion.com>',
   to: 'customer@email.com',
   subject: subject,
   html: htmlContent,

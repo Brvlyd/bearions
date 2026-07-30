@@ -85,7 +85,7 @@ export default function AdminLayout({
                 B
               </div>
               <div>
-                <span className="text-xl font-bold block transition-all duration-300 group-hover:text-gray-300">BEARIONS</span>
+                <span className="text-xl font-bold block transition-all duration-300 group-hover:text-gray-300">BEARION</span>
                 <span className="text-xs text-gray-400">{t('adminSidebar.adminPanel')}</span>
               </div>
             </Link>

@@ -47,9 +47,9 @@ Pergi ke: **Authentication** → **Email Templates**
 
 #### **Confirm Signup Template**:
 ```
-Subject: Konfirmasi Email Anda - Bearions
+Subject: Konfirmasi Email Anda - Bearion
 
-<h2>Selamat Datang di Bearions!</h2>
+<h2>Selamat Datang di Bearion!</h2>
 
 <p>Terima kasih sudah mendaftar. Silakan klik tombol di bawah untuk mengkonfirmasi email Anda:</p>
 
@@ -62,7 +62,7 @@ Subject: Konfirmasi Email Anda - Bearions
 
 <p>Jika Anda tidak mendaftar, abaikan email ini.</p>
 
-<p>Salam,<br>Tim Bearions</p>
+<p>Salam,<br>Tim Bearion</p>
 ```
 
 ### **Step 3: Email Provider Settings**

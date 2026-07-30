@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, CreditCard, Truck, CheckCircle, Copy, Check } from 'lucide-react'
@@ -19,7 +19,8 @@ import {
 } from '@/lib/wilayah'
 import { useLanguage } from '@/lib/i18n'
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
-import type { CartItem, ShippingAddress, PaymentMethodConfig } from '@/lib/supabase'
+import PayPalCheckoutButton from '@/components/PayPalCheckoutButton'
+import type { CartItem, ShippingAddress, PaymentMethodConfig, Order } from '@/lib/supabase'
 
 type Step = 'shipping' | 'payment' | 'review'
 
@@ -38,7 +39,7 @@ const EMPTY_ADDRESS_FORM = {
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const { tr } = useLanguage()
+  const { tr, language } = useLanguage()
   const [currentStep, setCurrentStep] = useState<Step>('shipping')
   const [userId, setUserId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string>('')
@@ -70,6 +71,7 @@ export default function CheckoutPage() {
   const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(false)
   const [copiedValue, setCopiedValue] = useState('')
   const [customerNotes, setCustomerNotes] = useState('')
+  const [pendingPaypalOrder, setPendingPaypalOrder] = useState<Order | null>(null)
   
   // Processing
   const [processing, setProcessing] = useState(false)
@@ -425,6 +427,7 @@ export default function CheckoutPage() {
     }
 
     const selectedMethod = paymentMethods.find((method) => method.code === paymentMethod)
+    const isPaypal = selectedMethod?.code === 'paypal'
 
     try {
       setProcessing(true)
@@ -464,8 +467,15 @@ export default function CheckoutPage() {
         orderId: order.id,
         paymentMethod,
         amount: order.total,
-        paymentGateway: selectedMethod?.requires_proof ? 'manual' : 'custom',
+        paymentGateway: isPaypal ? 'paypal' : selectedMethod?.requires_proof ? 'manual' : 'custom',
       })
+
+      if (isPaypal) {
+        // PayPal isn't paid yet — show the PayPal buttons and wait for a verified
+        // capture before clearing the cart or leaving this page.
+        setPendingPaypalOrder(order)
+        return
+      }
 
       // Send order confirmation email (best-effort — should never block checkout)
       notificationService
@@ -497,6 +507,31 @@ export default function CheckoutPage() {
       setProcessing(false)
     }
   }
+
+  const handlePaypalSuccess = useCallback(() => {
+    if (!pendingPaypalOrder || !userId) return
+
+    notificationService
+      .sendOrderConfirmationEmail(
+        userEmail,
+        pendingPaypalOrder.customer_name,
+        pendingPaypalOrder.order_number,
+        cartItems.map((item) => ({
+          name: item.product?.name || '',
+          quantity: item.quantity,
+          price: item.product?.price || 0,
+        })),
+        pendingPaypalOrder.total
+      )
+      .catch((error) => console.error('Failed to send order confirmation email:', error))
+
+    cartService
+      .clearCart(userId)
+      .catch((error) => console.error('Failed to clear cart after PayPal payment:', error))
+      .finally(() => {
+        router.push('/cart?checkout=success')
+      })
+  }, [pendingPaypalOrder, userId, userEmail, cartItems, router])
 
   // Calculate totals
   const subtotal = cartItems.reduce(
@@ -870,7 +905,10 @@ export default function CheckoutPage() {
                       <button
                         key={method.code}
                         type="button"
-                        onClick={() => setPaymentMethod(method.code)}
+                        onClick={() => {
+                          setPaymentMethod(method.code)
+                          setPendingPaypalOrder(null)
+                        }}
                         className={`w-full text-left border-2 rounded-lg p-4 transition ${
                           paymentMethod === method.code
                             ? 'border-black bg-gray-50'
@@ -1080,13 +1118,28 @@ export default function CheckoutPage() {
                   />
                 </div>
 
-                <button
-                  onClick={handlePlaceOrder}
-                  disabled={processing}
-                  className="w-full py-4 btn-primary-animated"
-                >
-                  {processing ? tr('Processing...', 'Memproses...') : tr('Place Order', 'Buat Pesanan')}
-                </button>
+                {pendingPaypalOrder ? (
+                  <div className="rounded-lg border border-gray-200 p-4">
+                    <p className="text-sm text-gray-600 mb-3">
+                      {tr(
+                        'Complete your payment with PayPal below to finish placing your order.',
+                        'Selesaikan pembayaran dengan PayPal di bawah untuk menyelesaikan pesanan Anda.'
+                      )}
+                    </p>
+                    <PayPalCheckoutButton
+                      orderNumber={pendingPaypalOrder.order_number}
+                      onSuccess={handlePaypalSuccess}
+                    />
+                  </div>
+                ) : (
+                  <button
+                    onClick={handlePlaceOrder}
+                    disabled={processing}
+                    className="w-full py-4 btn-primary-animated"
+                  >
+                    {processing ? tr('Processing...', 'Memproses...') : tr('Place Order', 'Buat Pesanan')}
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -1129,6 +1182,14 @@ export default function CheckoutPage() {
                     <span>{tr('Total', 'Total')}</span>
                     <span>{formatPrice(total)}</span>
                   </div>
+                  {/* Catalog prices can be shown in USD, but orders are always
+                      created and settled in IDR — say so before they pay. */}
+                  {language === 'en' && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Orders are processed in Indonesian Rupiah (IDR). Card and PayPal
+                      payments are converted by the payment provider at checkout.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

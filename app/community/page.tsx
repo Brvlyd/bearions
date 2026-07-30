@@ -5,10 +5,14 @@ import { Image as ImageIcon, X } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n'
 import { CommunityPost, supabase } from '@/lib/supabase'
 import { getImageUrl } from '@/lib/image-utils'
+import { usePagination } from '@/lib/hooks/usePagination'
+import Pagination from '@/components/Pagination'
 import {
   getCommunityTileClassName,
   normalizeCommunityLayoutSize,
 } from '@/lib/community-layout'
+
+const POSTS_PER_PAGE = 16
 
 type SupabaseErrorLike = {
   message?: string
@@ -56,6 +60,9 @@ export default function CommunityPage() {
   const [loading, setLoading] = useState(true)
   const [activePost, setActivePost] = useState<CommunityPost | null>(null)
   const [modalReady, setModalReady] = useState(false)
+
+  const { page, setPage, totalPages, pageItems, firstItemIndex, lastItemIndex, totalItems } =
+    usePagination(posts, POSTS_PER_PAGE)
 
   useEffect(() => {
     loadPosts()
@@ -175,11 +182,6 @@ export default function CommunityPage() {
           <h1 className="text-2xl font-bold mb-2 text-black text-center">
             {language === 'en' ? 'Community Gallery' : 'Galeri Komunitas'}
           </h1>
-          <p className="text-sm text-gray-600 text-center">
-            {language === 'en'
-              ? 'A simple visual gallery of admin posts.'
-              : 'Galeri visual sederhana dari post admin.'}
-          </p>
         </div>
 
         {schemaMissing && (
@@ -205,8 +207,8 @@ export default function CommunityPage() {
         )}
 
         {!loading && (
-          <div className="grid grid-cols-2 md:grid-cols-4 auto-rows-[120px] md:auto-rows-[140px] grid-flow-dense gap-3 md:gap-4">
-            {posts.map((post) => (
+          <div id="community-gallery" className="grid grid-cols-2 md:grid-cols-4 auto-rows-[120px] md:auto-rows-[140px] grid-flow-dense gap-3 md:gap-4">
+            {pageItems.map((post) => (
               <button
                 key={post.id}
                 type="button"
@@ -231,6 +233,19 @@ export default function CommunityPage() {
               </button>
             ))}
           </div>
+        )}
+
+        {!loading && posts.length > 0 && (
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            firstItemIndex={firstItemIndex}
+            lastItemIndex={lastItemIndex}
+            totalItems={totalItems}
+            itemLabel={{ en: 'posts', id: 'post' }}
+            scrollTargetId="community-gallery"
+          />
         )}
 
         {!loading && posts.length === 0 && (

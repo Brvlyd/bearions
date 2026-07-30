@@ -17,7 +17,7 @@ Sistem bilingual sekarang **aktif di seluruh aplikasi** - baik halaman user maup
 
 **Teks yang ditranslate:**
 ```typescript
-- home.hero.title: "Welcome to Bearions" / "Selamat Datang di Bearions"
+- home.hero.title: "Welcome to Bearion" / "Selamat Datang di Bearion"
 - home.hero.subtitle: "Your One-Stop Shop..." / "Toko Serba Ada..."
 - home.hero.cta: "Shop Now" / "Belanja Sekarang"
 - home.features.quality: "Premium Quality" / "Kualitas Premium"

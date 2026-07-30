@@ -12,7 +12,7 @@ export async function createServerClient() {
     supabaseAnonKey,
     {
       auth: {
-        storageKey: 'bearions-auth',
+        storageKey: 'bearion-auth',
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: true,

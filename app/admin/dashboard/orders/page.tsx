@@ -1,15 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Order, Payment } from '@/lib/supabase'
 import { useLanguage } from '@/lib/i18n'
 import { useRealtimeOrders } from '@/lib/hooks/useRealtimeOrders'
+import { usePagination } from '@/lib/hooks/usePagination'
+import Pagination from '@/components/Pagination'
 import Link from 'next/link'
 import { ShoppingBag, Eye, Search, Filter, Package, DollarSign, Clock, CheckCircle, XCircle, Truck } from 'lucide-react'
 
 type FilterStatus = 'all' | Order['status']
 type FilterPayment = 'all' | Order['payment_status']
 type FilterProof = 'all' | 'pending'
+
+const ORDERS_PER_PAGE = 10
 
 export default function OrdersPage() {
   const { tr } = useLanguage()
@@ -102,7 +106,7 @@ export default function OrdersPage() {
     )
   }
 
-  const getFilteredOrders = () => {
+  const filteredOrders = useMemo(() => {
     let filtered = [...orders]
 
     // Status filter
@@ -152,9 +156,15 @@ export default function OrdersPage() {
     }
 
     return filtered
-  }
+  }, [orders, statusFilter, paymentFilter, proofFilter, searchQuery, proofStatusMap])
 
-  const filteredOrders = getFilteredOrders()
+  const { page, setPage, totalPages, pageItems, firstItemIndex, lastItemIndex, totalItems } =
+    usePagination(filteredOrders, ORDERS_PER_PAGE)
+
+  // Any filter change restarts the table at page 1.
+  useEffect(() => {
+    setPage(1)
+  }, [statusFilter, paymentFilter, proofFilter, searchQuery, setPage])
 
   // Calculate stats
   const totalOrders = orders.length
@@ -399,7 +409,7 @@ export default function OrdersPage() {
       </div>
 
       {/* Orders Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div id="orders-table" className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
@@ -423,7 +433,7 @@ export default function OrdersPage() {
                   </td>
                 </tr>
               ) : (
-                filteredOrders.map((order) => {
+                pageItems.map((order) => {
                   // Highlight orders yang sudah dibayar tapi belum dikirim
                   const isReadyToShip = order.payment_status === 'paid' && 
                     !['shipped', 'delivered', 'cancelled', 'refunded'].includes(order.status)
@@ -489,6 +499,17 @@ export default function OrdersPage() {
           </table>
         </div>
       </div>
+
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        firstItemIndex={firstItemIndex}
+        lastItemIndex={lastItemIndex}
+        totalItems={totalItems}
+        itemLabel={{ en: 'orders', id: 'pesanan' }}
+        scrollTargetId="orders-table"
+      />
 
       {/* Results Summary */}
       <div className="mt-4 text-sm text-gray-600 text-center">
