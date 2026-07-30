@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useLanguage } from '@/lib/i18n'
 import Link from 'next/link'
 import { authService } from '@/lib/auth'
-import { Package, BarChart3, Users, ShoppingCart, X, Image, Images, Info, CreditCard } from 'lucide-react'
+import { Package, BarChart3, Users, ShoppingCart, X, Image, Images, Info, CreditCard, Settings } from 'lucide-react'
 import AdminHeader from '@/components/AdminHeader'
 
 export default function AdminLayout({
@@ -74,11 +74,11 @@ export default function AdminLayout({
       )}
 
       {/* Modern Admin Sidebar */}
-      <aside className={`fixed left-0 top-0 h-full w-64 bg-linear-to-b from-gray-900 via-gray-900 to-black text-white shadow-2xl z-50 transition-transform duration-300 lg:translate-x-0 ${
+      <aside className={`fixed left-0 top-0 h-full w-64 flex flex-col bg-linear-to-b from-gray-900 via-gray-900 to-black text-white shadow-2xl z-50 transition-transform duration-300 lg:translate-x-0 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         {/* Logo Section */}
-        <div className="p-6 border-b border-white/10">
+        <div className="shrink-0 p-6 border-b border-white/10">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-3 group">
               <div className="w-12 h-12 bg-white text-black flex items-center justify-center font-bold text-xl rounded-lg transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-lg">
@@ -99,7 +99,7 @@ export default function AdminLayout({
         </div>
 
         {/* Navigation */}
-        <nav className="p-4 space-y-1">
+        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
           <p className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
             {t('adminSidebar.mainMenu')}
           </p>
@@ -239,10 +239,27 @@ export default function AdminLayout({
             }`} />
             <span className="font-medium">{language === 'en' ? 'Payment Methods' : 'Metode Pembayaran'}</span>
           </Link>
+
+          <Link
+            href="/admin/dashboard/site-settings"
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group relative ${
+              pathname?.startsWith('/admin/dashboard/site-settings')
+                ? 'bg-white/10 text-white shadow-lg'
+                : 'hover:bg-white/5 text-gray-300 hover:text-white'
+            }`}
+          >
+            {pathname?.startsWith('/admin/dashboard/site-settings') && (
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full"></span>
+            )}
+            <Settings className={`w-5 h-5 transition-all duration-200 ${
+              pathname?.startsWith('/admin/dashboard/site-settings') ? 'scale-110' : 'group-hover:scale-110'
+            }`} />
+            <span className="font-medium">{language === 'en' ? 'Site Settings' : 'Pengaturan Situs'}</span>
+          </Link>
         </nav>
 
         {/* Bottom Section */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
+        <div className="shrink-0 p-4 border-t border-white/10">
           <Link
             href="/"
             className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-200 group"

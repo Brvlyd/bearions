@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { authService } from '@/lib/auth'
 import { useLanguage } from '@/lib/i18n'
 
@@ -11,12 +11,14 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
+  const pathname = usePathname()
   const { tr } = useLanguage()
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(pathname !== '/admin/login')
 
   useEffect(() => {
+    if (pathname === '/admin/login') return
     checkAuth()
-  }, [])
+  }, [pathname])
 
   const checkAuth = async () => {
     try {

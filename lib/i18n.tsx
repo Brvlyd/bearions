@@ -265,6 +265,10 @@ const translations: Translations = {
   'contact.hours': { en: 'Business Hours', id: 'Jam Operasional' },
   'contact.hoursWeekday': { en: 'Monday - Friday: 9:00 AM - 6:00 PM', id: 'Senin - Jumat: 09:00 - 18:00' },
   'contact.hoursWeekend': { en: 'Saturday - Sunday: 10:00 AM - 4:00 PM', id: 'Sabtu - Minggu: 10:00 - 16:00' },
+  'contact.namePlaceholder': { en: 'John Doe', id: 'Budi Santoso' },
+  'contact.subjectPlaceholder': { en: 'How can we help?', id: 'Ada yang bisa kami bantu?' },
+  'contact.successMessage': { en: "Thanks! Your message has been sent. We'll get back to you soon.", id: 'Terima kasih! Pesan Anda telah terkirim. Kami akan segera menghubungi Anda.' },
+  'contact.errorMessage': { en: 'Failed to send message. Please try again later.', id: 'Gagal mengirim pesan. Silakan coba lagi nanti.' },
   
   // Admin Products Page
   'adminProducts.title': { en: 'Product Management', id: 'Manajemen Produk' },
@@ -359,6 +363,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       setLanguageState(savedLang)
     }
   }, [])
+
+  // Keep <html lang> in sync so screen readers and search engines see the
+  // language the page is actually rendered in.
+  useEffect(() => {
+    document.documentElement.lang = language
+  }, [language])
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang)

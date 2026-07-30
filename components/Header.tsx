@@ -102,7 +102,7 @@ export default function Header() {
               className="px-4 py-2 rounded-lg transition-all duration-300 hover:bg-white/10 hover:scale-105 relative group"
             >
               <span className="relative z-10">{t('nav.catalog')}</span>
-              <span className="absolute inset-0 bg-linear-to-rrom-white/0 via-white/5 to-white/0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+              <span className="absolute inset-0 bg-linear-to-r from-white/0 via-white/5 to-white/0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
             </Link>
             <Link 
               href="/community" 
@@ -116,6 +116,13 @@ export default function Header() {
               className="px-4 py-2 rounded-lg transition-all duration-300 hover:bg-white/10 hover:scale-105 relative group"
             >
               <span className="relative z-10">{t('nav.about')}</span>
+              <span className="absolute inset-0 bg-linear-to-r from-white/0 via-white/5 to-white/0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+            </Link>
+            <Link
+              href="/contact"
+              className="px-4 py-2 rounded-lg transition-all duration-300 hover:bg-white/10 hover:scale-105 relative group"
+            >
+              <span className="relative z-10">{t('nav.contact')}</span>
               <span className="absolute inset-0 bg-linear-to-r from-white/0 via-white/5 to-white/0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
             </Link>
           </nav>
@@ -183,18 +190,24 @@ export default function Header() {
             
           </div>
 
-          {/* Mobile menu button with animation */}
-          <button
-            className="md:hidden p-2 rounded-lg transition-all duration-300 hover:bg-white/10 hover:scale-110"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          {/* Mobile: keep the cart (and its item count) reachable in one tap
+              instead of hiding it behind the menu */}
+          <div className="flex items-center gap-1 md:hidden">
+            <CartButton />
+            <button
+              className="p-2 rounded-lg transition-all duration-300 hover:bg-white/10 hover:scale-110"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={mobileMenuOpen ? tr('Close menu', 'Tutup menu') : tr('Open menu', 'Buka menu')}
+              aria-expanded={mobileMenuOpen}
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Navigation with slide animation */}
         <div className={`md:hidden overflow-hidden transition-all duration-300 ${
-          mobileMenuOpen ? 'max-h-96 opacity-100 pb-4' : 'max-h-0 opacity-0'
+          mobileMenuOpen ? 'max-h-[32rem] opacity-100 pb-4' : 'max-h-0 opacity-0'
         }`}>
           <div className="pt-4 space-y-2">
             <Link 
@@ -211,7 +224,7 @@ export default function Header() {
             >
               {t('nav.community')}
             </Link>
-            <Link 
+            <Link
               href="/about"
               className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
               onClick={() => setMobileMenuOpen(false)}
@@ -219,11 +232,18 @@ export default function Header() {
               {t('nav.about')}
             </Link>
             <Link
-              href="/cart"
+              href="/contact"
               className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
               onClick={() => setMobileMenuOpen(false)}
             >
-              {t('nav.cart')}
+              {t('nav.contact')}
+            </Link>
+            <Link
+              href="/contact"
+              className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              {t('nav.contact')}
             </Link>
             
             {/* Mobile Language Switcher */}
@@ -243,7 +263,7 @@ export default function Header() {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {userName ? (
-                    <span>Hello, {userName.split(' ')[0]}</span>
+                    <span>{tr('Hello', 'Halo')}, {userName.split(' ')[0]}</span>
                   ) : (
                     userRole === 'admin' ? t('nav.dashboard') : t('nav.profile')
                   )}

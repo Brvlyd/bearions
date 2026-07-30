@@ -248,11 +248,11 @@ export default function RegisterPage() {
           <div className="mt-6 text-center space-y-2">
             <p className="text-sm text-gray-600">
               {t('register.haveAccount')}{' '}
-              <Link href="/login" className="text-black font-semibold hover:underline">
+              <Link href="/login" className="text-black font-semibold hover:underline inline-block py-2 -my-2 px-1">
                 {t('register.signInLink')}
               </Link>
             </p>
-            <Link href="/" className="text-sm text-gray-600 hover:text-black block">
+            <Link href="/" className="text-sm text-gray-600 hover:text-black block py-3">
               {t('login.backToStore')}
             </Link>
           </div>

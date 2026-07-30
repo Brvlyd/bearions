@@ -10,6 +10,7 @@ import { orderService } from '@/lib/orders'
 import { shippingService } from '@/lib/shipping'
 import { paymentService } from '@/lib/payments'
 import { loadActivePaymentMethods } from '@/lib/payment-methods'
+import { notificationService } from '@/lib/notifications'
 import {
   findRegionByName,
   getDisplayRegionName,
@@ -465,6 +466,21 @@ export default function CheckoutPage() {
         amount: order.total,
         paymentGateway: selectedMethod?.requires_proof ? 'manual' : 'custom',
       })
+
+      // Send order confirmation email (best-effort — should never block checkout)
+      notificationService
+        .sendOrderConfirmationEmail(
+          userEmail,
+          selectedAddress.recipient_name,
+          order.order_number,
+          cartItems.map((item) => ({
+            name: item.product?.name || '',
+            quantity: item.quantity,
+            price: item.product?.price || 0,
+          })),
+          order.total
+        )
+        .catch((error) => console.error('Failed to send order confirmation email:', error))
 
       // Clear cart
       await cartService.clearCart(userId)

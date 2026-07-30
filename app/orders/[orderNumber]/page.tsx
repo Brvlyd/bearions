@@ -289,7 +289,7 @@ export default function UserOrderDetailPage() {
                   {item.product_image_url ? (
                     <img src={item.product_image_url} alt={item.product_name} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">No Image</div>
+                    <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">{tr('No Image', 'Tanpa Gambar')}</div>
                   )}
                 </div>
                 <div className="flex-1">

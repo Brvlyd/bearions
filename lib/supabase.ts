@@ -69,6 +69,16 @@ export type AboutUsContent = {
   updated_by: string | null
 }
 
+// Global site settings (browser tab title + favicon)
+export type SiteSettings = {
+  id: number
+  site_title: string
+  site_description: string
+  favicon_url: string | null
+  updated_at: string
+  updated_by: string | null
+}
+
 export type PaymentMethodConfig = {
   id: string
   code: string

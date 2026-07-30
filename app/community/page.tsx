@@ -220,8 +220,10 @@ export default function CommunityPage() {
                     className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05]"
                   />
 
+                  {/* Touch devices have no hover, so the caption stays visible
+                      there and only reveals on hover from a pointer device. */}
                   {post.caption && (
-                    <figcaption className="absolute bottom-0 left-0 right-0 p-3 bg-linear-to-t from-black/70 to-transparent text-white text-xs sm:text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <figcaption className="absolute bottom-0 left-0 right-0 p-3 bg-linear-to-t from-black/70 to-transparent text-white text-xs sm:text-sm opacity-100 transition-opacity duration-300 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100">
                       <p className="line-clamp-2">{post.caption}</p>
                     </figcaption>
                   )}

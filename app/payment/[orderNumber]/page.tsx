@@ -240,7 +240,7 @@ export default function PaymentPage() {
                 </h2>
 
                 <div className="rounded-lg border border-gray-300 bg-gray-50 p-6 w-full flex flex-col items-center gap-4">
-                  <img src="/qris/bearion-qris.jpeg" alt="QRIS" className="max-w-xs w-full h-auto" />
+                  <img src="/qris/bearion-qris.jpeg" alt={tr('QRIS payment code', 'Kode pembayaran QRIS')} className="max-w-xs w-full h-auto" />
                   <p className="text-sm text-gray-700 text-center">{tr('Scan this QR with your banking or e-wallet app to pay the exact amount.', 'Scan QR ini dengan aplikasi perbankan atau dompet digital untuk melakukan pembayaran.')}</p>
                   <p className="text-sm text-gray-500">{tr('After payment, your order will be updated automatically or you may upload proof if required.', 'Setelah membayar, pesanan akan diperbarui otomatis atau Anda bisa mengupload bukti jika diperlukan.')}</p>
                 </div>

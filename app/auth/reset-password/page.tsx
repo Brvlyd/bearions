@@ -197,7 +197,7 @@ export default function ResetPasswordPage() {
           )}
 
           <div className="mt-6 text-center">
-            <Link href="/login" className="text-sm text-gray-600 hover:text-black">
+            <Link href="/login" className="text-sm text-gray-600 hover:text-black inline-block py-3 px-1">
               {language === 'en' ? '← Back to sign in' : '← Kembali ke halaman login'}
             </Link>
           </div>

@@ -29,16 +29,6 @@ export default function Home() {
 
   useEffect(() => {
     loadImages()
-    
-    // Disable scrolling on mount
-    document.body.style.overflow = 'hidden'
-    document.documentElement.style.overflow = 'hidden'
-    
-    // Re-enable scrolling on unmount
-    return () => {
-      document.body.style.overflow = 'auto'
-      document.documentElement.style.overflow = 'auto'
-    }
   }, [])
 
   const loadImages = async () => {
@@ -76,7 +66,10 @@ export default function Home() {
   ]
 
   return (
-    <div className="h-screen bg-white overflow-hidden relative inset-0">
+    // dvh (not vh) so the hero matches the space actually visible once mobile
+    // browser chrome is accounted for; min-h lets it grow rather than clip if
+    // the copy ever outgrows one screen.
+    <div className="min-h-dvh bg-white relative">
       {/* Dynamic Image Grid Background */}
       <div className={`absolute inset-0 grid ${gridClass} auto-rows-fr gap-0`}>
         {(backgroundImages.length > 0 ? backgroundImages : [null]).map((image, index) => {
@@ -107,7 +100,9 @@ export default function Home() {
       </div>
 
       {/* Welcome Section Overlay */}
-      <div className="relative z-10 h-full flex items-center justify-center">
+      {/* min-h (not h-full) because the parent no longer has a fixed height;
+          py-20 keeps the panel clear of the fixed 4rem header. */}
+      <div className="relative z-10 min-h-dvh flex items-center justify-center py-20">
         <div className="text-center px-4 sm:px-6 lg:px-8 bg-black/75 rounded-3xl p-8 md:p-12 lg:p-16 max-w-3xl mx-4">
           <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold mb-4 lg:mb-6 text-white drop-shadow-lg">
             {t('home.hero.title')}

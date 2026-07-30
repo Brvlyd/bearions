@@ -451,7 +451,7 @@ export default function AdminAboutPage() {
             {form.background_image_url ? (
               <img
                 src={form.background_image_url}
-                alt="About background preview"
+                alt={language === 'en' ? 'About background preview' : 'Pratinjau latar Tentang Kami'}
                 className="absolute inset-0 w-full h-full object-cover"
               />
             ) : (

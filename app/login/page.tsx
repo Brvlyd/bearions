@@ -273,7 +273,7 @@ function LoginPageContent() {
                   type="button"
                   onClick={handleSendResetPassword}
                   disabled={resetLoading}
-                  className="text-xs text-black hover:underline disabled:text-gray-400 disabled:no-underline"
+                  className="text-xs text-black hover:underline disabled:text-gray-400 disabled:no-underline py-2 -my-2 px-1 -mr-1"
                 >
                     {resetLoading
                       ? (language === 'en' ? 'Sending...' : 'Mengirim...')
@@ -330,12 +330,12 @@ function LoginPageContent() {
           <div className="mt-6 text-center space-y-3">
             <p className="text-sm text-gray-600">
               {t('login.noAccount')}{' '}
-              <Link href="/register" className="text-black font-semibold hover:underline">
+              <Link href="/register" className="text-black font-semibold hover:underline inline-block py-2 -my-2 px-1">
                 {t('login.signUpLink')}
               </Link>
             </p>
 
-            <Link href="/" className="text-sm text-gray-600 hover:text-black block">
+            <Link href="/" className="text-sm text-gray-600 hover:text-black block py-3">
               {t('login.backToStore')}
             </Link>
           </div>
@@ -346,6 +346,7 @@ function LoginPageContent() {
 }
 
 export default function LoginPage() {
+  const { tr } = useLanguage()
   return (
     <Suspense
       fallback={
@@ -353,7 +354,7 @@ export default function LoginPage() {
           <div className="w-full max-w-md">
             <div className="bg-white border border-gray-200 rounded-lg p-8 shadow-lg text-center">
               <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-black mb-4"></div>
-              <h1 className="text-2xl font-bold text-black mb-2">Loading...</h1>
+              <h1 className="text-2xl font-bold text-black mb-2">{tr('Loading...', 'Memuat...')}</h1>
             </div>
           </div>
         </div>

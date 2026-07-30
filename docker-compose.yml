@@ -1,0 +1,22 @@
+# Run with:  docker compose --env-file .env.local up --build -d
+# (--env-file makes .env.local available for build-arg substitution below;
+#  the env_file: entry makes it available inside the running container too)
+
+services:
+  web:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    image: bearions-web
+    container_name: bearions-web
+    restart: unless-stopped
+    env_file:
+      - .env.local
+    ports:
+      # Host port 3001 (container still listens on 3000) to avoid clashing
+      # with a locally-running `next dev`/`next start` on port 3000.
+      # Binds to all host network interfaces, so devices on the same
+      # Wi-Fi/LAN (e.g. a phone) can reach it via the host's LAN IP.
+      - "3001:3000"

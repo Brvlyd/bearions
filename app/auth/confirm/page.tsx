@@ -151,6 +151,7 @@ function ConfirmAuthContent() {
 }
 
 export default function ConfirmAuthPage() {
+  const { tr } = useLanguage()
   return (
     <Suspense
       fallback={
@@ -158,7 +159,7 @@ export default function ConfirmAuthPage() {
           <div className="w-full max-w-md">
             <div className="bg-white border border-gray-200 rounded-lg p-8 shadow-lg text-center">
               <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-black mb-4"></div>
-              <h1 className="text-2xl font-bold text-black mb-2">Loading...</h1>
+              <h1 className="text-2xl font-bold text-black mb-2">{tr('Loading...', 'Memuat...')}</h1>
             </div>
           </div>
         </div>

@@ -774,7 +774,7 @@ export default function UserProfilePage() {
                 </p>
                 <Link
                   href="/catalog"
-                  className="text-sm font-medium text-black hover:underline"
+                  className="text-sm font-medium text-black hover:underline inline-flex items-center min-h-11 px-1"
                 >
                   {tr('Shop again', 'Belanja lagi')}
                 </Link>

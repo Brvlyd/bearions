@@ -143,10 +143,10 @@ function OtpVerificationContent() {
           </div>
 
           <div className="mt-6 text-center space-y-2">
-            <Link href="/register" className="text-sm text-gray-600 hover:text-black block">
+            <Link href="/register" className="text-sm text-gray-600 hover:text-black block py-3">
               {language === 'en' ? '← Back to register' : '← Kembali ke daftar'}
             </Link>
-            <Link href="/" className="text-sm text-gray-600 hover:text-black block">
+            <Link href="/" className="text-sm text-gray-600 hover:text-black block py-3">
               {language === 'en' ? '← Back to store' : '← Kembali ke toko'}
             </Link>
           </div>
@@ -157,6 +157,7 @@ function OtpVerificationContent() {
 }
 
 export default function OtpVerificationPage() {
+  const { tr } = useLanguage()
   return (
     <Suspense
       fallback={
@@ -164,7 +165,7 @@ export default function OtpVerificationPage() {
           <div className="w-full max-w-md">
             <div className="bg-white border border-gray-200 rounded-lg p-8 shadow-lg text-center">
               <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-black mb-4"></div>
-              <h1 className="text-2xl font-bold text-black mb-2">Loading...</h1>
+              <h1 className="text-2xl font-bold text-black mb-2">{tr('Loading...', 'Memuat...')}</h1>
             </div>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { sendTransactionalEmail } from '@/lib/brevo'
 
 interface EmailRequest {
   to: string
@@ -6,26 +7,12 @@ interface EmailRequest {
   htmlContent: string
 }
 
-/**
- * POST /api/notifications/send-email
- * 
- * Sends email notifications to customers
- * 
- * In production, this should integrate with:
- * - Supabase Email (Auth-based)
- * - SendGrid
- * - Resend
- * - AWS SES
- * - etc.
- * 
- * For now, this is a placeholder that logs emails
- * TODO: Implement actual email sending
- */
+// POST /api/notifications/send-email
+// Sends transactional email notifications to customers via Brevo.
 export async function POST(request: NextRequest) {
   try {
     const body: EmailRequest = await request.json()
 
-    // Validate request
     if (!body.to || !body.subject || !body.htmlContent) {
       return NextResponse.json(
         { message: 'Missing required fields: to, subject, htmlContent' },
@@ -33,27 +20,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // TODO: Implement actual email sending here
-    // For now, just log the email
-    console.log('📧 Email to send:', {
-      to: body.to,
+    const result = await sendTransactionalEmail({
+      to: { email: body.to },
       subject: body.subject,
       htmlContent: body.htmlContent,
-      timestamp: new Date().toISOString(),
     })
-
-    // In production, integrate with email service:
-    // const result = await emailService.send({
-    //   to: body.to,
-    //   subject: body.subject,
-    //   html: body.htmlContent,
-    // })
 
     return NextResponse.json(
       {
-        message: 'Email queued for sending',
+        message: 'Email sent',
         to: body.to,
         subject: body.subject,
+        messageId: result.messageId,
       },
       { status: 200 }
     )

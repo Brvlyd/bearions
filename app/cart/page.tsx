@@ -329,6 +329,7 @@ function CartPageContent() {
 }
 
 export default function CartPage() {
+  const { tr } = useLanguage()
   return (
     <Suspense
       fallback={
@@ -336,7 +337,7 @@ export default function CartPage() {
           <div className="container mx-auto px-4 py-12 pt-24">
             <div className="text-center">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-              <p className="mt-4 text-gray-600">Loading cart...</p>
+              <p className="mt-4 text-gray-600">{tr('Loading cart...', 'Memuat keranjang...')}</p>
             </div>
           </div>
         </div>

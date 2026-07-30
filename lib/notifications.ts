@@ -146,6 +146,97 @@ export const notificationService = {
   },
 
   /**
+   * Send order confirmation email after a successful checkout
+   */
+  async sendOrderConfirmationEmail(
+    customerEmail: string,
+    customerName: string,
+    orderNumber: string,
+    items: Array<{ name: string; quantity: number; price: number }>,
+    total: number
+  ): Promise<void> {
+    try {
+      const formatCurrency = (amount: number) =>
+        new Intl.NumberFormat('id-ID', {
+          style: 'currency',
+          currency: 'IDR',
+          minimumFractionDigits: 0,
+        }).format(amount)
+
+      const itemsRows = items
+        .map(
+          (item) => `
+            <tr>
+              <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${item.name}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrency(item.price * item.quantity)}</td>
+            </tr>
+          `
+        )
+        .join('')
+
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: #000; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+              .content { background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; }
+              .footer { background: #f3f4f6; padding: 15px; text-align: center; font-size: 12px; color: #6b7280; }
+              table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+              th { text-align: left; padding: 8px; border-bottom: 2px solid #000; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h2>Pesanan Diterima</h2>
+              </div>
+              <div class="content">
+                <p>Halo ${customerName},</p>
+                <p>Terima kasih! Pesanan Anda dengan nomor <strong>${orderNumber}</strong> telah kami terima dan sedang diproses.</p>
+
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Produk</th>
+                      <th style="text-align:center;">Qty</th>
+                      <th style="text-align:right;">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${itemsRows}
+                  </tbody>
+                </table>
+
+                <p style="text-align: right; font-size: 16px;"><strong>Total: ${formatCurrency(total)}</strong></p>
+
+                <p>Kami akan mengirimkan update berikutnya begitu pembayaran dikonfirmasi. Anda bisa memantau status pesanan di halaman "Pesanan Saya".</p>
+
+                <p>Terima kasih telah berbelanja dengan kami!</p>
+              </div>
+              <div class="footer">
+                <p>&copy; 2026 Bearions. All rights reserved.</p>
+              </div>
+            </div>
+          </body>
+        </html>
+      `
+
+      await notificationService.sendEmail({
+        to: customerEmail,
+        subject: `Pesanan Diterima - ${orderNumber}`,
+        htmlContent,
+      })
+    } catch (error) {
+      console.error('Error sending order confirmation email:', error)
+      throw error
+    }
+  },
+
+  /**
    * Generic email sending via API route
    */
   async sendEmail(notification: EmailNotification): Promise<void> {
