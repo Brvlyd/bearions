@@ -107,16 +107,15 @@ export default function Home() {
       <div className="relative z-10 min-h-dvh flex items-end justify-center pt-20 pb-24 md:pb-32 lg:pb-40 px-4">
         <div className="hero-cta-bob group relative">
           {/* Soft dark halo: guarantees contrast on light photos. */}
-          <div className="hero-cta-halo pointer-events-none absolute -inset-8 rounded-[2rem] bg-black/40 blur-2xl transition-colors duration-300 group-hover:bg-black/60" />
+          <div className="hero-cta-halo pointer-events-none absolute -inset-8 rounded-4xl bg-white blur-2xl transition-colors duration-300 group-hover:bg-black/60" />
 
           {/* Matte sticker look: flat pastel fill, no sheen, and a solid offset
               shadow the button sinks into when pressed. */}
           <Link
             href="/catalog"
-            className="relative inline-flex items-center gap-3 rounded-2xl bg-pink-200 px-10 py-5 lg:px-14 lg:py-6 text-xl lg:text-3xl font-extrabold text-rose-950 shadow-[0_7px_0_0_#f472b6] transition-all duration-200 ease-out will-change-transform hover:-translate-y-1 hover:rotate-2 hover:scale-105 hover:bg-pink-100 hover:shadow-[0_10px_0_0_#f472b6] active:translate-y-1.5 active:rotate-0 active:scale-100 active:shadow-[0_1px_0_0_#f472b6] active:duration-75 focus-visible:outline-hidden"
+            className="relative inline-flex items-center gap-3 rounded-2xl bg-gray-100 px-10 py-5 lg:px-14 lg:py-6 text-xl lg:text-3xl font-extrabold text-black shadow-[0_7px_0_0_#f472b6] transition-all duration-200 ease-out will-change-transform hover:-translate-y-1 hover:rotate-2 hover:scale-105 hover:bg-gray-300 hover:shadow-[0_10px_0_0_#f472b6] active:translate-y-1.5 active:rotate-0 active:scale-100 active:shadow-[0_1px_0_0_#f472b6] active:duration-75 focus-visible:outline-hidden"
           >
             <span aria-hidden="true" className="hero-cta-mascot inline-block">
-              🐻
             </span>
             {t('home.hero.cta')}
           </Link>
