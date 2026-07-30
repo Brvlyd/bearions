@@ -17,6 +17,14 @@ export const DEFAULT_FAVICON_URL = '/favicon.ico'
 export const DEFAULT_LOGO_URL = '/images/bearion-logo.png'
 
 /**
+ * Same mark rendered in white, for the black site header. The bundled artwork
+ * is black line work, so on the dark bar it would otherwise be invisible.
+ * Only used when no custom logo is set — an uploaded logo is shown as-is,
+ * which is why Admin > Site Settings previews it against the black bar.
+ */
+export const DEFAULT_LOGO_DARK_BG_URL = '/images/bearion-logo-light.png'
+
+/**
  * Intrinsic pixel size of DEFAULT_LOGO_URL. The navbar slot is derived from
  * these numbers so an uploaded replacement occupies exactly the same box as the
  * bundled mark and never reflows the header, whatever its own dimensions are.
@@ -25,8 +33,8 @@ export const LOGO_NATURAL_WIDTH = 599
 export const LOGO_NATURAL_HEIGHT = 539
 export const LOGO_ASPECT_RATIO = `${LOGO_NATURAL_WIDTH} / ${LOGO_NATURAL_HEIGHT}`
 
-/** Rendered navbar logo box, scaled from the intrinsic size to fit the 64px bar. */
-export const LOGO_DISPLAY_HEIGHT = 36
+/** Rendered navbar logo box, scaled from the intrinsic size to fit the 80px bar. */
+export const LOGO_DISPLAY_HEIGHT = 52
 export const LOGO_DISPLAY_WIDTH = Math.round(
   (LOGO_DISPLAY_HEIGHT * LOGO_NATURAL_WIDTH) / LOGO_NATURAL_HEIGHT
 )
@@ -156,3 +164,11 @@ export const resolveLogoUrl = (logoUrl: string | null | undefined, version?: str
   const separator = src.includes('?') ? '&' : '?'
   return `${src}${separator}v=${encodeURIComponent(version)}`
 }
+
+/**
+ * Logo for a dark background (the site header). Swaps in the white variant of
+ * the bundled mark; a custom logo is returned untouched because its colours are
+ * the author's choice, not ours to invert.
+ */
+export const resolveDarkBgLogoUrl = (logoUrl: string | null | undefined, version?: string) =>
+  logoUrl?.trim() ? resolveLogoUrl(logoUrl, version) : DEFAULT_LOGO_DARK_BG_URL

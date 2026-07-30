@@ -54,13 +54,13 @@ export default function CartButton() {
     <Link
       href="/cart"
       onClick={handleClick}
-      className={`relative inline-flex p-3 rounded-full transition-all duration-300 group hover:bg-white/20 hover:shadow-lg ${
+      className={`relative inline-flex p-2.5 rounded-full transition-all duration-200 group hover:bg-white/10 ${
         isAnimating ? 'scale-90' : 'scale-100'
       }`}
     >
-      <ShoppingCart className="w-5 h-5 text-white group-hover:text-white transition-all duration-300 group-hover:scale-110" />
+      <ShoppingCart className="w-5 h-5 text-white/70 group-hover:text-white transition-colors duration-200" />
       {userId && cartCount > 0 && (
-        <span className="absolute -top-1 -right-1 bg-white text-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center ring-2 ring-black transition-all duration-300 group-hover:scale-110">
+        <span className="absolute top-0 right-0 bg-white text-black text-[10px] font-bold rounded-full w-4.5 h-4.5 flex items-center justify-center ring-2 ring-black">
           {cartCount > 9 ? '9+' : cartCount}
         </span>
       )}

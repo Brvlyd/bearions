@@ -104,7 +104,16 @@
       "PowerShell(Remove-Item \"c:\\\\ebeb\\\\Tugas\\\\Codingan\\\\Bearions\\\\render-email-preview.mts\" -Confirm:$false; Get-Content \"C:\\\\Users\\\\USER\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--ebeb-Tugas-Codingan-Bearions\\\\8c071e9c-904b-4cab-83b8-26baa7985ec4\\\\scratchpad\\\\reset-id.html\" | Select-Object -First 3; \"...\"; \\(Get-Item \"C:\\\\Users\\\\USER\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--ebeb-Tugas-Codingan-Bearions\\\\8c071e9c-904b-4cab-83b8-26baa7985ec4\\\\scratchpad\\\\reset-id.html\"\\).Length)",
       "Bash(node -e \"const p=require\\('./package.json'\\);console.log\\(JSON.stringify\\(p.scripts\\)\\);console.log\\(Object.keys\\({...p.dependencies,...p.devDependencies}\\).join\\(' '\\)\\)\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" --max-time 180 --retry 10 --retry-delay 5 --retry-connrefused http://localhost:3111/)",
-      "PowerShell(Get-NetTCPConnection -State Listen | Where-Object { $_.LocalPort -ge 3000 -and $_.LocalPort -le 3010 } | Select-Object LocalAddress,LocalPort | Format-Table -AutoSize)"
+      "PowerShell(Get-NetTCPConnection -State Listen | Where-Object { $_.LocalPort -ge 3000 -and $_.LocalPort -le 3010 } | Select-Object LocalAddress,LocalPort | Format-Table -AutoSize)",
+      "Bash(sed -i 's/3111/3000/' \"C:/Users/USER/AppData/Local/Temp/claude/c--ebeb-Tugas-Codingan-Bearions/32190899-3800-4f3f-b858-c9af13012ffa/scratchpad/shot.mjs\")",
+      "Bash(node \"C:/Users/USER/AppData/Local/Temp/claude/c--ebeb-Tugas-Codingan-Bearions/32190899-3800-4f3f-b858-c9af13012ffa/scratchpad/shot.mjs\" \"C:/Users/USER/AppData/Local/Temp/claude/c--ebeb-Tugas-Codingan-Bearions/32190899-3800-4f3f-b858-c9af13012ffa/scratchpad\")",
+      "Bash(node .nav-shot.mjs \"C:/Users/USER/AppData/Local/Temp/claude/c--ebeb-Tugas-Codingan-Bearions/32190899-3800-4f3f-b858-c9af13012ffa/scratchpad\")",
+      "Bash(node .nav-shot.mjs)",
+      "PowerShell(npx tsc --noEmit -p tsconfig.json; \"TSC=$LASTEXITCODE\"; npx next lint --dir app --dir lib --dir components 2>&1 | Select-Object -Last 30)",
+      "PowerShell(npx next lint 2>&1 | Select-Object -Last 40; \"EXIT=$LASTEXITCODE\")",
+      "PowerShell(npx eslint app lib components 2>&1 | Select-Object -Last 40; \"EXIT=$LASTEXITCODE\")",
+      "PowerShell(npx eslint app lib components 2>&1 | Select-String -Pattern \"checkout|notifications|send-email|forgot-password|email-templates|api-auth|rate-limit|orders\" -Context 0,3; \"EXIT=$LASTEXITCODE\")",
+      "PowerShell(npx tsc --noEmit -p tsconfig.json; \"TSC=$LASTEXITCODE\"; npx eslint app lib components 2>&1 | Select-Object -Last 3)"
     ]
   }
 }

@@ -13,8 +13,15 @@ import {
   LOGO_ASPECT_RATIO,
   LOGO_DISPLAY_HEIGHT,
   LOGO_DISPLAY_WIDTH,
-  resolveLogoUrl,
+  resolveDarkBgLogoUrl,
 } from '@/lib/site-settings'
+
+const NAV_LINKS = [
+  { href: '/catalog', label: 'nav.catalog' },
+  { href: '/community', label: 'nav.community' },
+  { href: '/about', label: 'nav.about' },
+  { href: '/contact', label: 'nav.contact' },
+] as const
 
 export default function Header() {
   const pathname = usePathname()
@@ -25,7 +32,9 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false)
   const { language, setLanguage, t, tr } = useLanguage()
   const siteSettings = useSiteSettings()
-  const logoSrc = resolveLogoUrl(siteSettings.logo_url, siteSettings.updated_at)
+  const logoSrc = resolveDarkBgLogoUrl(siteSettings.logo_url, siteSettings.updated_at)
+
+  const isActive = (href: string) => pathname === href || pathname?.startsWith(`${href}/`)
 
   const checkAuth = async () => {
     try {
@@ -95,67 +104,64 @@ export default function Header() {
   }
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-      scrolled ? 'bg-black/95 backdrop-blur-lg shadow-lg' : 'bg-black'
-    } text-white border-b border-white/10`}>
+    <header className={`fixed top-0 left-0 right-0 z-50 text-white transition-all duration-300 ${
+      scrolled
+        ? 'bg-black/80 backdrop-blur-xl border-b border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.5)]'
+        : 'bg-black border-b border-transparent'
+    }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        {/* The bar contracts on scroll so the logo can be generous at rest
+            without eating the viewport once the user starts reading. */}
+        <div className={`flex justify-between items-center gap-4 transition-all duration-300 ${
+          scrolled ? 'h-16' : 'h-20'
+        }`}>
           {/* Logo — image only, editable from Admin > Site Settings. The box is
               fixed to the bundled mark's dimensions so any uploaded logo is
-              contained in the same slot and the header never reflows.
-              The bundled mark is black artwork and this bar is black, so the
-              logo sits on a light plate to stay legible — that also holds for
-              whatever colour an uploaded replacement happens to be. */}
+              contained in the same slot and the header never reflows. */}
           <Link
             href="/"
             className="flex items-center group shrink-0"
             aria-label={siteSettings.site_title}
           >
-            <span className="flex items-center justify-center rounded-xl bg-white px-2.5 py-1.5 shadow-sm ring-1 ring-white/25 transition-transform duration-300 group-hover:scale-105">
-              <Image
-                src={logoSrc}
-                alt={siteSettings.site_title}
-                width={LOGO_DISPLAY_WIDTH}
-                height={LOGO_DISPLAY_HEIGHT}
-                style={{ aspectRatio: LOGO_ASPECT_RATIO }}
-                className="h-9 w-auto object-contain"
-                priority
-              />
-            </span>
+            <Image
+              src={logoSrc}
+              alt={siteSettings.site_title}
+              width={LOGO_DISPLAY_WIDTH}
+              height={LOGO_DISPLAY_HEIGHT}
+              style={{ aspectRatio: LOGO_ASPECT_RATIO }}
+              className={`w-auto object-contain transition-all duration-300 group-hover:scale-105 ${
+                scrolled ? 'h-10' : 'h-13'
+              }`}
+              priority
+            />
           </Link>
 
-          {/* Desktop Navigation with modern hover effects. Below lg the links
-              plus the account buttons no longer fit beside the logo, so the
-              whole set collapses into the mobile menu instead of overlapping. */}
-          <nav className="hidden lg:flex items-center space-x-1">
-            <Link 
-              href="/catalog" 
-              className="px-4 py-2 rounded-lg transition-all duration-300 hover:bg-white/10 hover:scale-105 relative group"
-            >
-              <span className="relative z-10">{t('nav.catalog')}</span>
-              <span className="absolute inset-0 bg-linear-to-r from-white/0 via-white/5 to-white/0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-            </Link>
-            <Link 
-              href="/community" 
-              className="px-4 py-2 rounded-lg transition-all duration-300 hover:bg-white/10 hover:scale-105 relative group"
-            >
-              <span className="relative z-10">{t('nav.community')}</span>
-              <span className="absolute inset-0 bg-linear-to-r from-white/0 via-white/5 to-white/0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-            </Link>
-            <Link
-              href="/about"
-              className="px-4 py-2 rounded-lg transition-all duration-300 hover:bg-white/10 hover:scale-105 relative group"
-            >
-              <span className="relative z-10">{t('nav.about')}</span>
-              <span className="absolute inset-0 bg-linear-to-r from-white/0 via-white/5 to-white/0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-            </Link>
-            <Link
-              href="/contact"
-              className="px-4 py-2 rounded-lg transition-all duration-300 hover:bg-white/10 hover:scale-105 relative group"
-            >
-              <span className="relative z-10">{t('nav.contact')}</span>
-              <span className="absolute inset-0 bg-linear-to-r from-white/0 via-white/5 to-white/0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-            </Link>
+          {/* Desktop Navigation. Below lg the links plus the account buttons no
+              longer fit beside the logo, so the whole set collapses into the
+              mobile menu instead of overlapping. */}
+          <nav className="hidden lg:flex items-center gap-1">
+            {NAV_LINKS.map(({ href, label }) => {
+              const active = isActive(href)
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  aria-current={active ? 'page' : undefined}
+                  className={`group relative px-4 py-2 text-sm font-medium rounded-full transition-colors duration-200 ${
+                    active ? 'text-white' : 'text-white/65 hover:text-white'
+                  }`}
+                >
+                  {t(label)}
+                  {/* Underline marks the current section, and grows from the
+                      centre on hover so the target reads before clicking. */}
+                  <span
+                    className={`absolute left-1/2 -translate-x-1/2 bottom-1 h-px bg-white transition-all duration-300 ${
+                      active ? 'w-5' : 'w-0 group-hover:w-5'
+                    }`}
+                  />
+                </Link>
+              )
+            })}
           </nav>
 
           {/* Right Side with enhanced animations */}
@@ -226,7 +232,7 @@ export default function Header() {
           <div className="flex items-center gap-1 lg:hidden">
             <CartButton />
             <button
-              className="p-2 rounded-lg transition-all duration-300 hover:bg-white/10 hover:scale-110"
+              className="p-2.5 rounded-full text-white/70 hover:text-white transition-colors duration-200 hover:bg-white/10"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? tr('Close menu', 'Tutup menu') : tr('Open menu', 'Buka menu')}
               aria-expanded={mobileMenuOpen}
@@ -240,50 +246,38 @@ export default function Header() {
         <div className={`lg:hidden overflow-hidden transition-all duration-300 ${
           mobileMenuOpen ? 'max-h-128 opacity-100 pb-4' : 'max-h-0 opacity-0'
         }`}>
-          <div className="pt-4 space-y-2">
-            <Link 
-              href="/catalog" 
-              className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              {t('nav.catalog')}
-            </Link>
-            <Link 
-              href="/community" 
-              className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              {t('nav.community')}
-            </Link>
-            <Link
-              href="/about"
-              className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              {t('nav.about')}
-            </Link>
-            <Link
-              href="/contact"
-              className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              {t('nav.contact')}
-            </Link>
+          <div className="pt-4 pb-2 space-y-1 border-t border-white/10">
+            {NAV_LINKS.map(({ href, label }) => {
+              const active = isActive(href)
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  aria-current={active ? 'page' : undefined}
+                  className={`block px-4 py-2.5 rounded-xl transition-colors duration-200 ${
+                    active ? 'bg-white/10 text-white font-medium' : 'text-white/70 hover:bg-white/5 hover:text-white'
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {t(label)}
+                </Link>
+              )
+            })}
 
             {/* Mobile Language Switcher */}
             <button
               onClick={toggleLanguage}
-              className="flex items-center gap-2 w-full px-4 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
+              className="flex items-center gap-2 w-full px-4 py-2.5 rounded-xl text-white/70 hover:bg-white/5 hover:text-white transition-colors duration-200"
             >
               <Globe className="w-4 h-4" />
               <span>{language === 'en' ? 'English' : 'Bahasa Indonesia'}</span>
             </button>
-            
+
             {isLoggedIn ? (
               <>
-                <Link 
+                <Link
                   href={userRole === 'admin' ? '/admin/dashboard' : '/profile'}
-                  className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
+                  className="block px-4 py-2.5 rounded-xl text-white/70 hover:bg-white/5 hover:text-white transition-colors duration-200"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {userName ? (
@@ -292,33 +286,35 @@ export default function Header() {
                     userRole === 'admin' ? t('nav.dashboard') : t('nav.profile')
                   )}
                 </Link>
-                <button 
+                <button
                   onClick={() => {
                     handleLogout()
                     setMobileMenuOpen(false)
-                  }} 
-                  className="block w-full text-left px-4 py-2 rounded-lg hover:bg-red-600/20 hover:text-red-400 transition-all duration-200"
+                  }}
+                  className="block w-full text-left px-4 py-2.5 rounded-xl text-white/70 hover:bg-red-500/15 hover:text-red-400 transition-colors duration-200"
                 >
                   {t('nav.logout')}
                 </button>
               </>
             ) : (
-              <>
-                <Link 
-                  href="/login" 
-                  className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
+              <div className="pt-2 space-y-2">
+                <Link
+                  href="/login"
+                  className="block px-4 py-2.5 rounded-xl text-white/70 hover:bg-white/5 hover:text-white transition-colors duration-200"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {t('nav.signIn')}
                 </Link>
-                <Link 
-                  href="/register" 
-                  className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
+                {/* Solid pill mirrors the desktop primary action so the main
+                    call to action stays recognisable on mobile */}
+                <Link
+                  href="/register"
+                  className="block px-4 py-2.5 rounded-full bg-white text-black text-center font-semibold hover:bg-white/90 transition-colors duration-200"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {t('nav.signUp')}
                 </Link>
-              </>
+              </div>
             )}
           </div>
         </div>

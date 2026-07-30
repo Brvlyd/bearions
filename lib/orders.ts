@@ -2,85 +2,40 @@ import { supabase } from './supabase'
 import type { Order, OrderItem, ShippingAddress } from './supabase'
 
 export const orderService = {
-  // Create new order
+  /**
+   * Create an order from the signed-in user's cart.
+   *
+   * Prices, totals, and the item list are deliberately absent from the payload:
+   * the server rebuilds all of them from the database. The payment record is
+   * created in the same request, so callers no longer create one separately.
+   */
   async createOrder(orderData: {
-    userId?: string
-    customerName: string
-    customerEmail: string
-    customerPhone: string
-    items: Array<{
-      productId: string
-      productName: string
-      productImageUrl: string | null
-      productSku?: string
-      quantity: number
-      size?: string
-      color?: string
-      price: number
-    }>
-    shippingAddressId?: string
-    shippingCost: number
-    tax: number
-    discount: number
+    shippingAddressId: string
     paymentMethod: string
     customerNotes?: string
   }): Promise<Order> {
     try {
-      // Calculate totals
-      const subtotal = orderData.items.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0
-      )
-      const total = subtotal + orderData.shippingCost + orderData.tax - orderData.discount
+      const { data: sessionData } = await supabase.auth.getSession()
+      const accessToken = sessionData.session?.access_token
 
-      // Generate order number
-      const { data: orderNumberData } = await supabase.rpc('generate_order_number')
-      const orderNumber = orderNumberData || `BRN${Date.now()}`
+      if (!accessToken) throw new Error('Not authenticated')
 
-      // Create order
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          order_number: orderNumber,
-          user_id: orderData.userId || null,
-          customer_name: orderData.customerName,
-          customer_email: orderData.customerEmail,
-          customer_phone: orderData.customerPhone,
-          subtotal,
-          shipping_cost: orderData.shippingCost,
-          tax: orderData.tax,
-          discount: orderData.discount,
-          total,
-          payment_method: orderData.paymentMethod,
-          shipping_address_id: orderData.shippingAddressId || null,
-          customer_notes: orderData.customerNotes || null,
-        })
-        .select()
-        .single()
+      const response = await fetch('/api/orders/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(orderData),
+      })
 
-      if (orderError) throw orderError
+      const result = await response.json().catch(() => ({}))
 
-      // Create order items
-      const orderItems = orderData.items.map((item) => ({
-        order_id: order.id,
-        product_id: item.productId,
-        product_name: item.productName,
-        product_image_url: item.productImageUrl,
-        product_sku: item.productSku || null,
-        quantity: item.quantity,
-        size: item.size || null,
-        color: item.color || null,
-        price: item.price,
-        subtotal: item.price * item.quantity,
-      }))
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to create order')
+      }
 
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems)
-
-      if (itemsError) throw itemsError
-
-      return order
+      return result.order as Order
     } catch (error) {
       console.error('Error creating order:', error)
       throw error

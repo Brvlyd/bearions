@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendTransactionalEmail } from '@/lib/brevo'
 import { renderPasswordResetEmail, type EmailLanguage } from '@/lib/email-templates'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 
 // POST /api/auth/forgot-password
 //
@@ -18,34 +19,6 @@ const LINK_EXPIRY_MINUTES = 60
 
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000
 const RATE_LIMIT_MAX_REQUESTS = 3
-
-// Per-instance memory only: it blunts casual abuse but resets on redeploy and is
-// not shared across serverless instances. Supabase applies its own limits on top.
-const recentRequests = new Map<string, number[]>()
-
-const isRateLimited = (key: string) => {
-  const now = Date.now()
-  const hits = (recentRequests.get(key) || []).filter((at) => now - at < RATE_LIMIT_WINDOW_MS)
-
-  if (hits.length >= RATE_LIMIT_MAX_REQUESTS) {
-    recentRequests.set(key, hits)
-    return true
-  }
-
-  hits.push(now)
-  recentRequests.set(key, hits)
-
-  // Keep the map from growing without bound on a long-lived instance.
-  if (recentRequests.size > 5000) {
-    for (const [entryKey, timestamps] of recentRequests) {
-      if (timestamps.every((at) => now - at >= RATE_LIMIT_WINDOW_MS)) {
-        recentRequests.delete(entryKey)
-      }
-    }
-  }
-
-  return false
-}
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -76,15 +49,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Format email tidak valid.' }, { status: 400 })
     }
 
-    const clientIp =
-      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      request.headers.get('x-real-ip') ||
-      'unknown'
+    const limit = checkRateLimit({
+      key: `forgot-password:${getClientIp(request)}:${email}`,
+      limit: RATE_LIMIT_MAX_REQUESTS,
+      windowMs: RATE_LIMIT_WINDOW_MS,
+    })
 
-    if (isRateLimited(`${clientIp}:${email}`)) {
+    if (!limit.allowed) {
       return NextResponse.json(
         { message: 'Terlalu banyak permintaan reset. Coba lagi dalam beberapa menit.' },
-        { status: 429 }
+        { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } }
       )
     }
 

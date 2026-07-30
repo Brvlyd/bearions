@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendTransactionalEmail } from '@/lib/brevo'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 
 interface ContactRequest {
   name: string
@@ -7,6 +8,12 @@ interface ContactRequest {
   subject: string
   message: string
 }
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+// Caps stop an unauthenticated caller from pushing megabytes into the admin
+// inbox, and keep a hostile value out of the Reply-To header.
+const MAX_LENGTHS = { name: 100, email: 254, subject: 150, message: 5000 } as const
 
 function escapeHtml(input: string): string {
   return input
@@ -21,13 +28,37 @@ function escapeHtml(input: string): string {
 // Forwards contact form submissions to the store's admin inbox via Brevo.
 export async function POST(request: NextRequest) {
   try {
-    const body: ContactRequest = await request.json()
+    const limit = checkRateLimit({
+      key: `contact:${getClientIp(request)}`,
+      limit: 5,
+      windowMs: 15 * 60 * 1000,
+    })
+
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { message: 'Terlalu banyak pesan terkirim. Silakan coba lagi nanti.' },
+        { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } }
+      )
+    }
+
+    const raw: ContactRequest = await request.json()
+
+    const body: ContactRequest = {
+      name: String(raw?.name ?? '').trim().slice(0, MAX_LENGTHS.name),
+      email: String(raw?.email ?? '').trim().slice(0, MAX_LENGTHS.email),
+      subject: String(raw?.subject ?? '').trim().slice(0, MAX_LENGTHS.subject),
+      message: String(raw?.message ?? '').trim().slice(0, MAX_LENGTHS.message),
+    }
 
     if (!body.name || !body.email || !body.subject || !body.message) {
       return NextResponse.json(
         { message: 'Missing required fields: name, email, subject, message' },
         { status: 400 }
       )
+    }
+
+    if (!EMAIL_PATTERN.test(body.email)) {
+      return NextResponse.json({ message: 'Format email tidak valid.' }, { status: 400 })
     }
 
     const receiverEmail = process.env.CONTACT_RECEIVER_EMAIL
@@ -65,12 +96,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Message sent' }, { status: 200 })
   } catch (error) {
     console.error('Error in contact API:', error)
-    return NextResponse.json(
-      {
-        message: 'Failed to send message',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    )
+    return NextResponse.json({ message: 'Failed to send message' }, { status: 500 })
   }
 }

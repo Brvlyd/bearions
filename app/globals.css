@@ -96,33 +96,36 @@ body {
     @apply hover:scale-105 active:scale-95;
   }
 
+  /* Header controls share one pill language: ghost by default, solid white for
+     the single primary action. Hover shifts colour rather than scale — at this
+     density a scaling button nudges its neighbours and reads as jitter. */
   .header-btn-primary {
-    @apply px-4 py-2 rounded-lg border border-white;
-    @apply transition-all duration-300 ease-out;
-    @apply hover:bg-white hover:text-black hover:scale-105 hover:shadow-lg;
-    @apply active:scale-95 active:shadow-md;
-    transform-origin: center;
+    @apply px-4 py-2 rounded-full bg-white text-black text-sm font-semibold;
+    @apply transition-all duration-200 ease-out;
+    @apply hover:bg-white/90 hover:shadow-lg hover:shadow-white/10;
+    @apply active:scale-95;
   }
 
   .header-btn-icon {
-    @apply flex items-center gap-2 px-3 py-2 rounded-lg;
-    @apply transition-all duration-300 ease-out;
-    @apply hover:bg-white/10 hover:scale-105;
-    @apply active:scale-95 active:bg-white/20;
+    @apply flex items-center gap-2 px-3 py-2 rounded-full text-sm text-white/70;
+    @apply transition-all duration-200 ease-out;
+    @apply hover:bg-white/10 hover:text-white;
+    @apply active:scale-95 active:bg-white/15;
   }
 
   .header-btn-logout {
-    @apply flex items-center gap-2 px-3 py-2 rounded-lg;
-    @apply transition-all duration-300 ease-out;
-    @apply hover:bg-red-600/20 hover:text-red-400 hover:scale-105;
-    @apply active:scale-95 active:bg-red-600/30;
+    @apply flex items-center gap-2 px-3 py-2 rounded-full text-sm text-white/70;
+    @apply transition-all duration-200 ease-out;
+    @apply hover:bg-red-500/15 hover:text-red-400;
+    @apply active:scale-95 active:bg-red-500/25;
   }
 
   .header-btn-language {
-    @apply flex items-center gap-2 px-3 py-2 rounded-lg border border-white/20;
-    @apply transition-all duration-300 ease-out;
-    @apply hover:bg-white/10 hover:border-white/40 hover:scale-105 hover:shadow-lg;
-    @apply active:scale-95 active:bg-white/20 active:shadow-sm;
+    @apply flex items-center gap-1.5 px-3 py-2 rounded-full text-sm;
+    @apply border border-white/15 bg-white/5 text-white/80;
+    @apply transition-all duration-200 ease-out;
+    @apply hover:bg-white/10 hover:border-white/30 hover:text-white;
+    @apply active:scale-95;
   }
 
   /* Smooth Scroll */

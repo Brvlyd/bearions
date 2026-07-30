@@ -210,10 +210,7 @@ export default function CatalogView() {
           </button>
 
           {/* Header */}
-          <div className="flex items-center gap-4 mb-8 min-w-0">
-            <div className="shrink-0 w-12 h-12 bg-gray-100 border border-gray-200 rounded-full flex items-center justify-center">
-              <span className="text-2xl">👕</span>
-            </div>
+          <div className="mb-8 min-w-0">
             <h1 className="text-2xl font-bold text-black wrap-break-word min-w-0">
               {selectedCategory === 'All Products'
                 ? (language === 'id' ? 'Semua Produk' : 'All Products')

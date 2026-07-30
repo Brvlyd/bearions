@@ -232,17 +232,9 @@ export default function OrderDetailPage() {
 
     try {
       if (action === 'approve') {
-        await notificationService.sendPaymentProofVerifiedEmail(
-          order.customer_email,
-          order.order_number,
-          payment.amount
-        )
+        await notificationService.sendPaymentProofVerifiedEmail(order.order_number)
       } else {
-        await notificationService.sendPaymentProofRejectedEmail(
-          order.customer_email,
-          order.order_number,
-          rejectionReason
-        )
+        await notificationService.sendPaymentProofRejectedEmail(order.order_number, rejectionReason)
       }
     } catch (error) {
       console.error('Error sending payment proof notification:', error)

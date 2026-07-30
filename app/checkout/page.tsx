@@ -8,7 +8,6 @@ import { supabase } from '@/lib/supabase'
 import { cartService } from '@/lib/cart'
 import { orderService } from '@/lib/orders'
 import { shippingService } from '@/lib/shipping'
-import { paymentService } from '@/lib/payments'
 import { loadActivePaymentMethods } from '@/lib/payment-methods'
 import { notificationService } from '@/lib/notifications'
 import {
@@ -432,42 +431,12 @@ export default function CheckoutPage() {
     try {
       setProcessing(true)
 
-      const subtotal = cartItems.reduce(
-        (sum, item) => sum + (item.product?.price || 0) * item.quantity,
-        0
-      )
-      const shippingCost = 15000
-      const tax = subtotal * 0.11
-
-      // Create order
+      // Totals and the item list are rebuilt server-side from the cart; the
+      // amounts rendered below are display only.
       const order = await orderService.createOrder({
-        userId,
-        customerName: selectedAddress.recipient_name,
-        customerEmail: userEmail,
-        customerPhone: selectedAddress.phone,
-        items: cartItems.map((item) => ({
-          productId: item.product_id,
-          productName: item.product?.name || '',
-          productImageUrl: item.product?.image_url || null,
-          quantity: item.quantity,
-          size: item.size || undefined,
-          color: item.color || undefined,
-          price: item.product?.price || 0,
-        })),
         shippingAddressId: selectedAddress.id,
-        shippingCost,
-        tax,
-        discount: 0,
         paymentMethod,
         customerNotes,
-      })
-
-      // Create payment record
-      await paymentService.createPayment({
-        orderId: order.id,
-        paymentMethod,
-        amount: order.total,
-        paymentGateway: isPaypal ? 'paypal' : selectedMethod?.requires_proof ? 'manual' : 'custom',
       })
 
       if (isPaypal) {
@@ -479,17 +448,7 @@ export default function CheckoutPage() {
 
       // Send order confirmation email (best-effort — should never block checkout)
       notificationService
-        .sendOrderConfirmationEmail(
-          userEmail,
-          selectedAddress.recipient_name,
-          order.order_number,
-          cartItems.map((item) => ({
-            name: item.product?.name || '',
-            quantity: item.quantity,
-            price: item.product?.price || 0,
-          })),
-          order.total
-        )
+        .sendOrderConfirmationEmail(order.order_number)
         .catch((error) => console.error('Failed to send order confirmation email:', error))
 
       // Clear cart
@@ -512,17 +471,7 @@ export default function CheckoutPage() {
     if (!pendingPaypalOrder || !userId) return
 
     notificationService
-      .sendOrderConfirmationEmail(
-        userEmail,
-        pendingPaypalOrder.customer_name,
-        pendingPaypalOrder.order_number,
-        cartItems.map((item) => ({
-          name: item.product?.name || '',
-          quantity: item.quantity,
-          price: item.product?.price || 0,
-        })),
-        pendingPaypalOrder.total
-      )
+      .sendOrderConfirmationEmail(pendingPaypalOrder.order_number)
       .catch((error) => console.error('Failed to send order confirmation email:', error))
 
     cartService
@@ -531,7 +480,7 @@ export default function CheckoutPage() {
       .finally(() => {
         router.push('/cart?checkout=success')
       })
-  }, [pendingPaypalOrder, userId, userEmail, cartItems, router])
+  }, [pendingPaypalOrder, userId, router])
 
   // Calculate totals
   const subtotal = cartItems.reduce(

@@ -12,8 +12,8 @@ import {
   LOGO_NATURAL_WIDTH,
   loadSiteSettings,
   parseSiteSettingsError,
+  resolveDarkBgLogoUrl,
   resolveFaviconLink,
-  resolveLogoUrl,
 } from '@/lib/site-settings'
 
 type Message = {
@@ -416,7 +416,9 @@ export default function AdminSiteSettingsPage() {
   }
 
   const previewFavicon = resolveFaviconLink(form.favicon_url)
-  const previewLogo = resolveLogoUrl(form.logo_url)
+  // Both previews sit on a black bar, so they must show exactly what the header
+  // shows there — the white variant of the bundled mark, or the upload as-is.
+  const previewLogo = resolveDarkBgLogoUrl(form.logo_url)
 
   return (
     <div>
