@@ -4,7 +4,7 @@ import CatalogView from '@/components/CatalogView'
 
 export default function CatalogPage() {
   return (
-    <div className="min-h-screen bg-white pt-16">
+    <div className="min-h-screen bg-white pt-20">
       <CatalogView />
     </div>
   )

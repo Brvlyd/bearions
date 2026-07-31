@@ -1,0 +1,23 @@
+-- Closes the gap left in secure-storage-policies.sql: that migration scoped
+-- storage.objects RLS to the payment's owner or an admin, but the `uploads`
+-- bucket was still flagged `public`. Public buckets serve objects through a
+-- CDN-style path (/storage/v1/object/public/...) that bypasses RLS
+-- entirely — so anyone who ever saw a proof URL (devtools, a shared
+-- screenshot, a referrer header) could still view it, forever, regardless of
+-- the RLS policies. Payment proofs routinely show a bank account number and
+-- the customer's full name, so that's worth closing.
+--
+-- After this runs, `payment_proof_url` values (old rows keep their full
+-- `.../object/public/uploads/...` URLs, new rows store a bare object path —
+-- both are handled by app/api/payment-proofs/signed-url) are no longer
+-- directly viewable. The app now resolves them into short-lived signed URLs
+-- via that route; see lib/payment-proof-url.ts and
+-- paymentService.getPaymentProofSignedUrl for the client side.
+--
+-- Run after secure-storage-policies.sql. Deploy the corresponding app code
+-- (this repo's lib/payments.ts, app/api/payment-proofs/signed-url,
+-- app/payment/[orderNumber]/page.tsx, app/admin/dashboard/orders/[id]/page.tsx)
+-- in the same release — old code expects payment_proof_url to be a working
+-- link and will show broken images/links otherwise.
+
+UPDATE storage.buckets SET public = false WHERE id = 'uploads';

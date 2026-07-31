@@ -121,16 +121,11 @@ export async function POST(request: NextRequest) {
         total: Number(order.total) || 0,
       })
     } else if (type === 'payment-proof-verified') {
-      const { data: payment } = await serviceClient
-        .from('payments')
-        .select('amount')
-        .eq('order_id', order.id)
-        .maybeSingle()
-
       email = renderPaymentProofVerifiedEmail({
         orderNumber: order.order_number,
-        // Prefer the payment row, fall back to the order total.
-        amount: Number(payment?.amount ?? order.total) || 0,
+        // order.total, not payments.amount — the payment row is writable by the
+        // customer (to attach proof) so it isn't trusted for a monetary figure.
+        amount: Number(order.total) || 0,
         customerName: order.customer_name,
       })
     } else {

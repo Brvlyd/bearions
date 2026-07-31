@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { authenticateRequest, isAdminUser } from '@/lib/api-auth'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 
 type ReviewAction = 'approve' | 'reject'
 
@@ -43,57 +44,28 @@ const isPermissionOrSchemaIssue = (message: string) => {
   )
 }
 
-const getSupabaseSessionClient = (accessToken: string) => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://iktbpmqahpkboovgbbib.supabase.co'
-
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_U1bLx1ViEflYjYCCaEJR6w_yTqsN-PK'
-
-  return createClient(supabaseUrl, supabaseAnonKey, {
-    global: {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    },
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  })
-}
-
-const isAdminUser = async (supabaseClient: ReturnType<typeof getSupabaseSessionClient>, userId: string) => {
-  const { data: adminByTable } = await supabaseClient
-    .from('admins')
-    .select('id')
-    .eq('id', userId)
-    .maybeSingle()
-
-  if (adminByTable) return true
-
-  const { data: adminByRole } = await supabaseClient
-    .from('users')
-    .select('id, role')
-    .eq('id', userId)
-    .eq('role', 'admin')
-    .maybeSingle()
-
-  return !!adminByRole
-}
-
 export async function POST(request: NextRequest) {
   try {
-    console.log('📦 Payment proof review request received')
+    const caller = await authenticateRequest(request)
 
-    const authHeader = request.headers.get('authorization') || ''
-    const accessToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
-
-    if (!accessToken) {
-      console.warn('⚠️ No access token provided')
+    if (!caller) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
     }
 
-    console.log('✅ Access token found, parsing body...')
-    const body = (await request.json()) as ReviewRequestBody
+    const limit = checkRateLimit({
+      key: `payment-proof-review:${caller.userId}:${getClientIp(request)}`,
+      limit: 30,
+      windowMs: 10 * 60 * 1000,
+    })
+
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { message: 'Too many review requests. Please try again shortly.' },
+        { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } }
+      )
+    }
+
+    const body = (await request.json().catch(() => ({}))) as Partial<ReviewRequestBody>
 
     if (!body.paymentId || !body.orderId || !body.action) {
       console.warn('⚠️ Missing required fields:', { paymentId: !!body.paymentId, orderId: !!body.orderId, action: !!body.action })
@@ -111,27 +83,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('🔐 Creating Supabase client with access token...')
-    const supabaseAdmin = getSupabaseSessionClient(accessToken)
-
-    console.log('👤 Verifying user...')
-    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser()
-
-    if (userError || !userData.user) {
-      console.warn('⚠️ User verification failed:', userError?.message)
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
-    }
-
-    console.log('✅ User verified:', userData.user.id)
-    console.log('🔍 Checking admin status...')
-    const isAdmin = await isAdminUser(supabaseAdmin, userData.user.id)
+    const isAdmin = await isAdminUser(caller)
 
     if (!isAdmin) {
-      console.warn('⚠️ User is not an admin:', userData.user.id)
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 })
     }
 
-    console.log('✅ Admin verified, fetching payment...')
+    const supabaseAdmin = caller.sessionClient
     const { data: payment, error: paymentFetchError } = await supabaseAdmin
       .from('payments')
       .select('id, order_id, payment_proof_url')
@@ -145,12 +103,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (!payment) {
-      console.warn('⚠️ Payment not found')
       return NextResponse.json({ message: 'Payment record not found' }, { status: 404 })
     }
 
     if (body.action === 'approve' && !payment.payment_proof_url) {
-      console.warn('⚠️ No payment proof URL found')
       return NextResponse.json(
         { message: 'Payment proof is required before approval' },
         { status: 400 }
@@ -162,12 +118,11 @@ export async function POST(request: NextRequest) {
 
     let paymentUpdateWarning: string | null = null
 
-    console.log('💾 Updating payment record...')
     const { error: updatePaymentError } = await supabaseAdmin
       .from('payments')
       .update({
         proof_verification_status: verificationStatus,
-        proof_verified_by: userData.user.id,
+        proof_verified_by: caller.userId,
         proof_verified_at: new Date().toISOString(),
       })
       .eq('id', body.paymentId)
@@ -185,7 +140,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('📋 Fetching existing order...')
     const { data: existingOrder, error: orderFetchError } = await supabaseAdmin
       .from('orders')
       .select('admin_notes')
@@ -205,7 +159,6 @@ export async function POST(request: NextRequest) {
       ? null
       : currentAdminNotes
 
-    console.log('💾 Updating order record...')
     const { error: updateOrderError } = await supabaseAdmin
       .from('orders')
       .update({
@@ -219,7 +172,6 @@ export async function POST(request: NextRequest) {
       throw new Error(getErrorMessage(updateOrderError))
     }
 
-    console.log('✅ Payment proof review completed successfully')
     return NextResponse.json(
       {
         message: paymentUpdateWarning
@@ -238,12 +190,7 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     )
   } catch (error) {
-    console.error('❌ Error in payment proof review API:', error)
-    return NextResponse.json(
-      {
-        message: getErrorMessage(error),
-      },
-      { status: 500 }
-    )
+    console.error('Error in payment proof review API:', getErrorMessage(error))
+    return NextResponse.json({ message: 'Failed to process payment proof review' }, { status: 500 })
   }
 }

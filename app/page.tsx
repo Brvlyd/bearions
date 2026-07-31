@@ -55,7 +55,7 @@ export default function Home() {
 
   const displayedCount = Math.max(backgroundImages.length, 1)
   const gridClass = getGridColumnsClass(displayedCount)
-  const fallbackEmojis = ['🐻', '✨', '🎁', '🧸', '🛍️', '🌟']
+  //const fallbackEmojis = ['🐻', '✨', '🎁', '🧸', '🛍️', '🌟']
   const fallbackGradients = [
     'from-gray-100 to-gray-200',
     'from-gray-200 to-gray-300',
@@ -74,7 +74,7 @@ export default function Home() {
       <div className={`absolute inset-0 grid ${gridClass} auto-rows-fr gap-0`}>
         {(backgroundImages.length > 0 ? backgroundImages : [null]).map((image, index) => {
           const gradient = fallbackGradients[index % fallbackGradients.length]
-          const emoji = fallbackEmojis[index % fallbackEmojis.length]
+          //const emoji = fallbackEmojis[index % fallbackEmojis.length]
 
           return (
             <div
@@ -90,7 +90,7 @@ export default function Home() {
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
-                    <div className="text-8xl">{emoji}</div>
+                    {/* <div className="text-8xl">{emoji}</div> */}
                   </div>
                 </div>
               )}

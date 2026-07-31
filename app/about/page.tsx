@@ -24,7 +24,7 @@ export default function AboutPage() {
   }, [])
 
   return (
-    <div className="relative min-h-screen pt-16 overflow-hidden">
+    <div className="relative min-h-screen pt-20 overflow-hidden">
       <div className="absolute inset-0">
         {content.background_image_url ? (
           <img

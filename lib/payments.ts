@@ -8,13 +8,7 @@ const ALLOWED_PAYMENT_PROOF_TYPES = [
   'image/webp',
   'application/pdf',
 ]
-const PRIMARY_PAYMENT_PROOF_BUCKET = process.env.NEXT_PUBLIC_PAYMENT_PROOF_BUCKET || 'uploads'
-const FALLBACK_PAYMENT_PROOF_BUCKET = 'product-images'
-
-const isBucketNotFoundError = (error: unknown): boolean => {
-  const message = String((error as { message?: string })?.message || '').toLowerCase()
-  return message.includes('bucket not found')
-}
+const PAYMENT_PROOF_BUCKET = process.env.NEXT_PUBLIC_PAYMENT_PROOF_BUCKET || 'uploads'
 
 const isProofVerificationMetadataError = (error: unknown): boolean => {
   const message = String((error as { message?: string })?.message || '').toLowerCase()
@@ -121,7 +115,15 @@ export const paymentService = {
     }
   },
 
-  // Upload payment proof
+  /**
+   * Upload payment proof and store its storage path (not a public URL) on the
+   * payment row. The uploads bucket is private — proof images can show a bank
+   * account number and the customer's full name — so viewing one always goes
+   * through paymentService.getPaymentProofSignedUrl() rather than a bare link.
+   * There's no bucket fallback: silently dropping a proof into a public
+   * bucket if the private one is misconfigured would defeat the point, so
+   * this fails loudly instead.
+   */
   async uploadPaymentProof(
     paymentId: string,
     file: File
@@ -139,46 +141,47 @@ export const paymentService = {
       const fileName = `${paymentId}-${Date.now()}.${fileExt}`
       const filePath = `payment-proofs/${fileName}`
 
-      const uploadToBucket = async (bucketName: string): Promise<string> => {
-        const { error: uploadError } = await supabase.storage
-          .from(bucketName)
-          .upload(filePath, file)
+      const { error: uploadError } = await supabase.storage
+        .from(PAYMENT_PROOF_BUCKET)
+        .upload(filePath, file)
 
-        if (uploadError) throw uploadError
+      if (uploadError) throw uploadError
 
-        const { data: { publicUrl } } = supabase.storage
-          .from(bucketName)
-          .getPublicUrl(filePath)
-
-        return publicUrl
-      }
-
-      let publicUrl = ''
-
-      try {
-        publicUrl = await uploadToBucket(PRIMARY_PAYMENT_PROOF_BUCKET)
-      } catch (primaryError) {
-        if (
-          isBucketNotFoundError(primaryError) &&
-          PRIMARY_PAYMENT_PROOF_BUCKET !== FALLBACK_PAYMENT_PROOF_BUCKET
-        ) {
-          publicUrl = await uploadToBucket(FALLBACK_PAYMENT_PROOF_BUCKET)
-        } else {
-          throw primaryError
-        }
-      }
-
-      // Update payment record
       await supabase
         .from('payments')
-        .update({ payment_proof_url: publicUrl })
+        .update({ payment_proof_url: filePath })
         .eq('id', paymentId)
 
-      return publicUrl
+      return filePath
     } catch (error) {
       console.error('Error uploading payment proof:', error)
       throw error
     }
+  },
+
+  /** Short-lived (5 min) viewable URL for a payment's proof. Server checks ownership. */
+  async getPaymentProofSignedUrl(paymentId: string): Promise<string> {
+    const { data: sessionData } = await supabase.auth.getSession()
+    const accessToken = sessionData.session?.access_token
+
+    if (!accessToken) throw new Error('Not authenticated')
+
+    const response = await fetch('/api/payment-proofs/signed-url', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ paymentId }),
+    })
+
+    const body = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(body.message || 'Failed to load payment proof')
+    }
+
+    return body.url as string
   },
 
   // Submit proof for manual transfer and mark payment as waiting for admin verification

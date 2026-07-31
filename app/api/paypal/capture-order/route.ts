@@ -154,10 +154,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ message: 'Payment captured', orderNumber: order.order_number }, { status: 200 })
   } catch (error) {
-    console.error('Error in PayPal capture-order API:', error)
-    return NextResponse.json(
-      { message: 'Failed to capture PayPal order', error: getErrorMessage(error) },
-      { status: 500 }
-    )
+    console.error('Error in PayPal capture-order API:', getErrorMessage(error))
+    return NextResponse.json({ message: 'Failed to capture PayPal order' }, { status: 500 })
   }
 }

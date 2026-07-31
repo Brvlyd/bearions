@@ -108,10 +108,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ paypalOrderId, usdAmount }, { status: 200 })
   } catch (error) {
-    console.error('Error in PayPal create-order API:', error)
-    return NextResponse.json(
-      { message: 'Failed to create PayPal order', error: getErrorMessage(error) },
-      { status: 500 }
-    )
+    console.error('Error in PayPal create-order API:', getErrorMessage(error))
+    return NextResponse.json({ message: 'Failed to create PayPal order' }, { status: 500 })
   }
 }

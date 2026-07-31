@@ -225,7 +225,7 @@ function LoginPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4 pt-16">
+    <div className="min-h-screen bg-white flex items-center justify-center px-4 pt-20">
       <div className="w-full max-w-md">
         <div className="bg-white border border-gray-200 rounded-lg p-8 shadow-lg">
           <div className="text-center mb-8">
@@ -350,7 +350,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-white flex items-center justify-center px-4 pt-16">
+        <div className="min-h-screen bg-white flex items-center justify-center px-4 pt-20">
           <div className="w-full max-w-md">
             <div className="bg-white border border-gray-200 rounded-lg p-8 shadow-lg text-center">
               <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-black mb-4"></div>

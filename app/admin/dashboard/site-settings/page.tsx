@@ -119,8 +119,8 @@ export default function AdminSiteSettingsPage() {
     logoSection: language === 'en' ? 'Navbar Logo' : 'Logo Navbar',
     logoHint:
       language === 'en'
-        ? 'Shown in the site header. The header displays the image only — no text next to it.'
-        : 'Ditampilkan di header situs. Header hanya menampilkan gambar — tanpa teks di sampingnya.',
+        ? 'Shown in the site header. The header displays the image only — no text next to it — on a black bar, so upload a light-coloured logo with a transparent background.'
+        : 'Ditampilkan di header situs. Header hanya menampilkan gambar — tanpa teks di sampingnya — di atas bar hitam, jadi unggah logo warna terang dengan latar transparan.',
     logoUrlLabel: language === 'en' ? 'Logo URL' : 'URL Logo',
     chooseLogo: language === 'en' ? 'Upload logo' : 'Unggah logo',
     logoUploadTip:
@@ -197,8 +197,8 @@ export default function AdminSiteSettingsPage() {
     logoEditorTitle: language === 'en' ? 'Adjust navbar logo' : 'Sesuaikan logo navbar',
     logoEditorDescription:
       language === 'en'
-        ? 'Frame the logo inside the navbar slot. Crop away empty margins so the mark fills the slot, and keep the background transparent — the header renders it on a light plate.'
-        : 'Atur logo di dalam slot navbar. Potong margin kosong agar logo memenuhi slot, dan biarkan latar transparan — header menampilkannya di atas plat terang.',
+        ? 'Frame the logo inside the navbar slot. Crop away empty margins so the mark fills the slot, and keep the background transparent — the header bar is black, so a light-coloured logo reads best.'
+        : 'Atur logo di dalam slot navbar. Potong margin kosong agar logo memenuhi slot, dan biarkan latar transparan — bar header berwarna hitam, jadi logo warna terang paling terbaca.',
     faviconEditorTitle: language === 'en' ? 'Adjust tab icon' : 'Sesuaikan ikon tab',
     faviconEditorDescription:
       language === 'en'
@@ -453,18 +453,15 @@ export default function AdminSiteSettingsPage() {
               <label className="block text-sm font-medium text-black mb-2">{text.logoSection}</label>
 
               <div className="flex items-center gap-4 mb-3">
-                {/* Dark tile mirrors the black navbar the logo actually sits on,
-                    including the light plate the header renders it against */}
-                <div className="shrink-0 rounded-lg border border-gray-200 bg-black px-3 py-2 flex items-center justify-center">
-                  <span className="flex items-center justify-center rounded-xl bg-white px-2.5 py-1.5 shadow-sm ring-1 ring-white/25">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={previewLogo}
-                      alt={language === 'en' ? 'Logo preview' : 'Pratinjau logo'}
-                      style={{ aspectRatio: LOGO_ASPECT_RATIO }}
-                      className="h-9 w-auto object-contain"
-                    />
-                  </span>
+                {/* Dark tile mirrors the black navbar the logo actually sits on */}
+                <div className="shrink-0 rounded-lg border border-gray-200 bg-black px-4 py-3 flex items-center justify-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={previewLogo}
+                    alt={language === 'en' ? 'Logo preview' : 'Pratinjau logo'}
+                    style={{ aspectRatio: LOGO_ASPECT_RATIO }}
+                    className="h-13 w-auto object-contain"
+                  />
                 </div>
 
                 <div className="flex flex-wrap gap-2">
@@ -647,18 +644,16 @@ export default function AdminSiteSettingsPage() {
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-black mb-4">{text.logoPreviewTitle}</h3>
 
-          {/* Mirrors components/Header.tsx: h-16 black bar, image-only logo */}
+          {/* Mirrors components/Header.tsx at rest: h-20 black bar, image-only logo */}
           <div className="rounded-xl overflow-hidden border border-gray-200 mb-6">
-            <div className="bg-black text-white h-16 px-4 flex items-center justify-between">
-              <span className="flex items-center justify-center rounded-xl bg-white px-2.5 py-1.5 shadow-sm ring-1 ring-white/25">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={previewLogo}
-                  alt={language === 'en' ? 'Logo preview' : 'Pratinjau logo'}
-                  style={{ aspectRatio: LOGO_ASPECT_RATIO }}
-                  className="h-9 w-auto object-contain"
-                />
-              </span>
+            <div className="bg-black text-white h-20 px-4 flex items-center justify-between gap-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={previewLogo}
+                alt={language === 'en' ? 'Logo preview' : 'Pratinjau logo'}
+                style={{ aspectRatio: LOGO_ASPECT_RATIO }}
+                className="h-13 w-auto object-contain"
+              />
               <div className="hidden sm:flex items-center gap-4 text-xs text-white/50">
                 <span>{t('nav.catalog')}</span>
                 <span>{t('nav.community')}</span>

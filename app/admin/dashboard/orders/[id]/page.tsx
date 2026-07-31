@@ -6,6 +6,7 @@ import { Order, OrderItem, ShippingAddress, Payment } from '@/lib/supabase'
 import { orderService } from '@/lib/orders'
 import { supabase } from '@/lib/supabase'
 import { notificationService } from '@/lib/notifications'
+import { usePaymentProofUrl } from '@/lib/payment-proof-url'
 import { useLanguage } from '@/lib/i18n'
 import SafeImage from '@/components/SafeImage'
 import Notification from '@/components/Notification'
@@ -52,6 +53,8 @@ export default function OrderDetailPage() {
       loadOrderDetails()
     }
   }, [orderId])
+
+  const { url: proofSignedUrl } = usePaymentProofUrl(payment?.id, !!payment?.payment_proof_url)
 
   const loadOrderDetails = async () => {
     try {
@@ -853,14 +856,20 @@ export default function OrderDetailPage() {
                 <p className="text-sm text-gray-600">{tr('Payment Proof', 'Bukti Pembayaran')}</p>
                 {payment?.payment_proof_url ? (
                   <div className="mt-2 space-y-3">
-                    <a
-                      href={payment.payment_proof_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex text-sm font-medium text-black hover:underline"
-                    >
-                      {tr('View uploaded proof', 'Lihat bukti terupload')}
-                    </a>
+                    {proofSignedUrl ? (
+                      <a
+                        href={proofSignedUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex text-sm font-medium text-black hover:underline"
+                      >
+                        {tr('View uploaded proof', 'Lihat bukti terupload')}
+                      </a>
+                    ) : (
+                      <span className="inline-flex text-sm text-gray-500">
+                        {tr('Loading proof link...', 'Memuat tautan bukti...')}
+                      </span>
+                    )}
 
                     <div>
                       <p className="text-sm text-gray-600 mb-1">{tr('Proof Verification', 'Verifikasi Bukti')}</p>

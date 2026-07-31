@@ -7,6 +7,7 @@ import { ArrowLeft, CheckCircle2, CreditCard, FileUp, Image as ImageIcon, Receip
 import { supabase } from '@/lib/supabase'
 import { orderService } from '@/lib/orders'
 import { paymentService } from '@/lib/payments'
+import { usePaymentProofUrl } from '@/lib/payment-proof-url'
 import { DEFAULT_PAYMENT_METHODS, parsePaymentMethodError } from '@/lib/payment-methods'
 import { useLanguage } from '@/lib/i18n'
 import type { Order, Payment, PaymentMethodConfig } from '@/lib/supabase'
@@ -177,6 +178,8 @@ export default function PaymentPage() {
     if (!payment?.payment_proof_url) return false
     return /\.(jpg|jpeg|png|webp)(\?|$)/i.test(payment.payment_proof_url)
   }, [payment?.payment_proof_url])
+
+  const { url: proofSignedUrl } = usePaymentProofUrl(payment?.id, !!payment?.payment_proof_url)
 
   if (loading) {
     return (
@@ -384,9 +387,14 @@ export default function PaymentPage() {
             {payment.payment_proof_url ? (
               <div className="space-y-4">
                 <div className="rounded-lg border border-gray-200 p-4 bg-gray-50">
-                  {isProofImage ? (
+                  {!proofSignedUrl ? (
+                    <div className="flex items-center gap-3 text-gray-500">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400" />
+                      <span>{tr('Loading proof...', 'Memuat bukti...')}</span>
+                    </div>
+                  ) : isProofImage ? (
                     <img
-                      src={payment.payment_proof_url}
+                      src={proofSignedUrl}
                       alt={tr('Payment proof preview', 'Preview bukti pembayaran')}
                       className="max-h-80 w-auto rounded-lg border border-gray-200"
                     />
@@ -398,15 +406,17 @@ export default function PaymentPage() {
                   )}
                 </div>
 
-                <a
-                  href={payment.payment_proof_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 text-sm font-medium text-black hover:underline"
-                >
-                  <ImageIcon className="w-4 h-4" />
-                  {tr('Open uploaded proof', 'Buka bukti yang diupload')}
-                </a>
+                {proofSignedUrl && (
+                  <a
+                    href={proofSignedUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 text-sm font-medium text-black hover:underline"
+                  >
+                    <ImageIcon className="w-4 h-4" />
+                    {tr('Open uploaded proof', 'Buka bukti yang diupload')}
+                  </a>
+                )}
               </div>
             ) : (
               <p className="text-gray-600 text-sm">
