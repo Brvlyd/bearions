@@ -1,0 +1,103 @@
+<!--
+  Supabase Auth email template: "Magic Link"
+  Dashboard: Authentication -> Emails -> Magic Link
+  Subject:   Link Masuk Bearion Anda
+  Variables used: {{ .ConfirmationURL }}
+-->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+    <title>Masuk ke Bearion</title>
+    <!--[if mso]>
+      <noscript>
+        <xml>
+          <o:OfficeDocumentSettings>
+            <o:PixelsPerInch>96</o:PixelsPerInch>
+          </o:OfficeDocumentSettings>
+        </xml>
+      </noscript>
+    <![endif]-->
+  </head>
+  <body style="margin:0; padding:0; width:100%; background-color:#f3f4f6; -webkit-font-smoothing:antialiased;">
+    <div style="display:none; font-size:1px; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden; mso-hide:all;">
+      Klik tombol ini untuk masuk ke akun Bearion Anda tanpa kata sandi.
+    </div>
+    <div style="display:none; font-size:1px; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden; mso-hide:all;">
+      &#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;
+    </div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f4f6;">
+      <tr>
+        <td align="center" style="padding:24px 12px;">
+          <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:600px; background-color:#ffffff; border:1px solid #e5e7eb; border-radius:8px; overflow:hidden;">
+            <tr>
+              <td align="center" style="background-color:#000000; padding:28px 24px;">
+                <span style="font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size:22px; font-weight:bold; letter-spacing:2px; color:#ffffff;">
+                  BEARION
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:32px 24px 8px 24px;">
+                <h1 style="margin:0 0 16px 0; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size:22px; line-height:30px; font-weight:bold; color:#1f2937;">
+                  Masuk ke Bearion
+                </h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 24px 32px 24px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size:15px; line-height:24px; color:#1f2937;">
+                <p style="margin:0 0 16px 0;">Halo,</p>
+                <p style="margin:0 0 24px 0;">Klik tombol di bawah untuk langsung masuk ke akun Bearion Anda tanpa perlu memasukkan kata sandi.</p>
+
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:8px auto 24px auto;">
+                  <tr>
+                    <td align="center">
+                      <!--[if mso]>
+                        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ .ConfirmationURL }}" style="height:48px; v-text-anchor:middle; width:280px;" arcsize="12%" stroke="f" fillcolor="#000000">
+                          <w:anchorlock/>
+                          <center style="color:#ffffff; font-family:Arial, sans-serif; font-size:16px; font-weight:bold;">Masuk Sekarang</center>
+                        </v:roundrect>
+                      <![endif]-->
+                      <!--[if !mso]><!-- -->
+                        <a href="{{ .ConfirmationURL }}" target="_blank" rel="noopener"
+                           style="display:inline-block; background-color:#000000; color:#ffffff; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size:16px; font-weight:bold; line-height:48px; text-align:center; text-decoration:none; width:280px; border-radius:6px;">
+                          Masuk Sekarang
+                        </a>
+                      <!--<![endif]-->
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="margin:0 0 8px 0; font-size:13px; color:#6b7280;">Jika tombol di atas tidak berfungsi, salin dan tempel link berikut ke browser Anda:</p>
+                <p style="margin:0 0 24px 0; font-size:13px; word-break:break-all;">
+                  <a href="{{ .ConfirmationURL }}" target="_blank" rel="noopener" style="color:#2563eb; text-decoration:underline;">{{ .ConfirmationURL }}</a>
+                </p>
+
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#fffbeb; border-left:4px solid #f59e0b; border-radius:4px;">
+                  <tr>
+                    <td style="padding:14px 16px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size:13px; line-height:20px; color:#92400e;">
+                      Link ini berlaku sesaat dan hanya dapat digunakan satu kali.
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="margin:24px 0 0 0; font-size:13px; color:#6b7280;">Jika Anda tidak meminta link masuk ini, abaikan saja email ini.</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="background-color:#f9fafb; border-top:1px solid #e5e7eb; padding:20px 24px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size:12px; line-height:18px; color:#6b7280;" align="center">
+                <p style="margin:0;">&copy; 2026 Bearion. All rights reserved.</p>
+                <p style="margin:6px 0 0 0;">Email ini dikirim otomatis, mohon tidak membalas pesan ini.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
