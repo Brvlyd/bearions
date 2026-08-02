@@ -28,7 +28,7 @@ Sistem multiple images untuk product dengan auto-carousel telah berhasil diimple
 
 ### Jalankan SQL Schema
 
-Jalankan file [product-images-schema.sql](product-images-schema.sql) di Supabase SQL Editor:
+Jalankan file [product-images-schema.sql](../../db/schema/product-images-schema.sql) di Supabase SQL Editor:
 
 ```sql
 -- Table: product_images

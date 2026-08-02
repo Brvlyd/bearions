@@ -6,8 +6,10 @@ out
 .gitignore
 .env*
 !.env.local.example
-*.md
-*.sql
+**/*.md
+**/*.sql
+docs
+db
 .vscode
 .claude
 coverage

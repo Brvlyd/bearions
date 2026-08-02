@@ -13,7 +13,7 @@ The `admins` table RLS policy doesn't allow users to read their own admin record
 ### Step 1: Apply RLS Fix in Supabase
 
 1. Go to **Supabase Dashboard** → **SQL Editor**
-2. Create a new query and paste the contents of [fix-admin-verification-rls.sql](fix-admin-verification-rls.sql)
+2. Create a new query and paste the contents of [fix-admin-verification-rls.sql](../../db/fixes/fix-admin-verification-rls.sql)
 3. Click **Run**
 
 This adds a policy that allows:
@@ -68,4 +68,4 @@ The API endpoint does:
 Now the policy allows step 2 to succeed.
 
 ## Files Changed
-- [fix-admin-verification-rls.sql](fix-admin-verification-rls.sql) - RLS policy fix
+- [fix-admin-verification-rls.sql](../../db/fixes/fix-admin-verification-rls.sql) - RLS policy fix

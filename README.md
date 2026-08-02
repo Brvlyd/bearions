@@ -47,7 +47,6 @@ cd bearion
 Pilih salah satu package manager:
 
 ```bash
-```bash
 # Menggunakan npm
 npm install
 
@@ -83,18 +82,20 @@ pnpm install
 #### d. Run SQL Schemas
 1. Buka **SQL Editor** di sidebar
 2. Klik **New query**
-3. Copy & paste isi file berikut secara berurutan:
-   - `database-schema.sql` → Run
-   - `users-schema.sql` → Run
-   - `product-images-schema.sql` → Run
+3. Copy & paste isi file dari `db/schema/` secara berurutan:
+   - `db/schema/database-schema.sql` → Run
+   - `db/schema/users-schema.sql` → Run
+   - `db/schema/product-images-schema.sql` → Run
+
+Urutan lengkapnya (termasuk cart, orders, dan payment) ada di
+[db/README.md](db/README.md).
 
 ### 4. Environment Variables
 
 Buat file `.env.local` di root folder:
 
 ```bash
-# Copy dari .env.example (jika ada)
-cp .env.example .env.local
+cp .env.local.example .env.local
 ```
 
 Edit `.env.local` dan isi dengan credentials Supabase:
@@ -162,31 +163,46 @@ Sekarang bisa login sebagai admin di `/login`!
 
 ```
 bearion/
-├── app/                          # Next.js App Router
+├── app/                         # Next.js App Router
 │   ├── admin/                   # Admin pages
-│   │   ├── dashboard/          # Admin dashboard
-│   │   ├── login/              # Admin login (redirect)
-│   │   └── layout.tsx          # Admin layout with auth
-│   ├── catalog/                # Product catalog
-│   ├── login/                  # User & admin login
-│   ├── register/               # User registration
-│   ├── products/[id]/          # Product detail
-│   └── profile/                # User profile
+│   │   ├── dashboard/           # Admin dashboard
+│   │   ├── login/               # Admin login (redirect)
+│   │   └── layout.tsx           # Admin layout with auth
+│   ├── api/                     # Route handlers (orders, paypal, email, dll.)
+│   ├── auth/                    # Confirm, OTP, reset password
+│   ├── cart/                    # Keranjang
+│   ├── catalog/                 # Product catalog
+│   ├── checkout/                # Checkout flow
+│   ├── community/               # Galeri community
+│   ├── login/                   # User & admin login
+│   ├── orders/                  # Riwayat & detail order
+│   ├── payment/                 # Halaman pembayaran
+│   ├── products/[id]/           # Product detail
+│   ├── profile/                 # User profile
+│   └── register/                # User registration
 ├── components/                  # React components
-│   ├── Header.tsx              # Navigation
-│   ├── ProductCard.tsx         # Product card with carousel
-│   ├── ImageCarousel.tsx       # Auto-rotating carousel
-│   ├── MultiImageUpload.tsx    # Multi-image uploader
-│   └── CatalogView.tsx         # Catalog view
+│   ├── Header.tsx               # Navigation
+│   ├── ProductCard.tsx          # Product card with carousel
+│   ├── ImageCarousel.tsx        # Auto-rotating carousel
+│   ├── MultiImageUpload.tsx     # Multi-image uploader
+│   └── CatalogView.tsx          # Catalog view
 ├── lib/                         # Utilities & services
-│   ├── supabase.ts             # Supabase client
-│   ├── auth.ts                 # Authentication service
-│   └── products.ts             # Product service
+│   ├── hooks/                   # React hooks (pagination, realtime)
+│   ├── supabase.ts              # Supabase client
+│   ├── auth.ts                  # Authentication service
+│   └── products.ts              # Product service
+├── db/                          # SQL untuk Supabase — lihat db/README.md
+│   ├── schema/                  # Definisi tabel (setup database baru)
+│   ├── migrations/              # Perubahan schema setelah setup
+│   ├── fixes/                   # Script perbaikan sekali pakai
+│   └── checks/                  # Query verifikasi
+├── docs/                        # Dokumentasi — lihat docs/README.md
+│   ├── setup/                   # Panduan instalasi & konfigurasi
+│   ├── features/                # Dokumentasi fitur
+│   └── troubleshooting/         # Catatan perbaikan masalah
+├── scripts/                     # Script maintenance (upload gambar, cek i18n)
 ├── public/                      # Static assets
-├── database-schema.sql          # Main database schema
-├── users-schema.sql            # Users & auth schema
-├── product-images-schema.sql   # Multi-image schema
-└── package.json                # Dependencies
+└── package.json                 # Dependencies
 ```
 
 ## 🔐 Authentication
@@ -258,9 +274,12 @@ npm run lint         # Run ESLint
 
 ## 📚 Documentation
 
-- [AUTH_SETUP.md](AUTH_SETUP.md) - Authentication system guide
-- [MULTI_IMAGE_SETUP.md](MULTI_IMAGE_SETUP.md) - Multi-image feature guide
-- [FEATURES.md](FEATURES.md) - Complete feature list
+- [docs/README.md](docs/README.md) - Indeks seluruh dokumentasi
+- [docs/setup/SETUP.md](docs/setup/SETUP.md) - Panduan setup awal
+- [docs/setup/AUTH_SETUP.md](docs/setup/AUTH_SETUP.md) - Authentication system guide
+- [docs/setup/DEPLOYMENT.md](docs/setup/DEPLOYMENT.md) - Panduan deployment
+- [docs/features/FEATURES.md](docs/features/FEATURES.md) - Complete feature list
+- [db/README.md](db/README.md) - Urutan menjalankan script SQL
 
 ## 🎯 Quick Start Checklist
 
@@ -275,15 +294,6 @@ npm run lint         # Run ESLint
 - [ ] Create admin account
 - [ ] Test upload product dengan images
 - [ ] Test carousel di product detail
-
-## 📞 Contact
-
-- **Developer**: Brvlyd
-- **Repository**: [github.com/Brvlyd/bearion](https://github.com/Brvlyd/bearion)
-
----
-
-Made with ❤️ using Next.js & Supabase
 
 ## 🗄️ Database Schema
 
@@ -319,43 +329,17 @@ Made with ❤️ using Next.js & Supabase
 4. Update stock levels
 5. Monitor semua produk
 
-## 🛠️ Tech Stack
-
-- **Framework**: Next.js 15 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Database**: Supabase (PostgreSQL)
-- **Authentication**: Supabase Auth
-- **Icons**: Lucide React
-- **Deployment**: Vercel (recommended)
-
 ## 📦 Sample Data
 
 Database schema sudah include sample products. Anda bisa:
-- Modify di SQL script
+- Modify di SQL script (`db/schema/database-schema.sql`)
 - Atau hapus dan tambah via admin dashboard
 
-## 🚢 Deployment
+## 📞 Contact
 
-### Vercel (Recommended)
-
-```bash
-npm install -g vercel
-vercel
-```
-
-Jangan lupa set environment variables di Vercel dashboard!
-
-## 📞 Support
-
-Untuk pertanyaan atau issues, hubungi team Bearion.
+- **Developer**: Brvlyd
+- **Repository**: [github.com/Brvlyd/bearion](https://github.com/Brvlyd/bearion)
 
 ---
 
-**Made with ❤️ for Bearion Fashion**
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Made with ❤️ using Next.js & Supabase

@@ -40,14 +40,14 @@ File [lib/auth.ts](lib/auth.ts) sudah diperbaiki:
 
 ### 2. Perbaikan Database (WAJIB DIJALANKAN)
 
-File [fix-registration-final.sql](fix-registration-final.sql) sudah diupdate dengan:
+File [fix-registration-final.sql](../../db/fixes/fix-registration-final.sql) sudah diupdate dengan:
 - ✅ Trigger dengan `SECURITY DEFINER` (elevated privileges)
 - ✅ Policies yang benar (TIDAK ada policy INSERT untuk client)
 - ✅ Permissions yang tepat
 - ✅ Verifikasi otomatis setelah setup
 - ✅ Script untuk fix user yang sudah ada tapi tanpa profile
 
-**Gunakan file [fix-registration-final.sql](fix-registration-final.sql)** - sudah lengkap dan siap pakai!
+**Gunakan file [fix-registration-final.sql](../../db/fixes/fix-registration-final.sql)** - sudah lengkap dan siap pakai!
 
 Atau copy SQL berikut:
 -- 1. Pastikan tabel users ada

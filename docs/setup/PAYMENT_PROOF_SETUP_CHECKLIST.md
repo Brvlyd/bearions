@@ -149,7 +149,7 @@ Customer will see one of:
 ## 📞 Support Files
 
 - 📖 [Full Setup Guide](./PAYMENT_PROOF_VERIFICATION_SETUP.md)
-- 📊 [Database Migration](./add-payment-proof-verification.sql)
+- 📊 [Database Migration](../../db/migrations/add-payment-proof-verification.sql)
 - 💻 [Admin Component](./app/admin/dashboard/payment-proofs/page.tsx)
 - 📧 [Notification Service](./lib/notifications.ts)
 
