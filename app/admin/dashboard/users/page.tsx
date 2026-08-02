@@ -34,6 +34,7 @@ export default function UsersManagementPage() {
     phone: '',
     address: ''
   })
+  const [deletingUser, setDeletingUser] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   useEffect(() => {
@@ -117,12 +118,24 @@ export default function UsersManagementPage() {
     if (!selectedUser) return
 
     try {
-      const { error } = await supabase
-        .from('users')
-        .delete()
-        .eq('id', selectedUser.id)
+      setDeletingUser(true)
+      const session = await supabase.auth.getSession()
+      const accessToken = session?.data?.session?.access_token
 
-      if (error) throw error
+      const response = await fetch('/api/admin/users/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({ userId: selectedUser.id }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result?.message || 'Failed to delete user')
+      }
 
       setMessage({ type: 'success', text: tr('User deleted successfully!', 'Pengguna berhasil dihapus!') })
       loadUsers()
@@ -131,6 +144,8 @@ export default function UsersManagementPage() {
       console.error('Error deleting user:', error)
       setMessage({ type: 'error', text: getErrorMessage(error) || tr('Failed to delete user', 'Gagal menghapus pengguna') })
       closeDeleteModal()
+    } finally {
+      setDeletingUser(false)
     }
   }
 
@@ -395,9 +410,10 @@ export default function UsersManagementPage() {
               </button>
               <button
                 onClick={handleDeleteUser}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition font-medium"
+                disabled={deletingUser}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition font-medium disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {tr('Delete', 'Hapus')}
+                {deletingUser ? tr('Deleting...', 'Menghapus...') : tr('Delete', 'Hapus')}
               </button>
             </div>
           </div>

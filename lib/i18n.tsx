@@ -292,6 +292,8 @@ const translations: Translations = {
   'adminProduct.descriptionPlaceholder': { en: 'Enter product description', id: 'Masukkan deskripsi produk' },
   'adminProduct.price': { en: 'Price (Rp)', id: 'Harga (Rp)' },
   'adminProduct.pricePlaceholder': { en: '50000', id: '50000' },
+  'adminProduct.salePrice': { en: 'Sale Price (Rp)', id: 'Harga Diskon (Rp)' },
+  'adminProduct.salePricePlaceholder': { en: '250000', id: '250000' },
   'adminProduct.stock': { en: 'Stock', id: 'Stok' },
   'adminProduct.stockPlaceholder': { en: '100', id: '100' },
   'adminProduct.category': { en: 'Category', id: 'Kategori' },

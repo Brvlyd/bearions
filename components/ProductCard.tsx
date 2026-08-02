@@ -5,8 +5,7 @@ import { Product } from '@/lib/supabase'
 import { useLanguage } from '@/lib/i18n'
 import { useState, useEffect } from 'react'
 import { productService } from '@/lib/products'
-import { getImageUrl } from '@/lib/image-utils'
-import { formatProductPrice } from '@/lib/price'
+import { formatIDR, formatProductPrice, getSalePrice, isDiscounted } from '@/lib/price'
 import SafeImage from './SafeImage'
 
 interface ProductCardProps {
@@ -48,20 +47,10 @@ export default function ProductCard({ product, images: providedImages }: Product
 
   const loadImages = async () => {
     try {
-      const productImages = await productService.getProductImages(product.id)
-      const imageUrls = (productImages || []).map(
-        (img: { image_url: string }) => img.image_url
-      )
-
-      // If no images in product_images table, use main image_url
-      if (imageUrls.length > 0) {
-        setImages(imageUrls)
-      } else if (product.image_url) {
-        setImages([product.image_url])
-      }
+      const imageUrls = await productService.getProductImageUrls(product.id, product.image_url)
+      setImages(imageUrls)
     } catch (error) {
       console.error('Error loading product images:', error)
-      // Fallback to main image
       if (product.image_url) {
         setImages([product.image_url])
       }
@@ -96,7 +85,14 @@ export default function ProductCard({ product, images: providedImages }: Product
         <h3 className="font-semibold text-lg mb-1 group-hover:text-gray-600 transition text-black">
           {getProductName()}
         </h3>
-        <p className="text-black font-bold">{formatProductPrice(product, language)}</p>
+        {isDiscounted(product) ? (
+          <div>
+            <p className="text-sm text-gray-500 line-through">{formatIDR(product.price)}</p>
+            <p className="text-black font-bold">{formatIDR(getSalePrice(product)!)}</p>
+          </div>
+        ) : (
+          <p className="text-black font-bold">{formatProductPrice(product, language)}</p>
+        )}
         <p className="text-sm text-gray-500 mt-1">{t('product.stock')}: {product.stock}</p>
       </div>
     </Link>

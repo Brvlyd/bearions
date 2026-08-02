@@ -98,24 +98,39 @@ export const productService = {
 
   // Save product images (admin only)
   async saveProductImages(productId: string, imageUrls: string[]) {
-    // Delete existing images first
     await supabase
       .from('product_images')
       .delete()
       .eq('product_id', productId)
 
-    // Insert new images with order
-    const images = imageUrls.map((url, index) => ({
-      product_id: productId,
-      image_url: url,
-      display_order: index
-    }))
+    if (imageUrls.length > 0) {
+      const images = imageUrls.map((url, index) => ({
+        product_id: productId,
+        image_url: url,
+        display_order: index
+      }))
 
-    const { error } = await supabase
-      .from('product_images')
-      .insert(images)
+      const { error } = await supabase
+        .from('product_images')
+        .insert(images)
 
-    if (error) throw error
+      if (error) throw error
+
+      const { error: updateError } = await supabase
+        .from('products')
+        .update({ image_url: imageUrls[0] })
+        .eq('id', productId)
+
+      if (updateError) throw updateError
+      return
+    }
+
+    const { error: updateError } = await supabase
+      .from('products')
+      .update({ image_url: null })
+      .eq('id', productId)
+
+    if (updateError) throw updateError
   },
 
   // Get product images
@@ -128,6 +143,21 @@ export const productService = {
 
     if (error) throw error
     return data
+  },
+
+  // Resolve the full ordered image list for a product, with fallback to the
+  // legacy main image column when no gallery rows exist yet.
+  async getProductImageUrls(productId: string, fallbackImageUrl?: string | null) {
+    const images = await this.getProductImages(productId)
+    const imageUrls = (images || [])
+      .map((img: { image_url?: string | null }) => img.image_url)
+      .filter((url): url is string => Boolean(url))
+
+    if (imageUrls.length > 0) {
+      return imageUrls
+    }
+
+    return fallbackImageUrl ? [fallbackImageUrl] : []
   },
 
   // Get images for many products in one round-trip, keyed by product id.

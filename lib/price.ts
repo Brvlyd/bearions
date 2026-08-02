@@ -3,7 +3,7 @@ import type { Product } from './supabase'
 export type PriceLanguage = 'en' | 'id'
 
 /** Product fields any price formatter needs — keeps these usable with partial rows. */
-type PricedProduct = Pick<Product, 'price'> & Partial<Pick<Product, 'price_usd'>>
+type PricedProduct = Pick<Product, 'price'> & Partial<Pick<Product, 'price_usd' | 'sale_price'>>
 
 export const formatIDR = (value: number) =>
   new Intl.NumberFormat('id-ID', {
@@ -35,21 +35,43 @@ export const getIdrPrice = (product: PricedProduct): number => {
   return Number.isFinite(value) ? value : 0
 }
 
-/**
- * Headline storefront price: USD for English visitors when the CMS has one,
- * IDR otherwise. This never converts — both numbers are entered by hand.
- */
+export const getSalePrice = (product: PricedProduct): number | null => {
+  const raw = product.sale_price
+  if (raw === null || raw === undefined) return null
+
+  const value = Number(raw)
+  return Number.isFinite(value) && value > 0 ? value : null
+}
+
+export const isDiscounted = (product: PricedProduct): boolean => {
+  const salePrice = getSalePrice(product)
+  return salePrice !== null && salePrice < getIdrPrice(product)
+}
+
 export const formatProductPrice = (product: PricedProduct, language: PriceLanguage) => {
+  const salePrice = isDiscounted(product) ? getSalePrice(product) : null
   const usd = getUsdPrice(product)
+
+  if (salePrice !== null && (language === 'id' || usd === null)) {
+    return formatIDR(salePrice)
+  }
+
   return language === 'en' && usd !== null ? formatUSD(usd) : formatIDR(getIdrPrice(product))
 }
 
-/**
- * The other currency, for a secondary line under the headline price.
- * Returns null when there is no USD price to pair with the IDR one.
- */
+export const getEffectiveIdrPrice = (product: PricedProduct): number => {
+  const salePrice = isDiscounted(product) ? getSalePrice(product) : null
+  return salePrice !== null ? salePrice : getIdrPrice(product)
+}
+
 export const formatProductPriceAlt = (product: PricedProduct, language: PriceLanguage) => {
+  const salePrice = isDiscounted(product) ? getSalePrice(product) : null
   const usd = getUsdPrice(product)
+
+  if (salePrice !== null && (language === 'id' || usd === null)) {
+    return formatIDR(getIdrPrice(product))
+  }
+
   if (usd === null) return null
 
   return language === 'en' ? formatIDR(getIdrPrice(product)) : formatUSD(usd)

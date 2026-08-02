@@ -10,6 +10,7 @@ import { orderService } from '@/lib/orders'
 import { shippingService } from '@/lib/shipping'
 import { loadActivePaymentMethods } from '@/lib/payment-methods'
 import { notificationService } from '@/lib/notifications'
+import { getEffectiveIdrPrice } from '@/lib/price'
 import {
   findRegionByName,
   getDisplayRegionName,
@@ -626,7 +627,10 @@ export default function CheckoutPage() {
   // /api/orders/create for display only — the server recomputes everything and
   // rejects the order if the chosen service no longer exists.
   const subtotal = cartItems.reduce(
-    (sum, item) => sum + (item.product?.price || 0) * item.quantity,
+    (sum, item) => {
+      const price = item.product ? getEffectiveIdrPrice(item.product) : 0
+      return sum + price * item.quantity
+    },
     0
   )
   const selectedShippingOption =
@@ -635,8 +639,7 @@ export default function CheckoutPage() {
   const shippingDiscount = selectedShippingOption?.discount ?? 0
   const orderDiscount = Math.min(selectedShippingOption?.orderDiscount ?? 0, subtotal)
   const taxableAmount = Math.max(0, subtotal - orderDiscount)
-  const tax = taxableAmount * 0.11
-  const total = taxableAmount + shippingCost + tax
+  const total = taxableAmount + shippingCost
   const appliedPromotions = selectedShippingOption?.appliedPromotions ?? []
 
   const postalCodeSuggestions = Array.from(
@@ -1521,10 +1524,6 @@ export default function CheckoutPage() {
                     ))}
                   </div>
                 )}
-                <div className="flex justify-between text-gray-600">
-                  <span>{tr('Tax (VAT 11%)', 'Pajak (PPN 11%)')}</span>
-                  <span>{formatPrice(tax)}</span>
-                </div>
                 <div className="border-t border-gray-200 pt-3">
                   <div className="flex justify-between text-lg font-bold text-black">
                     <span>{tr('Total', 'Total')}</span>

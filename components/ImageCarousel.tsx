@@ -18,6 +18,13 @@ export default function ImageCarousel({ images, alt, autoPlay = true, interval =
   const { tr } = useLanguage()
   const [currentIndex, setCurrentIndex] = useState(0)
 
+  // Log images for debugging
+  useEffect(() => {
+    if (images.length > 0) {
+      console.log(`[ImageCarousel] Loaded ${images.length} images:`, images.map((img, idx) => ({ idx, url: img })))
+    }
+  }, [images])
+
   useEffect(() => {
     if (!autoPlay || images.length <= 1) return
 
@@ -62,13 +69,16 @@ export default function ImageCarousel({ images, alt, autoPlay = true, interval =
     )
   }
 
+  const currentImageUrl = images[currentIndex]
+
   return (
     <div className="relative w-full h-full group bg-white">
       {/* Main Image */}
       <div className="relative w-full h-full overflow-hidden flex items-center justify-center p-4">
         <div className="relative w-full h-full">
           <SafeImage
-            src={images[currentIndex]}
+            key={`carousel-image-${currentIndex}`}
+            src={currentImageUrl}
             alt={`${alt} - Image ${currentIndex + 1}`}
             fill
             category={category}
@@ -83,6 +93,7 @@ export default function ImageCarousel({ images, alt, autoPlay = true, interval =
         onClick={goToPrevious}
         className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition opacity-0 group-hover:opacity-100"
         aria-label={tr('Previous image', 'Gambar sebelumnya')}
+        type="button"
       >
         <ChevronLeft className="w-5 h-5" />
       </button>
@@ -91,6 +102,7 @@ export default function ImageCarousel({ images, alt, autoPlay = true, interval =
         onClick={goToNext}
         className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition opacity-0 group-hover:opacity-100"
         aria-label={tr('Next image', 'Gambar berikutnya')}
+        type="button"
       >
         <ChevronRight className="w-5 h-5" />
       </button>
@@ -101,6 +113,7 @@ export default function ImageCarousel({ images, alt, autoPlay = true, interval =
           <button
             key={index}
             onClick={() => goToSlide(index)}
+            type="button"
             className={`w-2 h-2 rounded-full transition ${
               index === currentIndex
                 ? 'bg-white w-6'

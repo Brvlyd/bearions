@@ -29,6 +29,7 @@ export default function AddProductPage() {
     description: '',
     description_id: '',
     price: '',
+    sale_price: '',
     price_usd: '',
     stock: '',
     category: '',
@@ -75,6 +76,7 @@ export default function AddProductPage() {
         description: formData.description || null,
         description_id: formData.description_id || null,
         price: parseFloat(formData.price),
+        sale_price: formData.sale_price ? parseFloat(formData.sale_price) : null,
         price_usd: formData.price_usd ? parseFloat(formData.price_usd) : null,
         stock: parseInt(formData.stock),
         category: formData.category,
@@ -206,24 +208,24 @@ export default function AddProductPage() {
             </div>
 
             <div>
-              <label htmlFor="price_usd" className="block text-sm font-medium mb-2 text-black">
-                {tr('Price (USD)', 'Harga (USD)')}
+              <label htmlFor="sale_price" className="block text-sm font-medium mb-2 text-black">
+                {tr('Sale Price (IDR)', 'Harga Diskon (IDR)')}
               </label>
               <input
-                id="price_usd"
-                name="price_usd"
+                id="sale_price"
+                name="sale_price"
                 type="number"
                 step="0.01"
                 min="0"
-                value={formData.price_usd}
+                value={formData.sale_price}
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
-                placeholder="25.00"
+                placeholder="250000"
               />
               <p className="text-xs text-gray-500 mt-1">
                 {tr(
-                  'Optional. Set by hand — it is not converted from IDR. Leave empty to show the IDR price to English visitors.',
-                  'Opsional. Diisi manual — tidak dikonversi dari IDR. Kosongkan agar pengunjung bahasa Inggris tetap melihat harga IDR.'
+                  'Optional. Enter a discounted price to show the original price crossed out.',
+                  'Opsional. Masukkan harga diskon agar harga asli dicoret.'
                 )}
               </p>
             </div>
@@ -374,7 +376,7 @@ export default function AddProductPage() {
               {tr('Product Images *', 'Gambar Produk *')}
             </label>
             <MultiImageUpload
-              onImagesChange={(urls) => setFormData({ ...formData, images: urls })}
+              onImagesChange={(urls) => setFormData((prev) => ({ ...prev, images: urls }))}
               initialImages={formData.images}
             />
           </div>

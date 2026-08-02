@@ -8,7 +8,7 @@ import { getErrorMessage } from '@/lib/errors'
 import { usePagination } from '@/lib/hooks/usePagination'
 import SafeImage from '@/components/SafeImage'
 import Pagination from '@/components/Pagination'
-import { formatIDR, formatUSD, getUsdPrice } from '@/lib/price'
+import { formatIDR, formatUSD, getSalePrice, isDiscounted, getUsdPrice } from '@/lib/price'
 import Link from 'next/link'
 import { Eye, Package, AlertCircle, Search, SlidersHorizontal, Grid, List, Pencil, Trash2, Filter, PlusCircle, Plus, Tags, ChevronDown, X } from 'lucide-react'
 
@@ -760,7 +760,14 @@ export default function MonitoringPage() {
                 <p className="text-sm text-gray-500 mb-2 truncate">{product.category}</p>
                 <div className="flex justify-between items-center gap-2 mb-3">
                   <span className="text-lg font-bold text-black min-w-0 truncate">
-                    {formatPrice(product.price)}
+                    {isDiscounted(product) ? (
+                      <>
+                        <span className="text-sm text-gray-500 line-through block">{formatIDR(product.price)}</span>
+                        {formatIDR(getSalePrice(product)!)}
+                      </>
+                    ) : (
+                      formatPrice(product.price)
+                    )}
                     {getUsdPrice(product) !== null && (
                       <span className="block text-sm font-medium text-gray-500">
                         {formatUSD(getUsdPrice(product)!)}
@@ -853,7 +860,14 @@ export default function MonitoringPage() {
                   </td>
                   <td className="px-6 py-4 text-sm text-black">{product.category}</td>
                   <td className="px-6 py-4 text-sm font-medium text-black">
-                    {formatPrice(product.price)}
+                    {isDiscounted(product) ? (
+                      <>
+                        <div className="text-sm text-gray-500 line-through">{formatIDR(product.price)}</div>
+                        <div>{formatIDR(getSalePrice(product)!)}</div>
+                      </>
+                    ) : (
+                      formatPrice(product.price)
+                    )}
                     {getUsdPrice(product) !== null && (
                       <div className="text-sm font-normal text-gray-500">
                         {formatUSD(getUsdPrice(product)!)}

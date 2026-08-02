@@ -8,6 +8,7 @@ import { ShoppingBag, ArrowRight, AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cartService } from '@/lib/cart'
 import CartItem from '@/components/CartItem'
+import { getEffectiveIdrPrice } from '@/lib/price'
 import type { CartItem as CartItemType } from '@/lib/supabase'
 
 function CartPageContent() {
@@ -101,12 +102,12 @@ function CartPageContent() {
 
   // Calculate totals
   const subtotal = cartItems.reduce((total, item) => {
-    return total + (item.product?.price || 0) * item.quantity
+    const price = item.product ? getEffectiveIdrPrice(item.product) : 0
+    return total + price * item.quantity
   }, 0)
 
   const shippingCost = subtotal > 0 ? 15000 : 0 // Free shipping above 500k
-  const tax = subtotal * 0.11 // 11% PPN
-  const total = subtotal + shippingCost + tax
+  const total = subtotal + shippingCost
 
   // Check if any items are out of stock
   const hasOutOfStock = cartItems.some((item) => item.product?.stock === 0)
@@ -267,17 +268,6 @@ function CartPageContent() {
                           currency: 'IDR',
                           minimumFractionDigits: 0,
                         }).format(shippingCost)}
-                  </span>
-                </div>
-
-                <div className="flex justify-between text-gray-600">
-                  <span>{t('cart.tax')}</span>
-                  <span>
-                    {new Intl.NumberFormat('id-ID', {
-                      style: 'currency',
-                      currency: 'IDR',
-                      minimumFractionDigits: 0,
-                    }).format(tax)}
                   </span>
                 </div>
 

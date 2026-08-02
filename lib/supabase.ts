@@ -19,6 +19,8 @@ export type Product = {
   description: string | null
   description_id?: string | null
   price: number
+  /** Discounted IDR price. When set, the original `price` is shown as crossed out. */
+  sale_price?: number | null
   /** Manual USD price from the CMS. Null keeps the product priced in IDR only. */
   price_usd?: number | null
   stock: number

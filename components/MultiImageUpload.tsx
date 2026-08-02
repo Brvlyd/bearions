@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, DragEvent, ChangeEvent } from 'react'
+import { useState, useEffect, useRef, DragEvent, ChangeEvent } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Upload, X, Image as ImageIcon, GripVertical, Crop } from 'lucide-react'
 import Image from 'next/image'
@@ -25,6 +25,10 @@ export default function MultiImageUpload({ productId, onImagesChange, initialIma
   const [queueIndex, setQueueIndex] = useState(0)
   const [reeditIndex, setReeditIndex] = useState<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setImages(initialImages)
+  }, [initialImages])
 
   const handleDrag = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
@@ -110,6 +114,11 @@ export default function MultiImageUpload({ productId, onImagesChange, initialIma
   }
 
   /** Uploads the framed result, then moves on to the next queued file. */
+  const updateImages = (nextImages: string[]) => {
+    setImages(nextImages)
+    onImagesChange(nextImages)
+  }
+
   const handleEditorApply = async (editedFile: File) => {
     setUploading(true)
     setError('')
@@ -119,15 +128,13 @@ export default function MultiImageUpload({ productId, onImagesChange, initialIma
 
       if (reeditIndex !== null) {
         const newImages = images.map((url, index) => (index === reeditIndex ? publicUrl : url))
-        setImages(newImages)
-        onImagesChange(newImages)
+        updateImages(newImages)
         setReeditIndex(null)
         return
       }
 
       const newImages = [...images, publicUrl]
-      setImages(newImages)
-      onImagesChange(newImages)
+      updateImages(newImages)
 
       if (queueIndex + 1 < editQueue.length) {
         setQueueIndex(queueIndex + 1)
@@ -162,16 +169,14 @@ export default function MultiImageUpload({ productId, onImagesChange, initialIma
     }
     
     const newImages = images.filter((_, i) => i !== index)
-    setImages(newImages)
-    onImagesChange(newImages)
+    updateImages(newImages)
   }
 
   const moveImage = (fromIndex: number, toIndex: number) => {
     const newImages = [...images]
     const [movedImage] = newImages.splice(fromIndex, 1)
     newImages.splice(toIndex, 0, movedImage)
-    setImages(newImages)
-    onImagesChange(newImages)
+    updateImages(newImages)
   }
 
   return (

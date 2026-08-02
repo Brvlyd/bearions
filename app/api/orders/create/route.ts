@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateRequest, getServiceClient } from '@/lib/api-auth'
 import { getIdrPerUsdRate } from '@/lib/paypal'
+import { getEffectiveIdrPrice } from '@/lib/price'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 import {
   computeSubtotal,
@@ -115,7 +116,7 @@ export async function POST(request: NextRequest) {
     // Every figure below comes from the database, never from the request.
     const orderItems = cartLines.map((line) => {
       const product = line.product!
-      const price = Number(product.price) || 0
+      const price = getEffectiveIdrPrice(product)
 
       return {
         product_id: product.id,

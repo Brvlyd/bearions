@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ParcelItem, RateDestination } from './shipping-types'
 import type { ShippingAddress } from './supabase'
+import { getEffectiveIdrPrice } from './price'
 
 // Shared loaders for the two routes that price a cart: /api/shipping/rates and
 // /api/orders/create. They must see identical inputs, otherwise the quote the
@@ -75,7 +76,11 @@ export const toParcelItems = (lines: CartLine[]): ParcelItem[] =>
 /** Merchandise total in IDR, priced from the database rather than the request. */
 export const computeSubtotal = (lines: CartLine[]): number => {
   const total = lines.reduce(
-    (sum, line) => sum + (Number(line.product?.price) || 0) * line.quantity,
+    (sum, line) => {
+      const product = line.product
+      const price = product ? getEffectiveIdrPrice(product) : 0
+      return sum + price * line.quantity
+    },
     0
   )
   return Math.round(total * 100) / 100

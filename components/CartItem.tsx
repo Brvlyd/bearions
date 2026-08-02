@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLanguage } from '@/lib/i18n'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Minus, Plus, Trash2, Package } from 'lucide-react'
 import type { CartItem as CartItemType } from '@/lib/supabase'
+import { productService } from '@/lib/products'
+import { formatIDR, getEffectiveIdrPrice } from '@/lib/price'
 
 interface CartItemProps {
   item: CartItemType
@@ -22,7 +24,38 @@ export default function CartItem({
 }: CartItemProps) {
   const { t } = useLanguage()
   const [isUpdating, setIsUpdating] = useState(false)
+  const [displayImage, setDisplayImage] = useState<string | null>(item.product?.image_url || null)
   const product = item.product
+
+  useEffect(() => {
+    let isActive = true
+
+    const loadImage = async () => {
+      if (!product?.id) {
+        setDisplayImage(product?.image_url || null)
+        return
+      }
+
+      try {
+        const imageUrls = await productService.getProductImageUrls(product.id, product.image_url)
+        const nextImage = imageUrls[0] || product.image_url || null
+        if (isActive) {
+          setDisplayImage(nextImage)
+        }
+      } catch (error) {
+        console.error('Error loading cart item image:', error)
+        if (isActive) {
+          setDisplayImage(product.image_url || null)
+        }
+      }
+    }
+
+    void loadImage()
+
+    return () => {
+      isActive = false
+    }
+  }, [product?.id, product?.image_url])
 
   if (!product) return null
 
@@ -48,7 +81,7 @@ export default function CartItem({
     }
   }
 
-  const itemTotal = product.price * item.quantity
+  const itemTotal = getEffectiveIdrPrice(product) * item.quantity
 
   return (
     <div className="flex flex-col sm:flex-row gap-4 py-4 sm:py-6 border-b border-gray-200">
@@ -58,9 +91,9 @@ export default function CartItem({
           href={`/products/${product.id}`}
           className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 bg-gray-100 rounded-lg overflow-hidden relative"
         >
-          {product.image_url ? (
+          {displayImage ? (
             <Image
-              src={product.image_url}
+              src={displayImage}
               alt={product.name}
               fill
               className="object-cover"

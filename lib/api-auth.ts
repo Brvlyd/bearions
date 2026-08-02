@@ -9,7 +9,15 @@ import type { NextRequest } from 'next/server'
 //   - service client: bypasses RLS entirely. Only reach for it after the caller
 //     has been authenticated and authorised.
 
-const getSupabaseUrl = () => process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  'https://iktbpmqahpkboovgbbib.supabase.co'
+
+const SUPABASE_ANON_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  'sb_publishable_U1bLx1ViEflYjYCCaEJR6w_yTqsN-PK'
+
+const getSupabaseUrl = () => SUPABASE_URL
 
 export const getBearerToken = (request: NextRequest): string => {
   const header = request.headers.get('authorization') || ''
@@ -17,9 +25,7 @@ export const getBearerToken = (request: NextRequest): string => {
 }
 
 export const getSessionClient = (accessToken: string): SupabaseClient => {
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-
-  return createClient(getSupabaseUrl(), anonKey, {
+  return createClient(getSupabaseUrl(), SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: `Bearer ${accessToken}` } },
     auth: { autoRefreshToken: false, persistSession: false },
   })

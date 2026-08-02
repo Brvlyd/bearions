@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "prepare:standalone": "node scripts/copy-standalone-assets.js",
+    "start": "npm run prepare:standalone && node .next/standalone/server.js",
     "lint": "eslint",
     "upload-images": "tsx scripts/upload-images.ts",
     "i18n:check": "node scripts/check-i18n.mjs"
@@ -17,7 +18,8 @@
     "lucide-react": "^0.562.0",
     "next": "16.1.1",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "sharp": "^0.34.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.0",

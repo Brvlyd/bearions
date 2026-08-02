@@ -32,6 +32,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     description: '',
     description_id: '',
     price: '',
+    sale_price: '',
     price_usd: '',
     stock: '',
     category: '',
@@ -45,12 +46,12 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   })
 
   useEffect(() => {
-    params.then(p => setProductId(p.id))
-  }, [params])
-
-  useEffect(() => {
     loadCategories()
   }, [])
+
+  useEffect(() => {
+    params.then((p) => setProductId(p.id))
+  }, [params])
 
   useEffect(() => {
     if (productId) {
@@ -88,6 +89,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         description: data.description || '',
         description_id: data.description_id || '',
         price: data.price.toString(),
+        sale_price: data.sale_price != null ? data.sale_price.toString() : '',
         price_usd: data.price_usd != null ? data.price_usd.toString() : '',
         stock: data.stock.toString(),
         category: data.category,
@@ -121,6 +123,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         description: formData.description || null,
         description_id: formData.description_id || null,
         price: parseFloat(formData.price),
+        sale_price: formData.sale_price ? parseFloat(formData.sale_price) : null,
         price_usd: formData.price_usd ? parseFloat(formData.price_usd) : null,
         stock: parseInt(formData.stock),
         category: formData.category,
@@ -264,6 +267,71 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               />
             </div>
 
+            <div>
+              <label htmlFor="sale_price" className="block text-sm font-medium mb-2 text-black">
+                {tr('Sale Price (IDR)', 'Harga Diskon (IDR)')}
+              </label>
+              <input
+                id="sale_price"
+                name="sale_price"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.sale_price}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {tr(
+                  'Optional. Enter a discounted price to show the original price crossed out.',
+                  'Opsional. Masukkan harga diskon agar harga asli dicoret.'
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="price_usd" className="block text-sm font-medium mb-2 text-black">
+                {tr('Price (USD)', 'Harga (USD)')}
+              </label>
+              <input
+                id="price_usd"
+                name="price_usd"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.price_usd}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
+                placeholder="25.00"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {tr(
+                  'Optional. Set by hand — it is not converted from IDR. Leave empty to show the IDR price to English visitors.',
+                  'Opsional. Diisi manual — tidak dikonversi dari IDR. Kosongkan agar pengunjung bahasa Inggris tetap melihat harga IDR.'
+                )}
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="stock" className="block text-sm font-medium mb-2 text-black">
+                {tr('Stock *', 'Stok *')}
+              </label>
+              <input
+                id="stock"
+                name="stock"
+                type="number"
+                value={formData.stock}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
+                placeholder="100"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="price_usd" className="block text-sm font-medium mb-2 text-black">
                 {tr('Price (USD)', 'Harga (USD)')}
@@ -426,7 +494,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             </label>
             <MultiImageUpload
               productId={productId}
-              onImagesChange={(urls) => setFormData({ ...formData, images: urls })}
+              onImagesChange={(urls) => setFormData((prev) => ({ ...prev, images: urls }))}
               initialImages={formData.images}
             />
           </div>

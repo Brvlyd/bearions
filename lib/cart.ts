@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { getEffectiveIdrPrice } from './price'
 import type { Cart, CartItem } from './supabase'
 
 const isUniqueViolation = (error: { code?: string; message?: string } | null) => {
@@ -209,7 +210,7 @@ export const cartService = {
     try {
       const items = await this.getCartItems(userId)
       return items.reduce((total, item) => {
-        const price = item.product?.price || 0
+        const price = item.product ? getEffectiveIdrPrice(item.product) : 0
         return total + price * item.quantity
       }, 0)
     } catch (error) {
