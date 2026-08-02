@@ -13,6 +13,9 @@ export const orderService = {
     shippingAddressId: string
     paymentMethod: string
     customerNotes?: string
+    /** Courier service the customer picked. Re-priced server-side before charging. */
+    courierCode?: string
+    serviceCode?: string
   }): Promise<Order> {
     try {
       const { data: sessionData } = await supabase.auth.getSession()

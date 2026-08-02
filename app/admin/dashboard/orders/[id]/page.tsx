@@ -10,6 +10,7 @@ import { usePaymentProofUrl } from '@/lib/payment-proof-url'
 import { useLanguage } from '@/lib/i18n'
 import SafeImage from '@/components/SafeImage'
 import Notification from '@/components/Notification'
+import OrderTrackingTimeline from '@/components/OrderTrackingTimeline'
 import Link from 'next/link'
 import { 
   ArrowLeft, User, Mail, Phone, MapPin, Package, DollarSign, 
@@ -738,6 +739,43 @@ export default function OrderDetailPage() {
                   <p className="font-mono text-black">{order.tracking_number || '-'}</p>
                 )}
               </div>
+            </div>
+
+            {/* Rate snapshot: what the courier charged vs what the customer
+                paid, so a free-shipping promo is visible as a cost, not a gap. */}
+            {(order.shipping_service_name || order.shipping_weight_grams) && (
+              <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                <div>
+                  <p className="text-gray-500 text-xs">{tr('Service', 'Layanan')}</p>
+                  <p className="text-black font-medium">{order.shipping_service_name || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500 text-xs">{tr('Billable weight', 'Berat tertagih')}</p>
+                  <p className="text-black font-medium">
+                    {order.shipping_weight_grams
+                      ? `${(order.shipping_weight_grams / 1000).toFixed(2)} kg`
+                      : '-'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-500 text-xs">{tr('Courier price', 'Harga kurir')}</p>
+                  <p className="text-black font-medium">
+                    {formatPrice(Number(order.shipping_base_cost || order.shipping_cost || 0))}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-500 text-xs">{tr('Promo subsidy', 'Subsidi promo')}</p>
+                  <p className="text-black font-medium">
+                    {Number(order.shipping_discount || 0) > 0
+                      ? `-${formatPrice(Number(order.shipping_discount))}`
+                      : '-'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <OrderTrackingTimeline orderNumber={order.order_number} autoRefresh={false} />
             </div>
           </div>
 

@@ -74,12 +74,20 @@ Pergi ke: **Project Settings** → **Auth** → **Email**
 - ⚠️ Email mungkin masuk spam, kasih tau user untuk cek spam folder
 
 **Option 2: Production (Custom SMTP)**
-Setup SMTP provider (Gmail/SendGrid/AWS SES):
-- SMTP Host: `smtp.gmail.com` (contoh)
+
+Project ini memakai Brevo. Langkah lengkap, termasuk prasyarat aktivasi akun dan
+nilai yang harus diisi, ada di **[BREVO_SMTP_SUPABASE.md](./BREVO_SMTP_SUPABASE.md)**.
+
+Ringkasnya:
+- SMTP Host: `smtp-relay.brevo.com`
 - SMTP Port: `587`
-- Username: your-email@gmail.com
-- Password: app-specific password
-- Sender Email: noreply@yourdomain.com
+- Username: dari Brevo → SMTP & API → SMTP (format `xxxxxx001@smtp-brevo.com`,
+  **bukan** email akun Brevo)
+- Password: SMTP key Brevo (`xsmtpsib-...`)
+- Sender Email: harus sender yang sudah terverifikasi di Brevo
+
+⚠️ Tanpa langkah ini, email konfirmasi signup dikirim lewat SMTP bawaan Supabase
+dan **tidak akan muncul di log Brevo sama sekali**.
 
 ### **Step 4: URL Configuration**
 Pergi ke: **Authentication** → **URL Configuration**

@@ -45,6 +45,24 @@ Yang berkaitan dengan keamanan dan sebaiknya selalu dijalankan:
 
 Verifikasi hasilnya dengan `checks/test-security-policies.sql`.
 
+## Mesin ongkir & promo
+
+`migrations/shipping-engine-and-promotions.sql` wajib dijalankan sebelum memakai
+menu **Pengiriman** dan **Diskon** di admin. Satu file ini mencakup:
+
+- kolom berat & dimensi di `products`, plus `hs_code` untuk bea cukai
+- kolom internasional di `shipping_addresses` (`country_code`, `district`), dan
+  `postal_code` jadi nullable karena ada negara yang tidak punya kode pos
+- pengaturan pengiriman di `site_settings` (alamat asal, provider, biaya packing)
+- `shipping_zones` + `shipping_zone_rates`, sudah ter-seed 7 zona domestik dan
+  6 zona internasional lengkap dengan tarif — ini yang membuat ongkir tetap jalan
+  tanpa API key apa pun
+- `shipping_promotions`, termasuk satu aturan contoh "gratis ongkir 5+ item"
+- `order_tracking_events` + trigger yang mengisi timeline otomatis setiap kali
+  status order berubah
+
+Aman dijalankan berulang kali.
+
 ## Catatan soal `fixes/`
 
 Isinya script satu kali pakai untuk memperbaiki masalah yang pernah terjadi (RLS

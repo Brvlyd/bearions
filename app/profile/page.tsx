@@ -7,6 +7,7 @@ import { useLanguage } from '@/lib/i18n'
 import Link from 'next/link'
 import { orderService } from '@/lib/orders'
 import { shippingService } from '@/lib/shipping'
+import { COUNTRIES, countryName, isIndonesia, requiresPostalCode } from '@/lib/countries'
 import type { Order, ShippingAddress } from '@/lib/supabase'
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
 import Pagination from '@/components/Pagination'
@@ -43,8 +44,10 @@ type AddressFormState = {
   address_line2: string
   city: string
   province: string
+  district: string
   postal_code: string
   country: string
+  country_code: string
   label: string
   is_default: boolean
 }
@@ -56,8 +59,10 @@ const EMPTY_ADDRESS_FORM: AddressFormState = {
   address_line2: '',
   city: '',
   province: '',
+  district: '',
   postal_code: '',
   country: 'Indonesia',
+  country_code: 'ID',
   label: 'Home',
   is_default: false,
 }
@@ -190,8 +195,10 @@ export default function UserProfilePage() {
       address_line2: address.address_line2 || '',
       city: address.city,
       province: address.province,
-      postal_code: address.postal_code,
+      district: address.district || '',
+      postal_code: address.postal_code || '',
       country: address.country || 'Indonesia',
+      country_code: (address.country_code || 'ID').toUpperCase(),
       label: address.label || 'Home',
       is_default: address.is_default,
     })
@@ -228,7 +235,7 @@ export default function UserProfilePage() {
       !addressForm.address_line1.trim() ||
       !addressForm.city.trim() ||
       !addressForm.province.trim() ||
-      !addressForm.postal_code.trim()
+      (requiresPostalCode(addressForm.country_code) && !addressForm.postal_code.trim())
     ) {
       setError(tr('Please fill all required address fields.', 'Mohon isi semua field alamat wajib.'))
       return
@@ -239,14 +246,18 @@ export default function UserProfilePage() {
       setError('')
       setMessage('')
 
+      const payload = {
+        ...addressForm,
+        country_code: addressForm.country_code.toUpperCase(),
+        district: addressForm.district.trim() || null,
+        // Empty string would defeat the nullable column for postcode-less countries.
+        postal_code: addressForm.postal_code.trim() || null,
+      }
+
       if (editingAddressId) {
-        await shippingService.updateAddress(editingAddressId, profile.id, {
-          ...addressForm,
-        })
+        await shippingService.updateAddress(editingAddressId, profile.id, payload)
       } else {
-        await shippingService.createAddress(profile.id, {
-          ...addressForm,
-        })
+        await shippingService.createAddress(profile.id, payload)
       }
 
       const refreshedAddresses = await shippingService.getUserAddresses(profile.id)
@@ -683,6 +694,25 @@ export default function UserProfilePage() {
                     className="md:col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-black"
                     placeholder={tr('Address line 2 (optional)', 'Alamat baris 2 (opsional)')}
                   />
+                  <select
+                    value={addressForm.country_code}
+                    onChange={(e) => {
+                      const code = e.target.value
+                      const country = COUNTRIES.find((entry) => entry.code === code)
+                      setAddressForm((prev) => ({
+                        ...prev,
+                        country_code: code,
+                        country: country?.name || code,
+                      }))
+                    }}
+                    className="md:col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-black bg-white"
+                  >
+                    {COUNTRIES.map((country) => (
+                      <option key={country.code} value={country.code}>
+                        {countryName(country.code, language)}
+                      </option>
+                    ))}
+                  </select>
                   <input
                     value={addressForm.city}
                     onChange={(e) => setAddressForm((prev) => ({ ...prev, city: e.target.value }))}
@@ -693,13 +723,30 @@ export default function UserProfilePage() {
                     value={addressForm.province}
                     onChange={(e) => setAddressForm((prev) => ({ ...prev, province: e.target.value }))}
                     className="px-3 py-2 border border-gray-300 rounded-lg text-black"
-                    placeholder={tr('Province', 'Provinsi')}
+                    placeholder={
+                      isIndonesia(addressForm.country_code)
+                        ? tr('Province', 'Provinsi')
+                        : tr('State / Province / Region', 'Negara Bagian / Provinsi')
+                    }
                   />
+                  {/* Couriers rate to kecamatan level for Indonesian addresses. */}
+                  {isIndonesia(addressForm.country_code) && (
+                    <input
+                      value={addressForm.district}
+                      onChange={(e) => setAddressForm((prev) => ({ ...prev, district: e.target.value }))}
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-black"
+                      placeholder={tr('District (Kecamatan)', 'Kecamatan')}
+                    />
+                  )}
                   <input
                     value={addressForm.postal_code}
                     onChange={(e) => setAddressForm((prev) => ({ ...prev, postal_code: e.target.value }))}
                     className="px-3 py-2 border border-gray-300 rounded-lg text-black"
-                    placeholder={tr('Postal code', 'Kode pos')}
+                    placeholder={
+                      requiresPostalCode(addressForm.country_code)
+                        ? tr('Postal code', 'Kode pos')
+                        : tr('Postal code (optional)', 'Kode pos (opsional)')
+                    }
                   />
                   <input
                     value={addressForm.label}

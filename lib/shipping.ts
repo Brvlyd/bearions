@@ -23,6 +23,16 @@ const parseSupabaseError = (error: unknown, fallback = 'Unknown error') => {
   }
 }
 
+/**
+ * What an address form submits. `subdistrict` and `area_id` are filled in by the
+ * rate provider rather than the customer, so they stay optional here.
+ */
+export type ShippingAddressInput = Omit<
+  ShippingAddress,
+  'id' | 'user_id' | 'created_at' | 'updated_at' | 'subdistrict' | 'area_id'
+> &
+  Partial<Pick<ShippingAddress, 'subdistrict' | 'area_id'>>
+
 export const shippingService = {
   // Get user shipping addresses
   async getUserAddresses(userId: string): Promise<ShippingAddress[]> {
@@ -65,7 +75,7 @@ export const shippingService = {
   // Create shipping address
   async createAddress(
     userId: string,
-    addressData: Omit<ShippingAddress, 'id' | 'user_id' | 'created_at' | 'updated_at'>
+    addressData: ShippingAddressInput
   ): Promise<ShippingAddress> {
     try {
       const { count, error: countError } = await supabase
@@ -109,7 +119,7 @@ export const shippingService = {
   async updateAddress(
     addressId: string,
     userId: string,
-    addressData: Partial<Omit<ShippingAddress, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
+    addressData: Partial<ShippingAddressInput>
   ): Promise<ShippingAddress> {
     try {
       // If this is set as default, unset other default addresses

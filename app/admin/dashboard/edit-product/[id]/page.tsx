@@ -36,6 +36,11 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     stock: '',
     category: '',
     image_url: '',
+    weight_grams: '',
+    length_cm: '',
+    width_cm: '',
+    height_cm: '',
+    hs_code: '',
     images: [] as string[]
   })
 
@@ -87,6 +92,11 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         stock: data.stock.toString(),
         category: data.category,
         image_url: data.image_url || '',
+        weight_grams: data.weight_grams != null ? data.weight_grams.toString() : '',
+        length_cm: data.length_cm != null ? data.length_cm.toString() : '',
+        width_cm: data.width_cm != null ? data.width_cm.toString() : '',
+        height_cm: data.height_cm != null ? data.height_cm.toString() : '',
+        hs_code: data.hs_code || '',
         images: imageUrls.length > 0 ? imageUrls : (data.image_url ? [data.image_url] : [])
       })
     } catch (error) {
@@ -114,7 +124,13 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         price_usd: formData.price_usd ? parseFloat(formData.price_usd) : null,
         stock: parseInt(formData.stock),
         category: formData.category,
-        image_url: formData.images[0] || null // Use first image as main
+        image_url: formData.images[0] || null, // Use first image as main
+        // Null means "fall back to the store default", so blanks stay blank.
+        weight_grams: formData.weight_grams ? parseInt(formData.weight_grams) : null,
+        length_cm: formData.length_cm ? parseFloat(formData.length_cm) : null,
+        width_cm: formData.width_cm ? parseFloat(formData.width_cm) : null,
+        height_cm: formData.height_cm ? parseFloat(formData.height_cm) : null,
+        hs_code: formData.hs_code.trim() || null,
       })
 
       // Save/update product images
@@ -283,6 +299,101 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
+              />
+            </div>
+          </div>
+
+          {/* Shipping dimensions. Couriers bill the larger of actual and
+              volumetric weight, so packed box size drives the price too. */}
+          <div className="border-t border-gray-200 pt-6">
+            <h3 className="text-base font-semibold text-black mb-1">
+              {tr('Shipping Dimensions', 'Dimensi Pengiriman')}
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              {tr(
+                'Leave blank to use the store default weight set under Shipping.',
+                'Kosongkan untuk memakai berat default toko di menu Pengiriman.'
+              )}
+            </p>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label htmlFor="weight_grams" className="block text-sm font-medium mb-2 text-black">
+                  {tr('Weight (g)', 'Berat (g)')}
+                </label>
+                <input
+                  id="weight_grams"
+                  name="weight_grams"
+                  type="number"
+                  min="0"
+                  value={formData.weight_grams}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
+                  placeholder="500"
+                />
+              </div>
+              <div>
+                <label htmlFor="length_cm" className="block text-sm font-medium mb-2 text-black">
+                  {tr('Length (cm)', 'Panjang (cm)')}
+                </label>
+                <input
+                  id="length_cm"
+                  name="length_cm"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={formData.length_cm}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
+                  placeholder="30"
+                />
+              </div>
+              <div>
+                <label htmlFor="width_cm" className="block text-sm font-medium mb-2 text-black">
+                  {tr('Width (cm)', 'Lebar (cm)')}
+                </label>
+                <input
+                  id="width_cm"
+                  name="width_cm"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={formData.width_cm}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
+                  placeholder="25"
+                />
+              </div>
+              <div>
+                <label htmlFor="height_cm" className="block text-sm font-medium mb-2 text-black">
+                  {tr('Height (cm)', 'Tinggi (cm)')}
+                </label>
+                <input
+                  id="height_cm"
+                  name="height_cm"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={formData.height_cm}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
+                  placeholder="10"
+                />
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <label htmlFor="hs_code" className="block text-sm font-medium mb-2 text-black">
+                {tr('HS Code (for international shipping)', 'Kode HS (untuk kirim luar negeri)')}
+              </label>
+              <input
+                id="hs_code"
+                name="hs_code"
+                type="text"
+                value={formData.hs_code}
+                onChange={handleChange}
+                className="w-full max-w-xs px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
+                placeholder="6109.10"
               />
             </div>
           </div>

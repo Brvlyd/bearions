@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useLanguage } from '@/lib/i18n'
 import Link from 'next/link'
 import { authService } from '@/lib/auth'
-import { Package, BarChart3, Users, ShoppingCart, X, Image, Images, Info, CreditCard, Settings } from 'lucide-react'
+import { Package, BarChart3, Users, ShoppingCart, X, Image, Images, Info, CreditCard, Settings, Truck, Gift } from 'lucide-react'
 import AdminHeader from '@/components/AdminHeader'
 
 export default function AdminLayout({
@@ -221,6 +221,40 @@ export default function AdminLayout({
               pathname?.startsWith('/admin/dashboard/about') ? 'scale-110' : 'group-hover:scale-110'
             }`} />
             <span className="font-medium">{language === 'en' ? 'About Us' : 'Tentang Kami'}</span>
+          </Link>
+
+          <Link
+            href="/admin/dashboard/promotions"
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group relative ${
+              pathname?.startsWith('/admin/dashboard/promotions')
+                ? 'bg-white/10 text-white shadow-lg'
+                : 'hover:bg-white/5 text-gray-300 hover:text-white'
+            }`}
+          >
+            {pathname?.startsWith('/admin/dashboard/promotions') && (
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full"></span>
+            )}
+            <Gift className={`w-5 h-5 transition-all duration-200 ${
+              pathname?.startsWith('/admin/dashboard/promotions') ? 'scale-110' : 'group-hover:scale-110'
+            }`} />
+            <span className="font-medium">{language === 'en' ? 'Discounts' : 'Diskon'}</span>
+          </Link>
+
+          <Link
+            href="/admin/dashboard/shipping"
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group relative ${
+              pathname?.startsWith('/admin/dashboard/shipping')
+                ? 'bg-white/10 text-white shadow-lg'
+                : 'hover:bg-white/5 text-gray-300 hover:text-white'
+            }`}
+          >
+            {pathname?.startsWith('/admin/dashboard/shipping') && (
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full"></span>
+            )}
+            <Truck className={`w-5 h-5 transition-all duration-200 ${
+              pathname?.startsWith('/admin/dashboard/shipping') ? 'scale-110' : 'group-hover:scale-110'
+            }`} />
+            <span className="font-medium">{language === 'en' ? 'Shipping' : 'Pengiriman'}</span>
           </Link>
 
           <Link

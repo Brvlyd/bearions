@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, CreditCard, Truck, CheckCircle, Copy, Check } from 'lucide-react'
+import { ArrowLeft, CreditCard, Truck, CheckCircle, Copy, Check, Gift, Globe, Info } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cartService } from '@/lib/cart'
 import { orderService } from '@/lib/orders'
@@ -16,6 +16,13 @@ import {
   wilayahService,
   type WilayahOption,
 } from '@/lib/wilayah'
+import {
+  fetchShippingRates,
+  type ShippingNearMiss,
+  type ShippingRateOption,
+} from '@/lib/shipping-client'
+import { describeNearMiss } from '@/lib/promotions'
+import { COUNTRIES, countryName, isIndonesia, requiresPostalCode } from '@/lib/countries'
 import { useLanguage } from '@/lib/i18n'
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
 import PayPalCheckoutButton from '@/components/PayPalCheckoutButton'
@@ -30,8 +37,10 @@ const EMPTY_ADDRESS_FORM = {
   address_line2: '',
   city: '',
   province: '',
+  district: '',
   postal_code: '',
   country: 'Indonesia',
+  country_code: 'ID',
   label: 'Home',
   is_default: false,
 }
@@ -62,7 +71,16 @@ export default function CheckoutPage() {
   const [regionError, setRegionError] = useState('')
   const [loadingProvinces, setLoadingProvinces] = useState(false)
   const [loadingRegencies, setLoadingRegencies] = useState(false)
-  
+
+  // Live courier rates for the selected address
+  const [shippingOptions, setShippingOptions] = useState<ShippingRateOption[]>([])
+  const [selectedShippingKey, setSelectedShippingKey] = useState('')
+  const [loadingRates, setLoadingRates] = useState(false)
+  const [ratesError, setRatesError] = useState('')
+  const [nearMisses, setNearMisses] = useState<ShippingNearMiss[]>([])
+  const [customsNote, setCustomsNote] = useState<{ en: string; id: string } | null>(null)
+  const [parcelWeightGrams, setParcelWeightGrams] = useState(0)
+
   // Payment
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodConfig[]>([])
   const [paymentMethod, setPaymentMethod] = useState<string>('')
@@ -204,6 +222,64 @@ export default function CheckoutPage() {
     }
   }
 
+  // Ongkir is quoted by the server for the chosen address. The browser never
+  // computes a price — it only renders what came back and remembers the pick.
+  const loadShippingRates = useCallback(
+    async (addressId: string) => {
+      try {
+        setLoadingRates(true)
+        setRatesError('')
+
+        const result = await fetchShippingRates(addressId)
+
+        setShippingOptions(result.options)
+        setNearMisses(result.nearMisses)
+        setCustomsNote(result.customsNote)
+        setParcelWeightGrams(result.parcel?.weightGrams || 0)
+
+        if (result.options.length === 0) {
+          setSelectedShippingKey('')
+          setRatesError(
+            result.message ||
+              tr(
+                'No courier service is available for this address.',
+                'Tidak ada layanan pengiriman untuk alamat ini.'
+              )
+          )
+          return
+        }
+
+        // Keep the customer's choice across a re-quote when it is still offered,
+        // otherwise default to the cheapest (the API returns them sorted).
+        setSelectedShippingKey((previous) =>
+          result.options.some((option) => option.key === previous)
+            ? previous
+            : result.options[0].key
+        )
+      } catch (error) {
+        console.error('Error loading shipping rates:', error)
+        setShippingOptions([])
+        setSelectedShippingKey('')
+        setRatesError(
+          tr('Failed to calculate shipping cost.', 'Gagal menghitung ongkos kirim.')
+        )
+      } finally {
+        setLoadingRates(false)
+      }
+    },
+    [tr]
+  )
+
+  useEffect(() => {
+    if (!selectedAddress?.id || cartItems.length === 0) {
+      setShippingOptions([])
+      setSelectedShippingKey('')
+      return
+    }
+
+    void loadShippingRates(selectedAddress.id)
+  }, [selectedAddress?.id, cartItems.length, loadShippingRates])
+
   const resetAddressForm = () => {
     setNewAddress({ ...EMPTY_ADDRESS_FORM })
     setEditingAddressId(null)
@@ -242,8 +318,10 @@ export default function CheckoutPage() {
       address_line2: address.address_line2 || '',
       city: address.city,
       province: address.province,
-      postal_code: address.postal_code,
+      district: address.district || '',
+      postal_code: address.postal_code || '',
       country: address.country,
+      country_code: (address.country_code || 'ID').toUpperCase(),
       label: address.label || 'Home',
       is_default: address.is_default,
     })
@@ -291,23 +369,56 @@ export default function CheckoutPage() {
     }))
   }
 
+  // Switching country swaps the whole regional model: Indonesian addresses use
+  // the wilayah dropdowns, everything else is free text (a "province" abroad is
+  // a state, a county, or nothing at all).
+  const handleCountryChange = (code: string) => {
+    const country = COUNTRIES.find((entry) => entry.code === code)
+
+    setSelectedProvinceCode('')
+    setSelectedRegencyCode('')
+    setRegencyOptions([])
+    setNewAddress((prev) => ({
+      ...prev,
+      country_code: code,
+      country: country?.name || code,
+      province: '',
+      city: '',
+      district: '',
+      postal_code: '',
+    }))
+  }
+
   const handleSaveAddress = async () => {
     if (!userId) return
+
+    const domestic = isIndonesia(newAddress.country_code)
+    const postalRequired = requiresPostalCode(newAddress.country_code)
 
     if (
       !newAddress.recipient_name.trim() ||
       !newAddress.phone.trim() ||
       !newAddress.address_line1.trim() ||
-      !newAddress.address_line2.trim() ||
       !newAddress.city.trim() ||
-      !newAddress.province.trim() ||
-      !newAddress.postal_code.trim()
+      !newAddress.province.trim()
     ) {
       setAddressFormError(tr('Please fill all address fields', 'Mohon isi semua field alamat'))
       return
     }
 
-    if (!/^\d{5}$/.test(newAddress.postal_code.trim())) {
+    // A street detail line is what makes a domestic parcel findable; abroad the
+    // city/state/postcode triple carries that weight instead.
+    if (domestic && !newAddress.address_line2.trim()) {
+      setAddressFormError(tr('Please fill all address fields', 'Mohon isi semua field alamat'))
+      return
+    }
+
+    if (postalRequired && !newAddress.postal_code.trim()) {
+      setAddressFormError(tr('Postal code is required', 'Kode pos wajib diisi'))
+      return
+    }
+
+    if (domestic && !/^\d{5}$/.test(newAddress.postal_code.trim())) {
       setAddressFormError(tr('Postal code must be 5 digits', 'Kode pos harus 5 digit'))
       return
     }
@@ -322,10 +433,18 @@ export default function CheckoutPage() {
       setAddressFormError('')
       let targetAddressId = editingAddressId
 
+      const payload = {
+        ...newAddress,
+        country_code: newAddress.country_code.toUpperCase(),
+        district: newAddress.district.trim() || null,
+        // Empty string would defeat the nullable column for postcode-less countries.
+        postal_code: newAddress.postal_code.trim() || null,
+      }
+
       if (editingAddressId) {
-        await shippingService.updateAddress(editingAddressId, userId, newAddress)
+        await shippingService.updateAddress(editingAddressId, userId, payload)
       } else {
-        const createdAddress = await shippingService.createAddress(userId, newAddress)
+        const createdAddress = await shippingService.createAddress(userId, payload)
         targetAddressId = createdAddress.id
       }
 
@@ -425,6 +544,12 @@ export default function CheckoutPage() {
       return
     }
 
+    if (!selectedShippingOption) {
+      alert(tr('Please select a shipping service', 'Silakan pilih layanan pengiriman'))
+      setCurrentStep('shipping')
+      return
+    }
+
     const selectedMethod = paymentMethods.find((method) => method.code === paymentMethod)
     const isPaypal = selectedMethod?.code === 'paypal'
 
@@ -437,6 +562,8 @@ export default function CheckoutPage() {
         shippingAddressId: selectedAddress.id,
         paymentMethod,
         customerNotes,
+        courierCode: selectedShippingOption?.courierCode,
+        serviceCode: selectedShippingOption?.serviceCode,
       })
 
       if (isPaypal) {
@@ -461,6 +588,19 @@ export default function CheckoutPage() {
       }
     } catch (error) {
       console.error('Error placing order:', error)
+
+      const message = error instanceof Error ? error.message : ''
+
+      // The server re-quotes at order time, so a promo that expired or a courier
+      // that dropped out mid-checkout lands here. Re-quote and let them re-pick
+      // rather than charging a price they never agreed to.
+      if (message.toLowerCase().includes('pengiriman')) {
+        alert(message)
+        setCurrentStep('shipping')
+        if (selectedAddress) void loadShippingRates(selectedAddress.id)
+        return
+      }
+
       alert(tr('Failed to place order. Please try again.', 'Gagal membuat pesanan. Silakan coba lagi.'))
     } finally {
       setProcessing(false)
@@ -482,14 +622,22 @@ export default function CheckoutPage() {
       })
   }, [pendingPaypalOrder, userId, router])
 
-  // Calculate totals
+  // Calculate totals. These mirror the server's arithmetic in
+  // /api/orders/create for display only — the server recomputes everything and
+  // rejects the order if the chosen service no longer exists.
   const subtotal = cartItems.reduce(
     (sum, item) => sum + (item.product?.price || 0) * item.quantity,
     0
   )
-  const shippingCost = 15000
-  const tax = subtotal * 0.11
-  const total = subtotal + shippingCost + tax
+  const selectedShippingOption =
+    shippingOptions.find((option) => option.key === selectedShippingKey) || null
+  const shippingCost = selectedShippingOption?.finalCost ?? 0
+  const shippingDiscount = selectedShippingOption?.discount ?? 0
+  const orderDiscount = Math.min(selectedShippingOption?.orderDiscount ?? 0, subtotal)
+  const taxableAmount = Math.max(0, subtotal - orderDiscount)
+  const tax = taxableAmount * 0.11
+  const total = taxableAmount + shippingCost + tax
+  const appliedPromotions = selectedShippingOption?.appliedPromotions ?? []
 
   const postalCodeSuggestions = Array.from(
     new Set(
@@ -499,10 +647,12 @@ export default function CheckoutPage() {
           address.province.toLowerCase() === newAddress.province.toLowerCase()
         )
         .map((address) => address.postal_code)
-        .filter(Boolean)
+        .filter((postalCode): postalCode is string => Boolean(postalCode))
     )
   )
   const isAddressLimitReached = addresses.length >= 3 && !editingAddressId
+  const isFormDomestic = isIndonesia(newAddress.country_code)
+  const isFormPostalRequired = requiresPostalCode(newAddress.country_code)
   const selectedPaymentMethod = paymentMethods.find((method) => method.code === paymentMethod) || null
 
   const formatPrice = (price: number) => {
@@ -607,8 +757,14 @@ export default function CheckoutPage() {
                             {address.address_line2 && `, ${address.address_line2}`}
                           </p>
                           <p className="text-sm text-gray-600">
-                            {address.city}, {address.province} {address.postal_code}
+                            {address.city}, {address.province} {address.postal_code || ''}
                           </p>
+                          {!isIndonesia(address.country_code) && (
+                            <p className="text-sm font-medium text-gray-700 inline-flex items-center gap-1 mt-0.5">
+                              <Globe className="w-3.5 h-3.5" />
+                              {countryName(address.country_code, language)}
+                            </p>
+                          )}
                         </div>
                         <div className="flex items-start gap-2">
                           {address.is_default && (
@@ -696,63 +852,117 @@ export default function CheckoutPage() {
                       />
 
                       <select
-                        value={selectedProvinceCode}
-                        onChange={(e) => {
-                          void handleProvinceChange(e.target.value)
-                        }}
-                        disabled={loadingProvinces}
-                        className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-black focus:outline-none focus:ring-2 focus:ring-black disabled:bg-gray-100 disabled:text-gray-400"
+                        value={newAddress.country_code}
+                        onChange={(e) => handleCountryChange(e.target.value)}
+                        className="col-span-2 px-4 py-2 border border-gray-300 rounded-lg bg-white text-black focus:outline-none focus:ring-2 focus:ring-black"
                       >
-                        <option value="">
-                          {newAddress.province && selectedProvinceCode === ''
-                            ? `${tr('Current Province', 'Provinsi Saat Ini')}: ${newAddress.province}`
-                            : tr('Select Province', 'Pilih Provinsi')}
-                        </option>
-                        {provinceOptions.map((province) => (
-                          <option key={province.code} value={province.code}>
-                            {province.name}
+                        {COUNTRIES.map((country) => (
+                          <option key={country.code} value={country.code}>
+                            {countryName(country.code, language)}
                           </option>
                         ))}
                       </select>
 
-                      <select
-                        value={selectedRegencyCode}
-                        onChange={(e) => {
-                          handleRegencyChange(e.target.value)
-                        }}
-                        disabled={!selectedProvinceCode || loadingRegencies}
-                        className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-black focus:outline-none focus:ring-2 focus:ring-black disabled:bg-gray-100 disabled:text-gray-400"
-                      >
-                        <option value="">
-                          {newAddress.city && selectedRegencyCode === ''
-                            ? `${tr('Current City', 'Kota Saat Ini')}: ${newAddress.city}`
-                            : tr('Select City', 'Pilih Kota')}
-                        </option>
-                        {regencyOptions.map((regency) => (
-                          <option key={regency.code} value={regency.code}>
-                            {getDisplayRegionName(regency.name)}
-                          </option>
-                        ))}
-                      </select>
+                      {isFormDomestic ? (
+                        <>
+                          <select
+                            value={selectedProvinceCode}
+                            onChange={(e) => {
+                              void handleProvinceChange(e.target.value)
+                            }}
+                            disabled={loadingProvinces}
+                            className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-black focus:outline-none focus:ring-2 focus:ring-black disabled:bg-gray-100 disabled:text-gray-400"
+                          >
+                            <option value="">
+                              {newAddress.province && selectedProvinceCode === ''
+                                ? `${tr('Current Province', 'Provinsi Saat Ini')}: ${newAddress.province}`
+                                : tr('Select Province', 'Pilih Provinsi')}
+                            </option>
+                            {provinceOptions.map((province) => (
+                              <option key={province.code} value={province.code}>
+                                {province.name}
+                              </option>
+                            ))}
+                          </select>
 
-                      <input
-                        list="postal-code-suggestions"
-                        inputMode="numeric"
-                        pattern="[0-9]{5}"
-                        maxLength={5}
-                        value={newAddress.postal_code}
-                        onChange={(e) => {
-                          const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 5)
-                          setNewAddress({ ...newAddress, postal_code: digitsOnly })
-                        }}
-                        placeholder={tr('Postal Code (5 digits)', 'Kode Pos (5 digit)')}
-                        className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-black placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-black"
-                      />
-                      <datalist id="postal-code-suggestions">
-                        {postalCodeSuggestions.map((postalCode) => (
-                          <option key={postalCode} value={postalCode} />
-                        ))}
-                      </datalist>
+                          <select
+                            value={selectedRegencyCode}
+                            onChange={(e) => {
+                              handleRegencyChange(e.target.value)
+                            }}
+                            disabled={!selectedProvinceCode || loadingRegencies}
+                            className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-black focus:outline-none focus:ring-2 focus:ring-black disabled:bg-gray-100 disabled:text-gray-400"
+                          >
+                            <option value="">
+                              {newAddress.city && selectedRegencyCode === ''
+                                ? `${tr('Current City', 'Kota Saat Ini')}: ${newAddress.city}`
+                                : tr('Select City', 'Pilih Kota')}
+                            </option>
+                            {regencyOptions.map((regency) => (
+                              <option key={regency.code} value={regency.code}>
+                                {getDisplayRegionName(regency.name)}
+                              </option>
+                            ))}
+                          </select>
+
+                          {/* Couriers rate to kecamatan level; without it a quote
+                              is only as good as the postcode behind it. */}
+                          <input
+                            type="text"
+                            value={newAddress.district}
+                            onChange={(e) => setNewAddress({ ...newAddress, district: e.target.value })}
+                            placeholder={tr('District (Kecamatan)', 'Kecamatan')}
+                            className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-black placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-black"
+                          />
+
+                          <input
+                            list="postal-code-suggestions"
+                            inputMode="numeric"
+                            pattern="[0-9]{5}"
+                            maxLength={5}
+                            value={newAddress.postal_code}
+                            onChange={(e) => {
+                              const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 5)
+                              setNewAddress({ ...newAddress, postal_code: digitsOnly })
+                            }}
+                            placeholder={tr('Postal Code (5 digits)', 'Kode Pos (5 digit)')}
+                            className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-black placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-black"
+                          />
+                          <datalist id="postal-code-suggestions">
+                            {postalCodeSuggestions.map((postalCode) => (
+                              <option key={postalCode} value={postalCode} />
+                            ))}
+                          </datalist>
+                        </>
+                      ) : (
+                        <>
+                          <input
+                            type="text"
+                            value={newAddress.province}
+                            onChange={(e) => setNewAddress({ ...newAddress, province: e.target.value })}
+                            placeholder={tr('State / Province / Region', 'Negara Bagian / Provinsi')}
+                            className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-black placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-black"
+                          />
+                          <input
+                            type="text"
+                            value={newAddress.city}
+                            onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
+                            placeholder={tr('City', 'Kota')}
+                            className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-black placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-black"
+                          />
+                          <input
+                            type="text"
+                            value={newAddress.postal_code}
+                            onChange={(e) => setNewAddress({ ...newAddress, postal_code: e.target.value })}
+                            placeholder={
+                              isFormPostalRequired
+                                ? tr('Postal / ZIP Code', 'Kode Pos')
+                                : tr('Postal Code (optional)', 'Kode Pos (opsional)')
+                            }
+                            className="col-span-2 px-4 py-2 border border-gray-300 rounded-lg bg-white text-black placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-black"
+                          />
+                        </>
+                      )}
 
                       <label className="col-span-2 inline-flex items-center gap-2 text-sm text-gray-700">
                         <input
@@ -765,10 +975,15 @@ export default function CheckoutPage() {
                       </label>
                     </div>
                     <p className="text-xs text-gray-500">
-                      {tr(
-                        'Province and city are loaded from wilayah.id API. Postal code is entered manually because the API does not provide postal code data.',
-                        'Provinsi dan kota dimuat dari API wilayah.id. Kode pos diisi manual karena API tidak menyediakan data kode pos.'
-                      )}
+                      {isFormDomestic
+                        ? tr(
+                            'Province and city are loaded from wilayah.id API. Postal code is entered manually because the API does not provide postal code data.',
+                            'Provinsi dan kota dimuat dari API wilayah.id. Kode pos diisi manual karena API tidak menyediakan data kode pos.'
+                          )
+                        : tr(
+                            'Shipping cost is calculated automatically once the address is saved.',
+                            'Ongkos kirim dihitung otomatis setelah alamat disimpan.'
+                          )}
                     </p>
                     <div className="flex gap-2">
                       <button
@@ -817,9 +1032,141 @@ export default function CheckoutPage() {
                   </div>
                 )}
 
+                {/* Courier selection — priced live for the selected address */}
+                {selectedAddress && !showAddressForm && (
+                  <div className="mt-6 pt-6 border-t border-gray-200">
+                    <h3 className="font-semibold text-black mb-1 flex items-center gap-2">
+                      <Truck className="w-5 h-5" />
+                      {tr('Shipping Service', 'Layanan Pengiriman')}
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      {parcelWeightGrams > 0
+                        ? tr(
+                            `Calculated for a ${(parcelWeightGrams / 1000).toFixed(2)} kg parcel to ${selectedAddress.city}.`,
+                            `Dihitung untuk paket ${(parcelWeightGrams / 1000).toFixed(2)} kg ke ${selectedAddress.city}.`
+                          )
+                        : tr(
+                            'Rates are calculated from your selected address.',
+                            'Ongkir dihitung berdasarkan alamat yang dipilih.'
+                          )}
+                    </p>
+
+                    {/* "Add 2 more items for free shipping" — the nudge that makes
+                        the promotion visible before the customer has earned it. */}
+                    {nearMisses.length > 0 && (
+                      <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 flex items-start gap-2">
+                        <Gift className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+                        <p className="text-sm text-emerald-800">
+                          {describeNearMiss(
+                            {
+                              promotion: {
+                                condition_type: nearMisses[0].conditionType,
+                                condition_value: nearMisses[0].conditionValue,
+                                reward_type: nearMisses[0].rewardType,
+                                reward_value: nearMisses[0].rewardValue,
+                                max_discount: nearMisses[0].maxDiscount,
+                              },
+                              remaining: nearMisses[0].remaining,
+                            },
+                            language
+                          )}
+                        </p>
+                      </div>
+                    )}
+
+                    {customsNote && (
+                      <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 flex items-start gap-2">
+                        <Info className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                        <p className="text-sm text-amber-800">
+                          {language === 'en' ? customsNote.en : customsNote.id}
+                        </p>
+                      </div>
+                    )}
+
+                    {loadingRates ? (
+                      <div className="text-center py-6">
+                        <div className="inline-block animate-spin rounded-full h-7 w-7 border-b-2 border-black" />
+                        <p className="mt-2 text-sm text-gray-600">
+                          {tr('Calculating shipping cost...', 'Menghitung ongkos kirim...')}
+                        </p>
+                      </div>
+                    ) : ratesError ? (
+                      <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-3 text-sm text-red-700">
+                        <p>{ratesError}</p>
+                        <button
+                          type="button"
+                          onClick={() => void loadShippingRates(selectedAddress.id)}
+                          className="mt-2 font-semibold underline"
+                        >
+                          {tr('Try again', 'Coba lagi')}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {shippingOptions.map((option) => {
+                          const isSelected = option.key === selectedShippingKey
+                          const isFree = option.finalCost === 0
+
+                          return (
+                            <button
+                              key={option.key}
+                              type="button"
+                              onClick={() => setSelectedShippingKey(option.key)}
+                              className={`w-full text-left border-2 rounded-lg p-3 transition ${
+                                isSelected
+                                  ? 'border-black bg-gray-50'
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="font-semibold text-black truncate">
+                                    {option.courierName} — {option.serviceName}
+                                  </p>
+                                  <p className="text-sm text-gray-600">
+                                    {tr(
+                                      `Estimated ${option.etdMinDays}-${option.etdMaxDays} days`,
+                                      `Estimasi ${option.etdMinDays}-${option.etdMaxDays} hari`
+                                    )}
+                                  </p>
+                                  {option.appliedPromotions.map((promotion) => (
+                                    <p
+                                      key={promotion.id}
+                                      className="text-xs font-medium text-emerald-700 mt-1 inline-flex items-center gap-1"
+                                    >
+                                      <Gift className="w-3 h-3" />
+                                      {language === 'en'
+                                        ? promotion.name
+                                        : promotion.name_id || promotion.name}
+                                    </p>
+                                  ))}
+                                </div>
+                                <div className="text-right shrink-0">
+                                  {option.discount > 0 && (
+                                    <p className="text-xs text-gray-400 line-through">
+                                      {formatPrice(option.baseCost)}
+                                    </p>
+                                  )}
+                                  <p
+                                    className={`font-bold ${
+                                      isFree ? 'text-emerald-600' : 'text-black'
+                                    }`}
+                                  >
+                                    {isFree ? tr('FREE', 'GRATIS') : formatPrice(option.finalCost)}
+                                  </p>
+                                </div>
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <button
                   onClick={() => setCurrentStep('payment')}
-                  disabled={!selectedAddress}
+                  disabled={!selectedAddress || !selectedShippingOption || loadingRates}
                   className="w-full mt-6 py-3 btn-primary-animated"
                 >
                   {tr('Continue to Payment', 'Lanjut ke Pembayaran')}
@@ -1118,10 +1465,62 @@ export default function CheckoutPage() {
                   <span>{tr('Subtotal', 'Subtotal')}</span>
                   <span>{formatPrice(subtotal)}</span>
                 </div>
+                {orderDiscount > 0 && (
+                  <div className="flex justify-between text-emerald-700 font-medium">
+                    <span>{tr('Discount', 'Diskon')}</span>
+                    <span>-{formatPrice(orderDiscount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-gray-600">
-                  <span>{tr('Shipping', 'Pengiriman')}</span>
-                  <span>{formatPrice(shippingCost)}</span>
+                  <span>
+                    {tr('Shipping', 'Pengiriman')}
+                    {selectedShippingOption && (
+                      <span className="block text-xs text-gray-500">
+                        {selectedShippingOption.courierName} {selectedShippingOption.serviceName}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-right">
+                    {!selectedShippingOption ? (
+                      <span className="text-gray-400">
+                        {loadingRates ? tr('Calculating...', 'Menghitung...') : '—'}
+                      </span>
+                    ) : shippingCost === 0 ? (
+                      <>
+                        {shippingDiscount > 0 && (
+                          <span className="block text-xs text-gray-400 line-through">
+                            {formatPrice(selectedShippingOption.baseCost)}
+                          </span>
+                        )}
+                        <span className="font-semibold text-emerald-600">
+                          {tr('FREE', 'GRATIS')}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        {shippingDiscount > 0 && (
+                          <span className="block text-xs text-gray-400 line-through">
+                            {formatPrice(selectedShippingOption.baseCost)}
+                          </span>
+                        )}
+                        {formatPrice(shippingCost)}
+                      </>
+                    )}
+                  </span>
                 </div>
+                {appliedPromotions.length > 0 && (
+                  <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 space-y-1">
+                    {appliedPromotions.map((promotion) => (
+                      <p
+                        key={promotion.id}
+                        className="text-xs text-emerald-800 inline-flex items-center gap-1"
+                      >
+                        <Gift className="w-3 h-3 shrink-0" />
+                        {language === 'en' ? promotion.name : promotion.name_id || promotion.name}
+                      </p>
+                    ))}
+                  </div>
+                )}
                 <div className="flex justify-between text-gray-600">
                   <span>{tr('Tax (VAT 11%)', 'Pajak (PPN 11%)')}</span>
                   <span>{formatPrice(tax)}</span>

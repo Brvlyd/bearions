@@ -24,6 +24,14 @@ export type Product = {
   stock: number
   category: string
   image_url: string | null
+  /** Shipping weight. Null falls back to the store-wide default in site settings. */
+  weight_grams?: number | null
+  length_cm?: number | null
+  width_cm?: number | null
+  height_cm?: number | null
+  /** Harmonised System code for the customs form on international parcels. */
+  hs_code?: string | null
+  origin_country?: string | null
   created_at: string
   updated_at: string
 }
@@ -80,6 +88,25 @@ export type SiteSettings = {
   logo_url: string | null
   updated_at: string
   updated_by: string | null
+}
+
+/** Where Bearion ships from and how rates are priced. Lives on the same singleton row. */
+export type ShippingSettings = {
+  shipping_origin_label: string | null
+  shipping_origin_address: string | null
+  shipping_origin_city: string | null
+  shipping_origin_province: string | null
+  shipping_origin_postal_code: string | null
+  shipping_origin_country_code: string | null
+  shipping_origin_area_id: string | null
+  /** 'zone' prices from the CMS rate table; 'biteship' calls the live aggregator. */
+  shipping_provider: 'zone' | 'biteship'
+  shipping_default_weight_grams: number
+  shipping_volumetric_divisor: number
+  shipping_handling_fee: number
+  shipping_international_enabled: boolean
+  shipping_customs_note: string | null
+  shipping_customs_note_id: string | null
 }
 
 export type PaymentMethodConfig = {
@@ -146,6 +173,21 @@ export type Order = {
   shipped_at: string | null
   delivered_at: string | null
   cancelled_at: string | null
+
+  // Rate snapshot. shipping_cost is what was charged; shipping_base_cost is the
+  // courier price before promotions, so the discount stays auditable.
+  shipping_courier_code?: string | null
+  shipping_service_code?: string | null
+  shipping_service_name?: string | null
+  shipping_base_cost?: number | null
+  shipping_discount?: number | null
+  shipping_etd_min_days?: number | null
+  shipping_etd_max_days?: number | null
+  shipping_weight_grams?: number | null
+  shipping_zone_code?: string | null
+  shipping_provider?: string | null
+  applied_promotions?: AppliedPromotion[] | null
+  fx_rate_idr_usd?: number | null
 }
 
 export type OrderItem = {
@@ -173,12 +215,112 @@ export type ShippingAddress = {
   address_line2: string | null
   city: string
   province: string
-  postal_code: string
+  /** Null is legitimate: Hong Kong, the UAE and parts of Ireland have no postcode. */
+  postal_code: string | null
   country: string
+  /** ISO 3166-1 alpha-2. Decides whether the order is rated domestic or international. */
+  country_code: string
+  district: string | null
+  subdistrict: string | null
+  area_id: string | null
   is_default: boolean
   label: string | null
   created_at: string
   updated_at: string
+}
+
+// Shipping rate configuration owned by the CMS
+export type ShippingZone = {
+  id: string
+  code: string
+  name: string
+  name_id: string | null
+  kind: 'domestic' | 'international'
+  province_names: string[] | null
+  country_codes: string[] | null
+  is_fallback: boolean
+  is_active: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export type ShippingZoneRate = {
+  id: string
+  zone_id: string
+  courier_code: string
+  courier_name: string
+  service_code: string
+  service_name: string
+  first_kg_cost: number
+  next_kg_cost: number
+  etd_min_days: number
+  etd_max_days: number
+  is_active: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+// Promotions
+export type PromotionRewardType =
+  | 'free_shipping'
+  | 'shipping_percent'
+  | 'shipping_fixed'
+  | 'order_percent'
+  | 'order_fixed'
+
+export type PromotionConditionType = 'always' | 'min_items' | 'min_subtotal' | 'min_weight'
+
+export type PromotionScope = 'all' | 'domestic' | 'international'
+
+export type ShippingPromotion = {
+  id: string
+  name: string
+  name_id: string | null
+  description: string | null
+  description_id: string | null
+  reward_type: PromotionRewardType
+  reward_value: number
+  max_discount: number | null
+  condition_type: PromotionConditionType
+  condition_value: number
+  scope: PromotionScope
+  country_codes: string[] | null
+  courier_codes: string[] | null
+  stackable: boolean
+  priority: number
+  is_active: boolean
+  starts_at: string | null
+  ends_at: string | null
+  usage_limit: number | null
+  usage_count: number
+  created_at: string
+  updated_at: string
+}
+
+/** What actually fired on one order, snapshotted so later CMS edits cannot rewrite it. */
+export type AppliedPromotion = {
+  id: string
+  name: string
+  name_id: string | null
+  reward_type: PromotionRewardType
+  shipping_discount: number
+  order_discount: number
+}
+
+// Tracking
+export type OrderTrackingEvent = {
+  id: string
+  order_id: string
+  source: 'system' | 'courier'
+  status: string
+  description: string | null
+  description_id: string | null
+  location: string | null
+  event_time: string
+  dedupe_key: string
+  created_at: string
 }
 
 // Payment Types
