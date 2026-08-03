@@ -3,7 +3,7 @@ import type { Product } from './supabase'
 export type PriceLanguage = 'en' | 'id'
 
 /** Product fields any price formatter needs — keeps these usable with partial rows. */
-type PricedProduct = Pick<Product, 'price'> & Partial<Pick<Product, 'price_usd' | 'sale_price'>>
+export type PricedProduct = Pick<Product, 'price'> & Partial<Pick<Product, 'price_usd' | 'sale_price'>>
 
 export const formatIDR = (value: number) =>
   new Intl.NumberFormat('id-ID', {
@@ -46,6 +46,73 @@ export const getSalePrice = (product: PricedProduct): number | null => {
 export const isDiscounted = (product: PricedProduct): boolean => {
   const salePrice = getSalePrice(product)
   return salePrice !== null && salePrice < getIdrPrice(product)
+}
+
+/**
+ * Whole-percent saving, e.g. 34 for Rp 380.000 marked down to Rp 250.000.
+ * Null when the product is not on sale — that is what drives the "-34%" badge.
+ */
+export const getDiscountPercent = (product: PricedProduct): number | null => {
+  if (!isDiscounted(product)) return null
+
+  const price = getIdrPrice(product)
+  if (price <= 0) return null
+
+  return Math.round(((price - getSalePrice(product)!) / price) * 100)
+}
+
+/** How many rupiah the customer saves on one unit. Zero when not discounted. */
+export const getDiscountAmount = (product: PricedProduct): number => {
+  if (!isDiscounted(product)) return 0
+  return getIdrPrice(product) - getSalePrice(product)!
+}
+
+export type SalePriceDraft = {
+  /** The admin typed something into the sale price field. */
+  filled: boolean
+  /** Filled in, but not a markdown: zero, negative, or above the normal price. */
+  invalid: boolean
+  percent: number | null
+  savings: number
+  price: number
+  salePrice: number
+}
+
+/**
+ * Read the CMS price pair while it is still two form strings, so the product
+ * form can preview the markdown and refuse to save a "discount" that raises the
+ * price.
+ */
+export const describeSalePriceDraft = (price: string, salePrice: string): SalePriceDraft => {
+  const priceValue = Number.parseFloat(price)
+  const salePriceValue = Number.parseFloat(salePrice)
+  const filled = salePrice.trim() !== ''
+
+  if (!filled || !Number.isFinite(salePriceValue)) {
+    return {
+      filled,
+      invalid: filled,
+      percent: null,
+      savings: 0,
+      price: Number.isFinite(priceValue) ? priceValue : 0,
+      salePrice: 0,
+    }
+  }
+
+  // A price that is still being typed is not yet wrong — only judge the sale
+  // price against a normal price the admin has actually finished entering.
+  const comparable = Number.isFinite(priceValue) && priceValue > 0
+  const invalid = salePriceValue <= 0 || (comparable && salePriceValue >= priceValue)
+
+  return {
+    filled,
+    invalid,
+    percent:
+      comparable && !invalid ? Math.round(((priceValue - salePriceValue) / priceValue) * 100) : null,
+    savings: comparable && !invalid ? priceValue - salePriceValue : 0,
+    price: comparable ? priceValue : 0,
+    salePrice: salePriceValue,
+  }
 }
 
 export const formatProductPrice = (product: PricedProduct, language: PriceLanguage) => {

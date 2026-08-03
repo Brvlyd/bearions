@@ -8,6 +8,7 @@ import Pagination from './Pagination'
 import { usePagination } from '@/lib/hooks/usePagination'
 import { Product, supabase } from '@/lib/supabase'
 import { productService } from '@/lib/products'
+import { getEffectiveIdrPrice } from '@/lib/price'
 
 interface Category {
   id: string
@@ -88,13 +89,14 @@ export default function CatalogView() {
       )
     }
 
-    // Sort
+    // Sort. Price sorting follows the price on the tag, so a discounted product
+    // does not sort as if the customer were paying the crossed-out figure.
     switch (sortBy) {
       case 'price-low':
-        filtered.sort((a, b) => a.price - b.price)
+        filtered.sort((a, b) => getEffectiveIdrPrice(a) - getEffectiveIdrPrice(b))
         break
       case 'price-high':
-        filtered.sort((a, b) => b.price - a.price)
+        filtered.sort((a, b) => getEffectiveIdrPrice(b) - getEffectiveIdrPrice(a))
         break
       case 'name':
         filtered.sort((a, b) => a.name.localeCompare(b.name))

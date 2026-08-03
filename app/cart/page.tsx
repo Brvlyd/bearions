@@ -8,7 +8,8 @@ import { ShoppingBag, ArrowRight, AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cartService } from '@/lib/cart'
 import CartItem from '@/components/CartItem'
-import { getEffectiveIdrPrice } from '@/lib/price'
+import { formatIDR, getEffectiveIdrPrice, getIdrPrice } from '@/lib/price'
+import { SHIPPING_ENABLED } from '@/lib/store-config'
 import type { CartItem as CartItemType } from '@/lib/supabase'
 
 function CartPageContent() {
@@ -100,13 +101,20 @@ function CartPageContent() {
     }
   }
 
-  // Calculate totals
+  // Calculate totals. The summary lists the full price first and the markdown as
+  // its own line, so the sale is visible as a saving rather than a lower number.
   const subtotal = cartItems.reduce((total, item) => {
     const price = item.product ? getEffectiveIdrPrice(item.product) : 0
     return total + price * item.quantity
   }, 0)
 
-  const shippingCost = subtotal > 0 ? 15000 : 0 // Free shipping above 500k
+  const originalSubtotal = cartItems.reduce((total, item) => {
+    const price = item.product ? getIdrPrice(item.product) : 0
+    return total + price * item.quantity
+  }, 0)
+
+  const productSavings = Math.max(0, originalSubtotal - subtotal)
+  const shippingCost = SHIPPING_ENABLED && subtotal > 0 ? 15000 : 0
   const total = subtotal + shippingCost
 
   // Check if any items are out of stock
@@ -249,39 +257,38 @@ function CartPageContent() {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-gray-600">
                   <span>{t('cart.subtotal')}</span>
-                  <span>
-                    {new Intl.NumberFormat('id-ID', {
-                      style: 'currency',
-                      currency: 'IDR',
-                      minimumFractionDigits: 0,
-                    }).format(subtotal)}
-                  </span>
+                  <span suppressHydrationWarning>{formatIDR(originalSubtotal)}</span>
                 </div>
 
-                <div className="flex justify-between text-gray-600">
-                  <span>{t('cart.shipping')}</span>
-                  <span>
-                    {shippingCost === 0
-                      ? t('cart.freeShipping')
-                      : new Intl.NumberFormat('id-ID', {
-                          style: 'currency',
-                          currency: 'IDR',
-                          minimumFractionDigits: 0,
-                        }).format(shippingCost)}
-                  </span>
-                </div>
+                {productSavings > 0 && (
+                  <div className="flex justify-between font-semibold text-red-600">
+                    <span>{tr('Product discount', 'Diskon produk')}</span>
+                    <span suppressHydrationWarning>-{formatIDR(productSavings)}</span>
+                  </div>
+                )}
+
+                {SHIPPING_ENABLED && (
+                  <div className="flex justify-between text-gray-600">
+                    <span>{t('cart.shipping')}</span>
+                    <span suppressHydrationWarning>
+                      {shippingCost === 0 ? t('cart.freeShipping') : formatIDR(shippingCost)}
+                    </span>
+                  </div>
+                )}
 
                 <div className="border-t border-gray-200 pt-3">
                   <div className="flex justify-between text-lg font-bold text-black">
                     <span>{t('cart.total')}</span>
-                    <span>
-                      {new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        minimumFractionDigits: 0,
-                      }).format(total)}
-                    </span>
+                    <span suppressHydrationWarning>{formatIDR(total)}</span>
                   </div>
+                  {productSavings > 0 && (
+                    <p className="mt-1 text-sm font-semibold text-emerald-600" suppressHydrationWarning>
+                      {tr(
+                        `You save ${formatIDR(productSavings)}`,
+                        `Hemat ${formatIDR(productSavings)}`
+                      )}
+                    </p>
+                  )}
                 </div>
               </div>
 

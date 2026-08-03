@@ -71,9 +71,12 @@ Catatan penting:
 ## URL Configuration
 
 Di **Authentication → URL Configuration**, pastikan domain produksi terdaftar.
-Link verifikasi dibangun dari origin browser (lihat `buildLoginRedirectUrl` di
-[`lib/auth.ts`](../../lib/auth.ts)), dan Supabase menolak redirect ke URL yang
-tidak ada di allowlist.
+Link verifikasi dibangun dari `NEXT_PUBLIC_SITE_URL` (lihat `getSiteOrigin` di
+[`lib/site-url.ts`](../../lib/site-url.ts)); kalau env itu kosong barulah origin
+browser/request yang dipakai — inilah sebabnya email yang dikirim dari
+`npm run dev` berisi link `localhost` yang tidak bisa dibuka dari HP. Supabase
+juga menolak redirect ke URL yang tidak ada di allowlist dan diam-diam
+menggantinya dengan Site URL.
 
 ```
 Site URL      : https://<domain-produksi>
@@ -89,10 +92,12 @@ Redirect URLs : https://<domain-produksi>/auth/confirm
 2. Daftar akun baru dengan alamat email asli.
 3. Email konfirmasi harus muncul di **Brevo → Transactional → Logs**. Kalau tidak
    muncul di sini, Supabase belum memakai SMTP Brevo — cek ulang SMTP Settings.
-4. Klik link di email; harus mendarat di `/auth/confirm` lalu redirect ke
-   `/login?confirmed=true`.
-5. Login harus berhasil. Sebelum diklik, login harus ditolak dengan
-   `Email not confirmed`.
+4. Klik link di email; harus mendarat di `/auth/confirm`, menampilkan layar
+   "Verifikasi berhasil", lalu redirect ke dashboard dalam keadaan **sudah
+   login** (`/catalog` untuk user, `/admin/dashboard` untuk admin).
+5. Kalau email dibuka di browser lain dari tempat mendaftar, sesi tidak ikut
+   terbawa; halaman tetap sukses tapi mengarahkan ke `/login?confirmed=true`.
+6. Sebelum link diklik, login harus ditolak dengan `Email not confirmed`.
 
 ## Batas kuota
 

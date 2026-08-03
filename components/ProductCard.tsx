@@ -5,7 +5,9 @@ import { Product } from '@/lib/supabase'
 import { useLanguage } from '@/lib/i18n'
 import { useState, useEffect } from 'react'
 import { productService } from '@/lib/products'
-import { formatIDR, formatProductPrice, getSalePrice, isDiscounted } from '@/lib/price'
+import { getDiscountPercent } from '@/lib/price'
+import DiscountBadge from './DiscountBadge'
+import ProductPrice from './ProductPrice'
 import SafeImage from './SafeImage'
 
 interface ProductCardProps {
@@ -17,7 +19,8 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, images: providedImages }: ProductCardProps) {
   const { t, language } = useLanguage()
-  
+  const discountPercent = getDiscountPercent(product)
+
   const getProductName = () => {
     if (language === 'id' && product.name_id) {
       return product.name_id
@@ -76,6 +79,10 @@ export default function ProductCard({ product, images: providedImages }: Product
               className="transition-transform duration-300 group-hover:scale-105"
             />
           )}
+          {/* A markdown has to be visible from the grid, not only after a click. */}
+          {discountPercent !== null && discountPercent > 0 && (
+            <DiscountBadge percent={discountPercent} size="md" className="absolute top-2 left-2 z-10" />
+          )}
           {product.stock === 0 && (
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
               <span className="text-white font-semibold">{t('product.outOfStock')}</span>
@@ -85,14 +92,7 @@ export default function ProductCard({ product, images: providedImages }: Product
         <h3 className="font-semibold text-lg mb-1 group-hover:text-gray-600 transition text-black">
           {getProductName()}
         </h3>
-        {isDiscounted(product) ? (
-          <div>
-            <p className="text-sm text-gray-500 line-through">{formatIDR(product.price)}</p>
-            <p className="text-black font-bold">{formatIDR(getSalePrice(product)!)}</p>
-          </div>
-        ) : (
-          <p className="text-black font-bold">{formatProductPrice(product, language)}</p>
-        )}
+        <ProductPrice product={product} size="md" />
         <p className="text-sm text-gray-500 mt-1">{t('product.stock')}: {product.stock}</p>
       </div>
     </Link>

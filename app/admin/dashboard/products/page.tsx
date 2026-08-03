@@ -8,7 +8,15 @@ import { getErrorMessage } from '@/lib/errors'
 import { usePagination } from '@/lib/hooks/usePagination'
 import SafeImage from '@/components/SafeImage'
 import Pagination from '@/components/Pagination'
-import { formatIDR, formatUSD, getSalePrice, isDiscounted, getUsdPrice } from '@/lib/price'
+import DiscountBadge from '@/components/DiscountBadge'
+import {
+  formatIDR,
+  formatUSD,
+  getDiscountPercent,
+  getSalePrice,
+  getUsdPrice,
+  isDiscounted,
+} from '@/lib/price'
 import Link from 'next/link'
 import { Eye, Package, AlertCircle, Search, SlidersHorizontal, Grid, List, Pencil, Trash2, Filter, PlusCircle, Plus, Tags, ChevronDown, X } from 'lucide-react'
 
@@ -742,6 +750,15 @@ export default function MonitoringPage() {
                     <Package className="w-16 h-16" />
                   </div>
                 )}
+                {/* Discount badge, mirroring the storefront so an admin can see
+                    at a glance which products are on sale right now. */}
+                {isDiscounted(product) && (
+                  <DiscountBadge
+                    percent={getDiscountPercent(product)!}
+                    size="md"
+                    className="absolute top-2 left-2 z-10"
+                  />
+                )}
                 {/* Stock Badge */}
                 <div className={`absolute top-2 right-2 px-3 py-1 rounded-full text-sm font-semibold ${
                   product.stock === 0
@@ -762,8 +779,13 @@ export default function MonitoringPage() {
                   <span className="text-lg font-bold text-black min-w-0 truncate">
                     {isDiscounted(product) ? (
                       <>
-                        <span className="text-sm text-gray-500 line-through block">{formatIDR(product.price)}</span>
-                        {formatIDR(getSalePrice(product)!)}
+                        <span className="flex items-center gap-2">
+                          <span className="text-red-600">{formatIDR(getSalePrice(product)!)}</span>
+                          <DiscountBadge percent={getDiscountPercent(product)!} />
+                        </span>
+                        <span className="text-sm text-gray-400 line-through block">
+                          {formatIDR(product.price)}
+                        </span>
                       </>
                     ) : (
                       formatPrice(product.price)
@@ -862,8 +884,15 @@ export default function MonitoringPage() {
                   <td className="px-6 py-4 text-sm font-medium text-black">
                     {isDiscounted(product) ? (
                       <>
-                        <div className="text-sm text-gray-500 line-through">{formatIDR(product.price)}</div>
-                        <div>{formatIDR(getSalePrice(product)!)}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-red-600">
+                            {formatIDR(getSalePrice(product)!)}
+                          </span>
+                          <DiscountBadge percent={getDiscountPercent(product)!} />
+                        </div>
+                        <div className="text-sm text-gray-400 line-through">
+                          {formatIDR(product.price)}
+                        </div>
                       </>
                     ) : (
                       formatPrice(product.price)

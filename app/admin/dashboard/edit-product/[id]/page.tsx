@@ -8,8 +8,10 @@ import { useLanguage } from '@/lib/i18n'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import MultiImageUpload from '@/components/MultiImageUpload'
+import ProductPrice from '@/components/ProductPrice'
 import Notification from '@/components/Notification'
 import { getErrorMessage } from '@/lib/errors'
+import { describeSalePriceDraft } from '@/lib/price'
 
 interface Category {
   id: string
@@ -112,8 +114,24 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     }
   }
 
+  const saleDraft = describeSalePriceDraft(formData.price, formData.sale_price)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // A sale price at or above the normal price would render as a crossed-out
+    // bargain that costs more — refuse it here rather than on the storefront.
+    if (saleDraft.invalid) {
+      setNotification({
+        type: 'error',
+        message: tr(
+          'Sale price must be greater than 0 and lower than the normal price.',
+          'Harga diskon harus lebih dari 0 dan lebih kecil dari harga normal.'
+        ),
+      })
+      return
+    }
+
     setSaving(true)
 
     try {
@@ -279,14 +297,42 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 min="0"
                 value={formData.sale_price}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400 text-black"
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 placeholder:text-gray-400 text-black ${
+                  saleDraft.invalid
+                    ? 'border-red-400 focus:ring-red-500'
+                    : 'border-gray-300 focus:ring-black'
+                }`}
               />
-              <p className="text-xs text-gray-500 mt-1">
-                {tr(
-                  'Optional. Enter a discounted price to show the original price crossed out.',
-                  'Opsional. Masukkan harga diskon agar harga asli dicoret.'
-                )}
-              </p>
+              {saleDraft.invalid ? (
+                <p className="text-xs font-medium text-red-600 mt-1">
+                  {tr(
+                    'Sale price must be greater than 0 and lower than the normal price.',
+                    'Harga diskon harus lebih dari 0 dan lebih kecil dari harga normal.'
+                  )}
+                </p>
+              ) : (
+                <p className="text-xs text-gray-500 mt-1">
+                  {tr(
+                    'Optional. Enter a discounted price to show the original price crossed out. Clear the field to end the sale.',
+                    'Opsional. Masukkan harga diskon agar harga asli dicoret. Kosongkan untuk mengakhiri diskon.'
+                  )}
+                </p>
+              )}
+
+              {/* Exactly what the shopper will see, so nobody has to publish a
+                  product to find out how the markdown reads. */}
+              {saleDraft.percent !== null && (
+                <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                  <p className="text-xs text-gray-500 mb-1">
+                    {tr('Storefront preview', 'Tampilan di toko')}
+                  </p>
+                  <ProductPrice
+                    product={{ price: saleDraft.price, sale_price: saleDraft.salePrice }}
+                    size="md"
+                    showSavings
+                  />
+                </div>
+              )}
             </div>
           </div>
 

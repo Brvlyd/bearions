@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { authService } from '@/lib/auth'
+import { authService, getDashboardPath } from '@/lib/auth'
 import Link from 'next/link'
 import { useLanguage } from '@/lib/i18n'
 
@@ -114,10 +114,8 @@ function LoginPageContent() {
       // Wait a bit to ensure session is properly saved
       await new Promise(resolve => setTimeout(resolve, 800))
       
-      if (result.role === 'admin') {
-        window.location.href = '/admin/dashboard'
-      } else if (result.role === 'user') {
-        window.location.href = '/catalog'
+      if (result.role === 'admin' || result.role === 'user') {
+        window.location.href = getDashboardPath(result.role)
       } else {
         setError(t('login.errorRoleDetermination'))
         await authService.logout()
@@ -170,12 +168,8 @@ function LoginPageContent() {
 
     try {
       setVerificationLoading(true)
-      await authService.resendEmailVerification(normalizedEmail)
-      setSuccess(
-        language === 'en'
-          ? '✅ Verification email sent again. Please check inbox and spam/junk folder.'
-          : '✅ Email verifikasi sudah dikirim ulang. Silakan cek inbox dan folder spam/junk.'
-      )
+      const result = await authService.resendEmailVerification(normalizedEmail, language)
+      setSuccess(result.message)
       setVerificationCooldown(45)
       setShowVerificationActions(true)
     } catch (err: unknown) {

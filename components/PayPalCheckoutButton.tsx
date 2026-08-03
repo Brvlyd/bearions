@@ -29,7 +29,13 @@ function loadPayPalSdk(clientId: string): Promise<void> {
     script.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(clientId)}&currency=USD`
     script.async = true
     script.onload = () => resolve()
-    script.onerror = () => reject(new Error('Failed to load PayPal SDK'))
+    script.onerror = () => {
+      // Drop the failed script and the cached promise, otherwise one flaky
+      // network moment would keep PayPal broken until a full page reload.
+      script.remove()
+      sdkLoadPromise = null
+      reject(new Error('Failed to load PayPal SDK'))
+    }
     document.body.appendChild(script)
   })
 
@@ -53,10 +59,32 @@ export default function PayPalCheckoutButton({ orderNumber, onSuccess, onError }
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(
     clientId ? 'loading' : 'error'
   )
-  const [errorMessage, setErrorMessage] = useState('')
-  // Derived so the text follows language changes instead of freezing at mount.
-  const shownError =
-    errorMessage || (!clientId ? tr('PayPal is not configured.', 'PayPal belum dikonfigurasi.') : '')
+  // Stored as a kind rather than a translated string so the message re-renders
+  // in the current language instead of freezing at the moment it failed.
+  const [errorKind, setErrorKind] = useState<'sdk' | 'payment' | null>(null)
+
+  const describeError = (kind: 'sdk' | 'payment') =>
+    kind === 'sdk'
+      ? tr(
+          'Failed to load PayPal. Please refresh and try again.',
+          'Gagal memuat PayPal. Silakan refresh dan coba lagi.'
+        )
+      : tr('PayPal payment failed. Please try again.', 'Pembayaran PayPal gagal. Silakan coba lagi.')
+
+  const shownError = errorKind
+    ? describeError(errorKind)
+    : !clientId
+      ? tr('PayPal is not configured.', 'PayPal belum dikonfigurasi.')
+      : ''
+
+  // The effect below must not re-run when these change identity: `tr` is rebuilt
+  // on every language-provider render, and a caller can easily pass an
+  // unmemoised callback. Re-running would tear down and re-mount PayPal's
+  // iframe mid-payment, so the effect reads them through refs instead.
+  const latest = useRef({ tr, onSuccess, onError })
+  useEffect(() => {
+    latest.current = { tr, onSuccess, onError }
+  })
 
   const getAccessToken = useCallback(async () => {
     const { data } = await supabase.auth.getSession()
@@ -114,30 +142,41 @@ export default function PayPalCheckoutButton({ orderNumber, onSuccess, onError }
               throw new Error(result.message || 'Failed to capture PayPal payment')
             }
 
-            onSuccess()
+            latest.current.onSuccess()
+          },
+          // Closing the PayPal window is not a failure — clear any stale error
+          // so the customer can simply click the button again.
+          onCancel: () => {
+            if (!cancelled) setErrorKind(null)
           },
           onError: (err: unknown) => {
             console.error('PayPal button error:', err)
-            const message = tr(
+            if (!cancelled) setErrorKind('payment')
+            latest.current.onError?.(latest.current.tr(
               'PayPal payment failed. Please try again.',
               'Pembayaran PayPal gagal. Silakan coba lagi.'
-            )
-            setErrorMessage(message)
-            onError?.(message)
+            ))
           },
         })
 
-        buttonsInstance.render(`#${containerId}`)
-
-        if (!cancelled) setStatus('ready')
+        buttonsInstance
+          .render(`#${containerId}`)
+          .then(() => {
+            if (!cancelled) setStatus('ready')
+          })
+          .catch((err) => {
+            // A render rejection after cleanup is expected, not a real failure.
+            if (cancelled) return
+            console.error('Failed to render PayPal buttons:', err)
+            setStatus('error')
+            setErrorKind('sdk')
+          })
       })
       .catch((err) => {
         console.error('Failed to load PayPal SDK:', err)
         if (!cancelled) {
           setStatus('error')
-          setErrorMessage(
-            tr('Failed to load PayPal. Please refresh and try again.', 'Gagal memuat PayPal. Silakan refresh dan coba lagi.')
-          )
+          setErrorKind('sdk')
         }
       })
 
@@ -145,7 +184,7 @@ export default function PayPalCheckoutButton({ orderNumber, onSuccess, onError }
       cancelled = true
       buttonsInstance?.close?.().catch(() => {})
     }
-  }, [orderNumber, onSuccess, onError, tr, containerId, getAccessToken])
+  }, [clientId, orderNumber, containerId, getAccessToken])
 
   return (
     <div>

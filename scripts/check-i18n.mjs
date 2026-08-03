@@ -11,6 +11,14 @@ const ALLOWED_LITERALS = new Set([
   'categories-schema.sql',
 ])
 
+// Admin pages the shop owner operates directly are written in plain Indonesian
+// on purpose — a language toggle there only makes courier settings harder to read.
+const SINGLE_LANGUAGE_FILES = new Set([
+  'app/admin/dashboard/shipping/page.tsx',
+])
+
+const toRepoPath = (filePath) => path.relative(ROOT, filePath).replace(/\\/g, '/')
+
 const offenders = []
 
 function walk(dirPath) {
@@ -28,6 +36,7 @@ function walk(dirPath) {
 
     const ext = path.extname(entry.name)
     if (!EXTENSIONS.has(ext)) continue
+    if (SINGLE_LANGUAGE_FILES.has(toRepoPath(fullPath))) continue
 
     scanFile(fullPath)
   }
@@ -45,7 +54,7 @@ function pushOffender(filePath, lineNumber, reason, text) {
   if (ALLOWED_LITERALS.has(text.trim())) return
 
   offenders.push({
-    filePath: path.relative(ROOT, filePath).replace(/\\/g, '/'),
+    filePath: toRepoPath(filePath),
     lineNumber,
     reason,
     text: text.trim(),

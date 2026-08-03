@@ -8,7 +8,8 @@ import ImageCarousel from '@/components/ImageCarousel'
 import { Product } from '@/lib/supabase'
 import { useLanguage } from '@/lib/i18n'
 import { cartService } from '@/lib/cart'
-import { formatIDR, formatProductPrice, formatProductPriceAlt, getSalePrice, isDiscounted } from '@/lib/price'
+import { isDiscounted } from '@/lib/price'
+import ProductPrice from '@/components/ProductPrice'
 import { supabase } from '@/lib/supabase'
 
 export default function ProductDetailClient({
@@ -122,35 +123,14 @@ export default function ProductDetailClient({
               </span>
             </div>
             <h1 className="text-2xl lg:text-4xl font-bold mb-4 text-black">{productName}</h1>
-            <div className="mb-6">
-              {isDiscounted(product) ? (
-                <>
-                  <p className="text-sm text-gray-500 line-through" suppressHydrationWarning>
-                    {formatIDR(product.price)}
-                  </p>
-                  <p className="text-2xl lg:text-3xl font-bold text-black" suppressHydrationWarning>
-                    {formatProductPrice(product, language)}
-                  </p>
-                  {language === 'id' && (
-                    <p className="text-sm text-green-600 mt-1" suppressHydrationWarning>
-                      {tr('Discount price', 'Harga diskon')}
-                    </p>
-                  )}
-                </>
-              ) : (
-                <>
-                  <p className="text-2xl lg:text-3xl font-bold text-black" suppressHydrationWarning>
-                    {formatProductPrice(product, language)}
-                  </p>
-                  {formatProductPriceAlt(product, language) && (
-                    <p className="text-sm text-gray-500 mt-1" suppressHydrationWarning>
-                      {language === 'en'
-                        ? `Billed as ${formatProductPriceAlt(product, language)} at checkout`
-                        : formatProductPriceAlt(product, language)}
-                    </p>
-                  )}
-                </>
-              )}
+            {/* The markdown is the loudest thing on the page after the title:
+                sale price in red, original crossed out, saving spelled out. */}
+            <div
+              className={`mb-6 ${
+                isDiscounted(product) ? 'rounded-xl border border-red-100 bg-red-50/60 p-4' : ''
+              }`}
+            >
+              <ProductPrice product={product} size="lg" showSavings showAlt />
             </div>
 
             {productDescription && (

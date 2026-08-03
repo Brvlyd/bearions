@@ -52,12 +52,8 @@ function OtpVerificationContent() {
 
     try {
       setLoading(true)
-      await authService.resendEmailVerification(normalizedEmail)
-      setSuccess(
-        language === 'en'
-          ? 'Verification email sent. Please check your inbox and spam folder.'
-          : 'Email verifikasi sudah dikirim ulang. Cek inbox dan folder spam/junk Anda.'
-      )
+      const result = await authService.resendEmailVerification(normalizedEmail, language)
+      setSuccess(result.message)
       setCooldown(45)
     } catch (err) {
       console.error('Resend OTP error:', err)

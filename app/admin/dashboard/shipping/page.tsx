@@ -1,22 +1,37 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Globe, MapPin, Save, Truck, Zap } from 'lucide-react'
-import { useLanguage } from '@/lib/i18n'
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Globe,
+  Loader2,
+  MapPin,
+  RefreshCw,
+  Save,
+  Search,
+  Truck,
+  XCircle,
+  Zap,
+} from 'lucide-react'
 import {
   supabase,
   type ShippingSettings,
   type ShippingZone,
   type ShippingZoneRate,
 } from '@/lib/supabase'
+import { SHIPPING_ENABLED } from '@/lib/store-config'
 
 // Shipping control panel: where parcels leave from, which engine prices them,
 // and the rate card the zone engine uses.
 //
+// Written in plain Indonesian only, no language toggle: the shop owner operates
+// this page, not the developers, and courier jargon here costs real money when
+// misread.
+//
 // The zone table is the store's fallback — it needs no API key and always
-// answers, which is what keeps checkout quoting when the live aggregator is
-// unconfigured or down. Editing it here is how an admin tunes prices against
-// real courier invoices.
+// answers, which is what keeps checkout quoting when Biteship is unconfigured,
+// unreachable, or out of balance.
 
 type Message = { type: 'success' | 'error'; text: string }
 
@@ -25,6 +40,23 @@ type RateDraft = Pick<
   'id' | 'first_kg_cost' | 'next_kg_cost' | 'etd_min_days' | 'etd_max_days' | 'is_active'
 >
 
+type BiteshipStatus = {
+  configured: boolean
+  healthy: boolean
+  reason: 'unconfigured' | 'unauthorized' | 'insufficient_balance' | 'error' | null
+  message: string
+  courierCount: number
+}
+
+type AreaHit = {
+  id: string
+  name: string
+  province: string
+  city: string
+  district: string
+  postalCode: string
+}
+
 const formatIDR = (value: number) =>
   new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -32,8 +64,59 @@ const formatIDR = (value: number) =>
     minimumFractionDigits: 0,
   }).format(value)
 
+/** Turns the API's failure reason into something the shop owner can act on. */
+const explainStatus = (
+  status: BiteshipStatus
+): { tone: 'ok' | 'warn' | 'bad'; title: string; detail: string } => {
+  if (!status.configured) {
+    return {
+      tone: 'bad',
+      title: 'Biteship belum terpasang',
+      detail:
+        'Kunci API Biteship belum diisi di server. Hubungi developer untuk memasangnya. Selama belum terpasang, ongkir memakai Tabel Tarif Sendiri di bawah.',
+    }
+  }
+
+  if (status.healthy) {
+    return {
+      tone: 'ok',
+      title: 'Biteship aktif dan siap dipakai',
+      detail: `Terhubung ke ${status.courierCount} perusahaan kurir. Ongkir dan lacak paket otomatis berjalan normal.`,
+    }
+  }
+
+  if (status.reason === 'insufficient_balance') {
+    return {
+      tone: 'warn',
+      title: 'Saldo Biteship habis',
+      detail:
+        'Kunci API sudah benar, tapi saldo akun Biteship Rp 0. Selama saldo kosong, cek ongkir otomatis dan lacak paket tidak bisa jalan, dan ongkir diambil dari Tabel Tarif Sendiri di bawah. Silakan isi saldo di dashboard Biteship (menu Balance / Top Up), lalu klik Cek Ulang.',
+    }
+  }
+
+  if (status.reason === 'unauthorized') {
+    return {
+      tone: 'bad',
+      title: 'Kunci API Biteship ditolak',
+      detail:
+        'Biteship menolak kunci API yang terpasang. Kemungkinan kuncinya salah ketik, sudah dihapus, atau diganti. Hubungi developer untuk memperbarui.',
+    }
+  }
+
+  return {
+    tone: 'bad',
+    title: 'Biteship sedang tidak bisa dihubungi',
+    detail: `Koneksi ke Biteship gagal: ${status.message}. Ongkir sementara memakai Tabel Tarif Sendiri. Coba Cek Ulang beberapa saat lagi.`,
+  }
+}
+
+const STATUS_STYLES = {
+  ok: { box: 'border-emerald-300 bg-emerald-50', text: 'text-emerald-900', body: 'text-emerald-800' },
+  warn: { box: 'border-amber-300 bg-amber-50', text: 'text-amber-900', body: 'text-amber-800' },
+  bad: { box: 'border-red-300 bg-red-50', text: 'text-red-900', body: 'text-red-800' },
+} as const
+
 export default function AdminShippingPage() {
-  const { language } = useLanguage()
   const [settings, setSettings] = useState<ShippingSettings | null>(null)
   const [zones, setZones] = useState<ShippingZone[]>([])
   const [rates, setRates] = useState<ShippingZoneRate[]>([])
@@ -45,11 +128,42 @@ export default function AdminShippingPage() {
   const [schemaMissing, setSchemaMissing] = useState(false)
   const [message, setMessage] = useState<Message | null>(null)
 
-  const t = (en: string, id: string) => (language === 'en' ? en : id)
+  const [status, setStatus] = useState<BiteshipStatus | null>(null)
+  const [checkingStatus, setCheckingStatus] = useState(true)
+
+  const [areaQuery, setAreaQuery] = useState('')
+  const [areaHits, setAreaHits] = useState<AreaHit[]>([])
+  const [searchingArea, setSearchingArea] = useState(false)
+  const [areaSearched, setAreaSearched] = useState(false)
 
   useEffect(() => {
     void loadAll()
+    void refreshStatus()
   }, [])
+
+  const authHeaders = async (): Promise<Record<string, string> | null> => {
+    const { data } = await supabase.auth.getSession()
+    const token = data.session?.access_token
+    return token ? { Authorization: `Bearer ${token}` } : null
+  }
+
+  const refreshStatus = async () => {
+    try {
+      setCheckingStatus(true)
+
+      const headers = await authHeaders()
+      if (!headers) return
+
+      const response = await fetch('/api/admin/shipping/status', { headers })
+      if (!response.ok) return
+
+      setStatus((await response.json()) as BiteshipStatus)
+    } catch (error) {
+      console.error('Error checking Biteship status:', error)
+    } finally {
+      setCheckingStatus(false)
+    }
+  }
 
   const loadAll = async () => {
     try {
@@ -87,10 +201,7 @@ export default function AdminShippingPage() {
       setActiveZoneId((previous) => previous || zoneRows[0]?.id || '')
     } catch (error) {
       console.error('Error loading shipping settings:', error)
-      setMessage({
-        type: 'error',
-        text: t('Failed to load shipping settings.', 'Gagal memuat pengaturan pengiriman.'),
-      })
+      setMessage({ type: 'error', text: 'Gagal memuat pengaturan pengiriman.' })
     } finally {
       setLoading(false)
     }
@@ -128,16 +239,61 @@ export default function AdminShippingPage() {
 
       if (error) throw error
 
-      setMessage({ type: 'success', text: t('Settings saved.', 'Pengaturan tersimpan.') })
+      setMessage({ type: 'success', text: 'Pengaturan berhasil disimpan.' })
     } catch (error) {
       console.error('Error saving shipping settings:', error)
-      setMessage({
-        type: 'error',
-        text: t('Failed to save settings.', 'Gagal menyimpan pengaturan.'),
-      })
+      setMessage({ type: 'error', text: 'Gagal menyimpan pengaturan.' })
     } finally {
       setSavingSettings(false)
     }
+  }
+
+  const handleSearchArea = async () => {
+    const query = areaQuery.trim()
+    if (query.length < 3) return
+
+    try {
+      setSearchingArea(true)
+      setAreaSearched(true)
+
+      const headers = await authHeaders()
+      if (!headers) return
+
+      const response = await fetch(`/api/shipping/areas?q=${encodeURIComponent(query)}`, {
+        headers,
+      })
+
+      if (!response.ok) {
+        setAreaHits([])
+        return
+      }
+
+      const payload = (await response.json()) as { areas?: AreaHit[] }
+      setAreaHits(payload.areas || [])
+    } catch (error) {
+      console.error('Error searching areas:', error)
+      setAreaHits([])
+    } finally {
+      setSearchingArea(false)
+    }
+  }
+
+  /** Picking a district fills the origin fields so they cannot drift apart. */
+  const applyArea = (area: AreaHit) => {
+    patchSettings({
+      shipping_origin_area_id: area.id,
+      shipping_origin_city: area.city || settings?.shipping_origin_city || '',
+      shipping_origin_province: area.province || settings?.shipping_origin_province || '',
+      shipping_origin_postal_code: area.postalCode || settings?.shipping_origin_postal_code || '',
+    })
+
+    setAreaHits([])
+    setAreaQuery('')
+    setAreaSearched(false)
+    setMessage({
+      type: 'success',
+      text: 'Lokasi gudang terisi. Jangan lupa klik Simpan Pengaturan di bawah.',
+    })
   }
 
   const zoneRates = useMemo(
@@ -188,11 +344,11 @@ export default function AdminShippingPage() {
       }
 
       setRateDrafts({})
-      setMessage({ type: 'success', text: t('Rates updated.', 'Tarif diperbarui.') })
+      setMessage({ type: 'success', text: 'Tarif berhasil diperbarui.' })
       await loadAll()
     } catch (error) {
       console.error('Error saving rates:', error)
-      setMessage({ type: 'error', text: t('Failed to save rates.', 'Gagal menyimpan tarif.') })
+      setMessage({ type: 'error', text: 'Gagal menyimpan tarif.' })
     } finally {
       setSavingRates(false)
     }
@@ -213,32 +369,29 @@ export default function AdminShippingPage() {
     return (
       <div className="max-w-3xl">
         <div className="rounded-2xl border border-amber-300 bg-amber-50 p-6">
-          <h1 className="text-xl font-bold text-amber-900 mb-2">
-            {t('Setup required', 'Perlu setup')}
-          </h1>
+          <h1 className="text-xl font-bold text-amber-900 mb-2">Perlu disiapkan dulu</h1>
           <p className="text-amber-800">
-            {t(
-              'Run db/migrations/shipping-engine-and-promotions.sql in the Supabase SQL Editor, then refresh this page.',
-              'Jalankan db/migrations/shipping-engine-and-promotions.sql di Supabase SQL Editor, lalu refresh halaman ini.'
-            )}
+            Tabel pengiriman belum ada di database, jadi halaman ini belum bisa dipakai. Minta
+            developer menjalankan berkas db/migrations/shipping-engine-and-promotions.sql di
+            Supabase, lalu muat ulang halaman ini.
           </p>
         </div>
       </div>
     )
   }
 
+  const usingBiteship = settings?.shipping_provider === 'biteship'
+  const statusInfo = status ? explainStatus(status) : null
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl lg:text-3xl font-bold text-black flex items-center gap-2">
           <Truck className="w-7 h-7" />
-          {t('Shipping', 'Pengiriman')}
+          Pengiriman
         </h1>
         <p className="text-gray-600 mt-1">
-          {t(
-            'Origin address, rate engine, and the courier price list used at checkout.',
-            'Alamat asal, mesin tarif, dan daftar harga kurir yang dipakai di checkout.'
-          )}
+          Atur dari mana barang dikirim, bagaimana ongkir dihitung, dan berapa tarif tiap kurir.
         </p>
       </div>
 
@@ -254,14 +407,77 @@ export default function AdminShippingPage() {
         </div>
       )}
 
+      {/* Ongkir masih dimatikan di lib/store-config.ts — tanpa catatan ini admin
+          bisa lama mengutak-atik tarif yang belum dipakai sama sekali. */}
+      {!SHIPPING_ENABLED && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p className="font-semibold">Ongkir sedang dimatikan untuk pembeli</p>
+          <p className="mt-1">
+            Pembeli tidak melihat pilihan kurir dan tidak ditagih ongkir saat checkout, jadi semua
+            pesanan baru tersimpan dengan ongkir Rp 0. Pengaturan di halaman ini tetap tersimpan dan
+            akan langsung dipakai begitu ongkir dinyalakan lagi oleh developer.
+          </p>
+        </div>
+      )}
+
+      {/* Biteship connection ---------------------------------------------- */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-5 lg:p-6 shadow-sm">
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-black">Status Koneksi Kurir Otomatis</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Biteship adalah layanan yang menghitung ongkir dan melacak paket secara otomatis dari
+              belasan perusahaan kurir sekaligus.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={refreshStatus}
+            disabled={checkingStatus}
+            className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${checkingStatus ? 'animate-spin' : ''}`} />
+            {checkingStatus ? 'Mengecek...' : 'Cek Ulang'}
+          </button>
+        </div>
+
+        {checkingStatus && !statusInfo && (
+          <p className="text-sm text-gray-500 flex items-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Sedang mengecek koneksi ke Biteship...
+          </p>
+        )}
+
+        {statusInfo && (
+          <div className={`rounded-xl border p-4 ${STATUS_STYLES[statusInfo.tone].box}`}>
+            <p
+              className={`font-semibold flex items-center gap-2 ${
+                STATUS_STYLES[statusInfo.tone].text
+              }`}
+            >
+              {statusInfo.tone === 'ok' && <CheckCircle2 className="w-5 h-5" />}
+              {statusInfo.tone === 'warn' && <AlertTriangle className="w-5 h-5" />}
+              {statusInfo.tone === 'bad' && <XCircle className="w-5 h-5" />}
+              {statusInfo.title}
+            </p>
+            <p className={`text-sm mt-1.5 ${STATUS_STYLES[statusInfo.tone].body}`}>
+              {statusInfo.detail}
+            </p>
+          </div>
+        )}
+      </div>
+
       {settings && (
         <>
           {/* Rate engine ------------------------------------------------- */}
           <div className="bg-white border border-gray-200 rounded-2xl p-5 lg:p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-black mb-4 flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-black mb-1 flex items-center gap-2">
               <Zap className="w-5 h-5" />
-              {t('Rate Engine', 'Mesin Tarif')}
+              Cara Menghitung Ongkir
             </h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Pilih salah satu. Kalau ragu, pilih yang pertama.
+            </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <button
@@ -273,14 +489,11 @@ export default function AdminShippingPage() {
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
-                <p className="font-semibold text-black">
-                  {t('Zone rate table', 'Tabel tarif zona')}
-                </p>
+                <p className="font-semibold text-black">Tabel Tarif Sendiri</p>
                 <p className="text-sm text-gray-600 mt-1">
-                  {t(
-                    'Prices from the table below. No API key, no per-request cost, always available.',
-                    'Harga dari tabel di bawah. Tanpa API key, tanpa biaya per request, selalu tersedia.'
-                  )}
+                  Ongkir diambil dari daftar tarif yang Anda isi sendiri di bagian bawah halaman
+                  ini. Gratis, selalu jalan, tapi harus Anda perbarui manual kalau kurir menaikkan
+                  tarif.
                 </p>
               </button>
 
@@ -293,22 +506,31 @@ export default function AdminShippingPage() {
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
-                <p className="font-semibold text-black">
-                  {t('Live courier rates (Biteship)', 'Tarif kurir live (Biteship)')}
-                </p>
+                <p className="font-semibold text-black">Tarif Kurir Otomatis (Biteship)</p>
                 <p className="text-sm text-gray-600 mt-1">
-                  {t(
-                    'Real-time multi-courier pricing. Needs BITESHIP_API_KEY in the environment; falls back to the zone table if the call fails.',
-                    'Harga multi-kurir real-time. Perlu BITESHIP_API_KEY di environment; otomatis kembali ke tabel zona jika gagal.'
-                  )}
+                  Ongkir diambil langsung dari kurir sesuai tarif terbaru, jadi tidak perlu
+                  diperbarui manual. Butuh saldo Biteship. Kalau sewaktu-waktu gagal, sistem otomatis
+                  memakai Tabel Tarif Sendiri supaya pembeli tetap bisa checkout.
                 </p>
               </button>
             </div>
 
+            {/* Silently falling back would leave the owner wondering why live
+                prices never appear, so say it out loud right where it is chosen. */}
+            {usingBiteship && status && !status.healthy && (
+              <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3">
+                <p className="text-sm text-amber-800">
+                  <strong>Perhatian:</strong> Anda memilih Tarif Kurir Otomatis, tapi koneksi
+                  Biteship sedang bermasalah (lihat kotak status di atas). Untuk sementara ongkir
+                  tetap diambil dari Tabel Tarif Sendiri, jadi pastikan tarif di bawah masih wajar.
+                </p>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
               <div>
-                <label className="block text-sm text-gray-600 mb-1">
-                  {t('Default weight per item (g)', 'Berat default per item (g)')}
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Berat standar per barang (gram)
                 </label>
                 <input
                   type="number"
@@ -320,15 +542,12 @@ export default function AdminShippingPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-black"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  {t(
-                    'Used when a product has no weight set.',
-                    'Dipakai jika produk belum punya berat.'
-                  )}
+                  Dipakai kalau berat produk belum diisi. Contoh: 500 berarti setengah kilo.
                 </p>
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-1">
-                  {t('Volumetric divisor', 'Pembagi volumetrik')}
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Angka pembagi ukuran paket
                 </label>
                 <input
                   type="number"
@@ -340,15 +559,13 @@ export default function AdminShippingPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-black"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  {t(
-                    '6000 for domestic, 5000 for most international couriers.',
-                    '6000 untuk domestik, 5000 untuk mayoritas kurir internasional.'
-                  )}
+                  Kurir menagih paket besar tapi ringan berdasarkan ukuran. Biarkan 6000 untuk
+                  kirim dalam negeri. Jangan diubah kalau tidak diminta kurir.
                 </p>
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-1">
-                  {t('Handling fee (IDR)', 'Biaya packing (IDR)')}
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Biaya packing (Rp)
                 </label>
                 <input
                   type="number"
@@ -358,7 +575,8 @@ export default function AdminShippingPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-black"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  {t('Added to every shipping quote.', 'Ditambahkan ke setiap ongkir.')}
+                  Tambahan biaya bubble wrap, kardus, dll. Ditambahkan ke setiap ongkir. Isi 0 kalau
+                  tidak dipungut.
                 </p>
               </div>
             </div>
@@ -368,61 +586,142 @@ export default function AdminShippingPage() {
           <div className="bg-white border border-gray-200 rounded-2xl p-5 lg:p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-black mb-1 flex items-center gap-2">
               <MapPin className="w-5 h-5" />
-              {t('Ships From', 'Dikirim Dari')}
+              Alamat Gudang (Barang Dikirim Dari Sini)
             </h2>
             <p className="text-sm text-gray-600 mb-4">
-              {t(
-                'Every rate is measured from this address.',
-                'Semua ongkir dihitung dari alamat ini.'
-              )}
+              Semua ongkir dihitung dari alamat ini. Kalau alamat salah, ongkir yang dibayar pembeli
+              ikut salah.
             </p>
 
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 mb-4">
+              <p className="text-sm font-medium text-gray-800 mb-1">
+                Cara cepat: cari kecamatan gudang Anda
+              </p>
+              <p className="text-xs text-gray-600 mb-3">
+                Ketik nama kecamatan dan kota, lalu pilih dari hasil pencarian. Kolom kota,
+                provinsi, dan kode pos akan terisi otomatis, dan ongkir jadi lebih akurat.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  value={areaQuery}
+                  onChange={(e) => setAreaQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      void handleSearchArea()
+                    }
+                  }}
+                  placeholder="Contoh: Coblong Bandung"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-black placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black"
+                />
+                <button
+                  type="button"
+                  onClick={handleSearchArea}
+                  disabled={searchingArea || areaQuery.trim().length < 3}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-black text-white text-sm font-semibold hover:bg-gray-800 disabled:opacity-50"
+                >
+                  {searchingArea ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Search className="w-4 h-4" />
+                  )}
+                  Cari
+                </button>
+              </div>
+
+              {areaHits.length > 0 && (
+                <ul className="mt-3 border border-gray-200 rounded-lg bg-white divide-y divide-gray-100 max-h-64 overflow-y-auto">
+                  {areaHits.map((area) => (
+                    <li key={area.id}>
+                      <button
+                        type="button"
+                        onClick={() => applyArea(area)}
+                        className="w-full text-left px-3 py-2 text-sm text-gray-800 hover:bg-gray-50"
+                      >
+                        {area.name}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {areaSearched && !searchingArea && areaHits.length === 0 && (
+                <p className="text-xs text-gray-600 mt-3">
+                  Tidak ada hasil. Coba tulis nama kecamatan diikuti nama kota, contoh: Coblong
+                  Bandung. Kalau tetap kosong, isi manual di kolom bawah.
+                </p>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <input
-                value={settings.shipping_origin_label || ''}
-                onChange={(e) => patchSettings({ shipping_origin_label: e.target.value })}
-                placeholder={t('Warehouse name', 'Nama gudang')}
-                className="sm:col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-black placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black"
-              />
-              <input
-                value={settings.shipping_origin_address || ''}
-                onChange={(e) => patchSettings({ shipping_origin_address: e.target.value })}
-                placeholder={t('Street address', 'Alamat jalan')}
-                className="sm:col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-black placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black"
-              />
-              <input
-                value={settings.shipping_origin_city || ''}
-                onChange={(e) => patchSettings({ shipping_origin_city: e.target.value })}
-                placeholder={t('City', 'Kota')}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-black placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black"
-              />
-              <input
-                value={settings.shipping_origin_province || ''}
-                onChange={(e) => patchSettings({ shipping_origin_province: e.target.value })}
-                placeholder={t('Province', 'Provinsi')}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-black placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black"
-              />
-              <input
-                value={settings.shipping_origin_postal_code || ''}
-                onChange={(e) => patchSettings({ shipping_origin_postal_code: e.target.value })}
-                placeholder={t('Postal code', 'Kode pos')}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-black placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black"
-              />
-              <input
-                value={settings.shipping_origin_area_id || ''}
-                onChange={(e) => patchSettings({ shipping_origin_area_id: e.target.value })}
-                placeholder={t('Biteship area ID (optional)', 'Area ID Biteship (opsional)')}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-black placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black"
-              />
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nama gudang</label>
+                <input
+                  value={settings.shipping_origin_label || ''}
+                  onChange={(e) => patchSettings({ shipping_origin_label: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-black"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Alamat lengkap (nama jalan, nomor)
+                </label>
+                <input
+                  value={settings.shipping_origin_address || ''}
+                  onChange={(e) => patchSettings({ shipping_origin_address: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-black"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Kota</label>
+                <input
+                  value={settings.shipping_origin_city || ''}
+                  onChange={(e) => patchSettings({ shipping_origin_city: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-black"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Provinsi</label>
+                <input
+                  value={settings.shipping_origin_province || ''}
+                  onChange={(e) => patchSettings({ shipping_origin_province: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-black"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Kode pos</label>
+                <input
+                  value={settings.shipping_origin_postal_code || ''}
+                  onChange={(e) => patchSettings({ shipping_origin_postal_code: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-black"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Kode kecamatan Biteship
+                </label>
+                <input
+                  value={settings.shipping_origin_area_id || ''}
+                  onChange={(e) => patchSettings({ shipping_origin_area_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-black"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Terisi otomatis lewat pencarian di atas. Tidak perlu diisi manual.
+                </p>
+              </div>
             </div>
           </div>
 
           {/* International ----------------------------------------------- */}
           <div className="bg-white border border-gray-200 rounded-2xl p-5 lg:p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-black mb-4 flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-black mb-1 flex items-center gap-2">
               <Globe className="w-5 h-5" />
-              {t('International Shipping', 'Pengiriman Internasional')}
+              Kirim ke Luar Negeri
             </h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Aktifkan kalau Anda mau menerima pesanan dari pembeli di luar Indonesia.
+            </p>
 
             <label className="flex items-center gap-2 text-sm font-medium text-gray-800">
               <input
@@ -433,24 +732,13 @@ export default function AdminShippingPage() {
                 }
                 className="w-4 h-4"
               />
-              {t('Accept orders shipping outside Indonesia', 'Terima pesanan ke luar Indonesia')}
+              Terima pesanan ke luar Indonesia
             </label>
 
             <div className="grid grid-cols-1 gap-3 mt-4">
               <div>
-                <label className="block text-sm text-gray-600 mb-1">
-                  {t('Customs notice (English)', 'Catatan bea cukai (Inggris)')}
-                </label>
-                <textarea
-                  rows={2}
-                  value={settings.shipping_customs_note || ''}
-                  onChange={(e) => patchSettings({ shipping_customs_note: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-black"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">
-                  {t('Customs notice (Indonesian)', 'Catatan bea cukai (Indonesia)')}
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Keterangan bea cukai (versi Indonesia)
                 </label>
                 <textarea
                   rows={2}
@@ -459,15 +747,25 @@ export default function AdminShippingPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-black"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Keterangan bea cukai (versi Inggris)
+                </label>
+                <textarea
+                  rows={2}
+                  value={settings.shipping_customs_note || ''}
+                  onChange={(e) => patchSettings({ shipping_customs_note: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-black"
+                />
+              </div>
             </div>
 
             {/* Duties surprise is the single biggest source of refused
                 international parcels — this note is shown at checkout. */}
             <p className="text-xs text-gray-500 mt-2">
-              {t(
-                'Shown on the checkout page for every international destination.',
-                'Ditampilkan di halaman checkout untuk semua tujuan luar negeri.'
-              )}
+              Tulisan ini muncul di halaman checkout untuk semua pesanan ke luar negeri. Gunanya
+              memberi tahu pembeli bahwa pajak impor dibayar sendiri ke kurir saat paket sampai,
+              supaya paket tidak ditolak.
             </p>
           </div>
 
@@ -478,23 +776,25 @@ export default function AdminShippingPage() {
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-black text-white font-semibold hover:bg-gray-800 disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
-            {savingSettings ? t('Saving...', 'Menyimpan...') : t('Save Settings', 'Simpan Pengaturan')}
+            {savingSettings ? 'Menyimpan...' : 'Simpan Pengaturan'}
           </button>
         </>
       )}
 
       {/* Rate card ------------------------------------------------------- */}
       <div className="bg-white border border-gray-200 rounded-2xl p-5 lg:p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-black mb-1">
-          {t('Zone Rate Card', 'Daftar Tarif Zona')}
-        </h2>
+        <h2 className="text-lg font-semibold text-black mb-1">Daftar Tarif Sendiri</h2>
+        <p className="text-sm text-gray-600 mb-1">
+          Ongkir dihitung: <strong>tarif kilo pertama + (jumlah kilo - 1) x tarif kilo
+          berikutnya</strong>. Contoh: paket 3 kg dengan kilo pertama Rp 10.000 dan kilo berikutnya
+          Rp 5.000 menjadi Rp 20.000.
+        </p>
         <p className="text-sm text-gray-600 mb-4">
-          {t(
-            'Cost = first kg + (billable kg - 1) x next kg. Tune these against real courier invoices.',
-            'Biaya = kg pertama + (kg tertagih - 1) x kg berikutnya. Sesuaikan dengan invoice kurir asli.'
-          )}
+          Daftar ini selalu dipakai sebagai cadangan, walaupun Anda memilih Tarif Kurir Otomatis.
+          Sebaiknya sesuaikan angkanya dengan struk kurir asli minimal beberapa bulan sekali.
         </p>
 
+        <p className="text-sm font-medium text-gray-700 mb-2">Pilih wilayah tujuan:</p>
         <div className="flex flex-wrap gap-2 mb-4">
           {zones.map((zone) => (
             <button
@@ -507,7 +807,7 @@ export default function AdminShippingPage() {
                   : 'border-gray-300 text-gray-700 hover:bg-gray-50'
               }`}
             >
-              {language === 'en' ? zone.name : zone.name_id || zone.name}
+              {zone.name_id || zone.name}
             </button>
           ))}
         </div>
@@ -516,9 +816,9 @@ export default function AdminShippingPage() {
           <p className="text-xs text-gray-500 mb-3">
             {activeZone.kind === 'domestic'
               ? (activeZone.province_names || []).join(', ') ||
-                t('Catch-all for unmatched provinces', 'Cadangan untuk provinsi tak terdaftar')
+                'Dipakai untuk provinsi yang tidak masuk wilayah mana pun di atas'
               : (activeZone.country_codes || []).join(', ') ||
-                t('Catch-all for unmatched countries', 'Cadangan untuk negara tak terdaftar')}
+                'Dipakai untuk negara yang tidak masuk wilayah mana pun di atas'}
           </p>
         )}
 
@@ -526,12 +826,12 @@ export default function AdminShippingPage() {
           <table className="w-full text-sm min-w-[720px]">
             <thead>
               <tr className="text-left text-gray-500 border-b border-gray-200">
-                <th className="py-2 pr-3 font-medium">{t('Service', 'Layanan')}</th>
-                <th className="py-2 px-3 font-medium">{t('First kg', 'Kg pertama')}</th>
-                <th className="py-2 px-3 font-medium">{t('Next kg', 'Kg berikutnya')}</th>
-                <th className="py-2 px-3 font-medium">{t('ETD (days)', 'Estimasi (hari)')}</th>
-                <th className="py-2 px-3 font-medium">{t('Active', 'Aktif')}</th>
-                <th className="py-2 pl-3 font-medium">{t('2 kg example', 'Contoh 2 kg')}</th>
+                <th className="py-2 pr-3 font-medium">Kurir &amp; layanan</th>
+                <th className="py-2 px-3 font-medium">Tarif kilo pertama</th>
+                <th className="py-2 px-3 font-medium">Tarif kilo berikutnya</th>
+                <th className="py-2 px-3 font-medium">Perkiraan sampai (hari)</th>
+                <th className="py-2 px-3 font-medium">Ditampilkan</th>
+                <th className="py-2 pl-3 font-medium">Contoh paket 2 kg</th>
               </tr>
             </thead>
             <tbody>
@@ -599,9 +899,7 @@ export default function AdminShippingPage() {
         </div>
 
         {zoneRates.length === 0 && (
-          <p className="text-sm text-gray-600 py-4">
-            {t('No services configured for this zone.', 'Belum ada layanan untuk zona ini.')}
-          </p>
+          <p className="text-sm text-gray-600 py-4">Belum ada layanan kurir untuk wilayah ini.</p>
         )}
 
         {pendingRateEdits > 0 && (
@@ -613,16 +911,14 @@ export default function AdminShippingPage() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-black text-white font-semibold hover:bg-gray-800 disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
-              {savingRates
-                ? t('Saving...', 'Menyimpan...')
-                : t(`Save ${pendingRateEdits} change(s)`, `Simpan ${pendingRateEdits} perubahan`)}
+              {savingRates ? 'Menyimpan...' : `Simpan ${pendingRateEdits} perubahan`}
             </button>
             <button
               type="button"
               onClick={() => setRateDrafts({})}
               className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50"
             >
-              {t('Discard', 'Batalkan')}
+              Batalkan perubahan
             </button>
           </div>
         )}

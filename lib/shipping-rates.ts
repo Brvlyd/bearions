@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { fetchBiteshipRates } from './biteship'
-import { evaluatePromotions, type PromotionContext } from './promotions'
+import { evaluatePromotions, type NearMiss, type PromotionContext } from './promotions'
 import {
   rateOptionKey,
   type Parcel,
@@ -11,7 +11,7 @@ import {
   type ShippingQuote,
   type ShippingQuoteResult,
 } from './shipping-types'
-import type { ShippingPromotion, ShippingSettings } from './supabase'
+import type { AppliedPromotion, ShippingPromotion, ShippingSettings } from './supabase'
 
 // The rate engine. One entry point — getShippingQuotes — used by both the
 // checkout quote endpoint and order creation, so a customer can never be
@@ -265,7 +265,7 @@ export const originFromSettings = (settings: ShippingSettings): RateOrigin => ({
   areaId: settings.shipping_origin_area_id,
 })
 
-async function loadActivePromotions(client: SupabaseClient): Promise<ShippingPromotion[]> {
+export async function loadActivePromotions(client: SupabaseClient): Promise<ShippingPromotion[]> {
   const { data, error } = await client
     .from('shipping_promotions')
     .select('*')
@@ -398,6 +398,64 @@ export async function getShippingQuotes(
   }).nearMisses
 
   return { parcel, options: quotes, nearMisses, isInternational, customsNote, usedFallback }
+}
+
+export type CartPromotionInput = {
+  destination: RateDestination
+  items: ParcelItem[]
+  subtotal: number
+  settings?: ShippingSettings
+  promotions?: ShippingPromotion[]
+}
+
+export type CartPromotionResult = {
+  parcel: Parcel
+  orderDiscount: number
+  applied: AppliedPromotion[]
+  nearMisses: NearMiss[]
+}
+
+/**
+ * Promotions that apply to the merchandise itself, with no courier involved.
+ *
+ * Used while SHIPPING_ENABLED is false: quoting couriers only to work out an
+ * order-level discount would be wasteful, and would fail the whole checkout on a
+ * destination no courier serves. Evaluating with a shipping cost of zero makes
+ * every shipping reward worth nothing — so they drop out on their own — while
+ * order_percent and order_fixed rules keep working. Courier-scoped rules are
+ * filtered out because there is no courier to match.
+ */
+export async function getCartPromotions(
+  client: SupabaseClient,
+  input: CartPromotionInput
+): Promise<CartPromotionResult> {
+  const settings = input.settings ?? (await loadShippingSettings(client))
+  const parcel = calculateParcel(input.items, settings)
+  const promotions = input.promotions ?? (await loadActivePromotions(client))
+
+  const outcome = evaluatePromotions(promotions, {
+    itemCount: parcel.itemCount,
+    subtotal: input.subtotal,
+    weightGrams: parcel.weightGrams,
+    shippingCost: 0,
+    countryCode: input.destination.countryCode.toUpperCase(),
+    courierCode: '',
+  })
+
+  // "Add 2 more items for free shipping" makes no sense while ongkir is hidden,
+  // so only nudges the customer can actually see the payoff for survive.
+  const nearMisses = outcome.nearMisses.filter(
+    (miss) =>
+      miss.promotion.reward_type === 'order_percent' ||
+      miss.promotion.reward_type === 'order_fixed'
+  )
+
+  return {
+    parcel,
+    orderDiscount: round2(Math.min(outcome.orderDiscount, input.subtotal)),
+    applied: outcome.applied,
+    nearMisses,
+  }
 }
 
 /** Find the option a customer picked, or null when it is stale or was never offered. */

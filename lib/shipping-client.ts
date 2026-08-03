@@ -43,6 +43,12 @@ export type ShippingRatesResponse = {
   nearMisses: ShippingNearMiss[]
   isInternational: boolean
   customsNote: { en: string; id: string } | null
+  /**
+   * Merchandise-level discount that applies with no courier involved. Only
+   * populated while shipping is hidden; otherwise it rides on the chosen option.
+   */
+  cartDiscount: number
+  cartPromotions: AppliedPromotion[]
   message?: string
 }
 
@@ -80,6 +86,8 @@ export async function fetchShippingRates(
     nearMisses: result.nearMisses || [],
     isInternational: Boolean(result.isInternational),
     customsNote: result.customsNote || null,
+    cartDiscount: Number(result.cartDiscount) || 0,
+    cartPromotions: result.cartPromotions || [],
     message: result.message,
   }
 }

@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { notificationService } from '@/lib/notifications'
 import { usePaymentProofUrl } from '@/lib/payment-proof-url'
 import { useLanguage } from '@/lib/i18n'
+import { SHIPPING_ENABLED } from '@/lib/store-config'
 import SafeImage from '@/components/SafeImage'
 import Notification from '@/components/Notification'
 import OrderTrackingTimeline from '@/components/OrderTrackingTimeline'
@@ -757,20 +758,26 @@ export default function OrderDetailPage() {
                       : '-'}
                   </p>
                 </div>
-                <div>
-                  <p className="text-gray-500 text-xs">{tr('Courier price', 'Harga kurir')}</p>
-                  <p className="text-black font-medium">
-                    {formatPrice(Number(order.shipping_base_cost || order.shipping_cost || 0))}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-500 text-xs">{tr('Promo subsidy', 'Subsidi promo')}</p>
-                  <p className="text-black font-medium">
-                    {Number(order.shipping_discount || 0) > 0
-                      ? `-${formatPrice(Number(order.shipping_discount))}`
-                      : '-'}
-                  </p>
-                </div>
+                {/* Orders placed while ongkir is hidden have no quote behind
+                    them — only the packed weight is worth showing. */}
+                {order.shipping_service_name && (
+                  <>
+                    <div>
+                      <p className="text-gray-500 text-xs">{tr('Courier price', 'Harga kurir')}</p>
+                      <p className="text-black font-medium">
+                        {formatPrice(Number(order.shipping_base_cost || order.shipping_cost || 0))}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 text-xs">{tr('Promo subsidy', 'Subsidi promo')}</p>
+                      <p className="text-black font-medium">
+                        {Number(order.shipping_discount || 0) > 0
+                          ? `-${formatPrice(Number(order.shipping_discount))}`
+                          : '-'}
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
@@ -841,10 +848,12 @@ export default function OrderDetailPage() {
                 <span>{tr('Subtotal', 'Subtotal')}</span>
                 <span>{formatPrice(parseFloat(order.subtotal.toString()))}</span>
               </div>
-              <div className="flex justify-between text-gray-700">
-                <span>{tr('Shipping Cost', 'Biaya Pengiriman')}</span>
-                <span>{formatPrice(parseFloat(order.shipping_cost.toString()))}</span>
-              </div>
+              {(SHIPPING_ENABLED || parseFloat(order.shipping_cost.toString()) > 0) && (
+                <div className="flex justify-between text-gray-700">
+                  <span>{tr('Shipping Cost', 'Biaya Pengiriman')}</span>
+                  <span>{formatPrice(parseFloat(order.shipping_cost.toString()))}</span>
+                </div>
+              )}
               {parseFloat(order.tax.toString()) > 0 && (
                 <div className="flex justify-between text-gray-700">
                   <span>{tr('Tax', 'Pajak')}</span>

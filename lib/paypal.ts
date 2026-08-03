@@ -138,6 +138,27 @@ export type PayPalCaptureResult = {
   raw: unknown
 }
 
+// A captured order and a freshly-read one carry the capture in the same place,
+// so both endpoints below can share one parser.
+function parseOrderPayload(data: {
+  status?: string
+  purchase_units?: Array<{
+    custom_id?: string
+    payments?: { captures?: Array<{ id?: string; amount?: { value?: string } }> }
+  }>
+}): PayPalCaptureResult {
+  const purchaseUnit = data?.purchase_units?.[0]
+  const capture = purchaseUnit?.payments?.captures?.[0]
+
+  return {
+    status: data.status ?? '',
+    customId: purchaseUnit?.custom_id ?? null,
+    capturedAmount: capture?.amount?.value ?? null,
+    captureId: capture?.id ?? null,
+    raw: data,
+  }
+}
+
 export async function capturePayPalOrder(paypalOrderId: string): Promise<PayPalCaptureResult> {
   const token = await getPayPalAccessToken()
 
@@ -158,14 +179,30 @@ export async function capturePayPalOrder(paypalOrderId: string): Promise<PayPalC
     throw new Error(`PayPal capture failed (${response.status}): ${JSON.stringify(data)}`)
   }
 
-  const purchaseUnit = data?.purchase_units?.[0]
-  const capture = purchaseUnit?.payments?.captures?.[0]
+  return parseOrderPayload(data)
+}
 
-  return {
-    status: data.status,
-    customId: purchaseUnit?.custom_id ?? null,
-    capturedAmount: capture?.amount?.value ?? null,
-    captureId: capture?.id ?? null,
-    raw: data,
+// Reads an order without changing it. Used by the reconcile sweep to tell an
+// order the customer abandoned (CREATED) from one they approved but whose
+// capture never reached us (APPROVED), and from one already paid (COMPLETED).
+export async function getPayPalOrder(paypalOrderId: string): Promise<PayPalCaptureResult> {
+  const token = await getPayPalAccessToken()
+
+  const response = await fetch(
+    `${getPayPalApiBase()}/v2/checkout/orders/${encodeURIComponent(paypalOrderId)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  )
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(`PayPal get order failed (${response.status}): ${JSON.stringify(data)}`)
   }
+
+  return parseOrderPayload(data)
 }

@@ -1,4 +1,10 @@
 import { supabase } from './supabase'
+import {
+  buildEmailConfirmUrl,
+  buildPasswordResetUrl,
+  getBrowserOrigin,
+  getSiteOrigin,
+} from './site-url'
 import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js'
 
 export interface LoginCredentials {
@@ -16,28 +22,9 @@ export interface RegisterData {
 
 export type UserRole = 'admin' | 'user'
 
-const buildLoginRedirectUrl = (email?: string) => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
-  if (!baseUrl) return undefined
-
-  const params = new URLSearchParams({
-    next: '/login',
-    confirmed: 'true',
-  })
-
-  if (email) {
-    params.set('email', email)
-  }
-
-  return `${baseUrl}/auth/confirm?${params.toString()}`
-}
-
-const buildResetPasswordRedirectUrl = () => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
-  if (!baseUrl) return undefined
-
-  return `${baseUrl}/auth/reset-password`
-}
+/** Where a signed-in account belongs. Shared by the login form and the email-confirm page. */
+export const getDashboardPath = (role?: UserRole | null) =>
+  role === 'admin' ? '/admin/dashboard' : '/catalog'
 
 export const authService = {
   async clearLocalAuthState() {
@@ -83,29 +70,6 @@ export const authService = {
         }
       }
 
-      // Check if email already exists in users table
-      const { data: existingUserByEmail } = await supabase
-        .from('users')
-        .select('email')
-        .eq('email', normalizedEmail)
-        .single()
-
-      if (existingUserByEmail) {
-        try {
-          await this.resendEmailVerification(normalizedEmail)
-
-          return {
-            user: null,
-            session: null,
-            needsEmailConfirmation: true,
-            existingAccount: true,
-            message: 'Akun dengan email ini sudah ada. Email verifikasi baru sudah kami kirim. Silakan cek inbox/spam lalu lanjut login.',
-          }
-        } catch {
-          throw new Error('DUPLICATE_EMAIL: Email sudah terdaftar. Silakan login atau reset password jika lupa akun.')
-        }
-      }
-
       // Check if phone already exists (if phone provided)
       if (data.phone) {
         const cleanPhone = data.phone.replace(/[\s-]/g, '')
@@ -124,7 +88,7 @@ export const authService = {
         email: normalizedEmail,
         password: data.password,
         options: {
-          emailRedirectTo: buildLoginRedirectUrl(normalizedEmail),
+          emailRedirectTo: buildEmailConfirmUrl(getSiteOrigin(getBrowserOrigin()), normalizedEmail),
           data: {
             full_name: data.full_name,
             phone: data.phone,
@@ -134,6 +98,13 @@ export const authService = {
       })
 
       if (authError) throw authError
+
+      // Supabase hides account existence by answering with a decoy user that has
+      // no identities instead of an error. Treating that as a fresh signup is what
+      // told returning users to watch for a confirmation email nobody ever sent.
+      if (authData.user && authData.user.identities?.length === 0) {
+        throw new Error('DUPLICATE_EMAIL: Email sudah terdaftar. Silakan login atau reset password jika lupa akun.')
+      }
 
       // Database trigger will automatically create user profile
       // Wait a moment for trigger to complete
@@ -217,25 +188,33 @@ export const authService = {
     }
   },
 
-  // Resend verification email for unconfirmed users
-  async resendEmailVerification(email: string) {
-    try {
-      const normalizedEmail = email.trim().toLowerCase()
+  // Resend verification email for unconfirmed users.
+  //
+  // Goes through our own route rather than supabase.auth.resend() directly: that
+  // call reports success even when the address is unregistered or already
+  // confirmed, so the browser cannot tell whether mail was actually sent. The
+  // route checks the account first and returns wording that matches reality.
+  async resendEmailVerification(email: string, language: 'en' | 'id' = 'id') {
+    const normalizedEmail = email.trim().toLowerCase()
 
-      const { data, error } = await supabase.auth.resend({
-        type: 'signup',
-        email: normalizedEmail,
-        options: {
-          emailRedirectTo: buildLoginRedirectUrl(normalizedEmail),
-        },
-      })
+    const response = await fetch('/api/auth/resend-verification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: normalizedEmail, language }),
+    })
 
-      if (error) throw error
-      return data
-    } catch (error) {
-      console.error('Resend verification email error:', error)
-      throw error
+    const body = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(
+        body.message ||
+          (language === 'en'
+            ? 'Failed to resend verification email.'
+            : 'Gagal mengirim ulang email verifikasi.')
+      )
     }
+
+    return body as { message: string }
   },
 
   // Send password reset email through our own Brevo template.
@@ -269,7 +248,7 @@ export const authService = {
 
     try {
       const { data, error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-        redirectTo: buildResetPasswordRedirectUrl(),
+        redirectTo: buildPasswordResetUrl(getSiteOrigin(getBrowserOrigin())),
       })
 
       if (error) throw error

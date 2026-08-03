@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { sendTransactionalEmail } from '@/lib/brevo'
 import { renderPasswordResetEmail, type EmailLanguage } from '@/lib/email-templates'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
+import { getSiteOrigin } from '@/lib/site-url'
 
 // POST /api/auth/forgot-password
 //
@@ -22,13 +23,8 @@ const RATE_LIMIT_MAX_REQUESTS = 3
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-const getSiteUrl = (request: NextRequest) => {
-  const configured = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '')
-  if (configured) return configured
-
-  // Falls back to the deployment's own origin so preview/dev URLs keep working.
-  return request.nextUrl.origin
-}
+/** Falls back to the deployment's own origin so preview/dev URLs keep working. */
+const getSiteUrl = (request: NextRequest) => getSiteOrigin(request.nextUrl.origin)
 
 export async function POST(request: NextRequest) {
   // Generic payload — returned on success, on unknown emails, and on send failures.

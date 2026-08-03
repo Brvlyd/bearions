@@ -17,6 +17,8 @@ export type CartLine = {
     id: string
     name: string
     price: number
+    /** Without this the server would re-price a discounted cart at full price. */
+    sale_price: number | null
     stock: number
     image_url: string | null
     weight_grams: number | null
@@ -27,7 +29,7 @@ export type CartLine = {
 }
 
 const CART_SELECT =
-  'id, quantity, size, color, product_id, products(id, name, price, stock, image_url, weight_grams, length_cm, width_cm, height_cm)'
+  'id, quantity, size, color, product_id, products(id, name, price, sale_price, stock, image_url, weight_grams, length_cm, width_cm, height_cm)'
 
 type RawCartRow = Omit<CartLine, 'productId' | 'product'> & {
   product_id: string

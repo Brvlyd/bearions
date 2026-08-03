@@ -8,6 +8,7 @@ import { authService } from '@/lib/auth'
 import { orderService } from '@/lib/orders'
 import { supabase, type Order, type OrderItem, type Payment, type ShippingAddress } from '@/lib/supabase'
 import { useLanguage } from '@/lib/i18n'
+import { SHIPPING_ENABLED, TAX_ENABLED } from '@/lib/store-config'
 import OrderTrackingTimeline from '@/components/OrderTrackingTimeline'
 
 type LoadState = 'loading' | 'ready' | 'forbidden' | 'not-found'
@@ -315,34 +316,40 @@ export default function UserOrderDetailPage() {
                 <span>-{formatPrice(Number(order.discount))}</span>
               </div>
             )}
-            <div className="flex justify-between">
-              <span>
-                {tr('Shipping', 'Ongkir')}
-                {order.shipping_service_name && (
-                  <span className="block text-xs text-gray-500">
-                    {order.courier}
-                  </span>
-                )}
-              </span>
-              <span className="text-right">
-                {/* Show what the courier charged next to what was paid, so a
-                    free-shipping promo reads as a saving rather than a mystery. */}
-                {Number(order.shipping_discount || 0) > 0 && (
-                  <span className="block text-xs text-gray-400 line-through">
-                    {formatPrice(Number(order.shipping_base_cost || 0))}
-                  </span>
-                )}
-                {Number(order.shipping_cost || 0) === 0
-                  ? <span className="font-semibold text-emerald-600">{tr('FREE', 'GRATIS')}</span>
-                  : formatPrice(Number(order.shipping_cost || 0))}
-              </span>
-            </div>
+            {/* Orders placed while ongkir was hidden carry no shipping line at
+                all; older orders still show what they were actually charged. */}
+            {(SHIPPING_ENABLED || Number(order.shipping_cost || 0) > 0) && (
+              <div className="flex justify-between">
+                <span>
+                  {tr('Shipping', 'Ongkir')}
+                  {order.shipping_service_name && (
+                    <span className="block text-xs text-gray-500">
+                      {order.courier}
+                    </span>
+                  )}
+                </span>
+                <span className="text-right">
+                  {/* Show what the courier charged next to what was paid, so a
+                      free-shipping promo reads as a saving rather than a mystery. */}
+                  {Number(order.shipping_discount || 0) > 0 && (
+                    <span className="block text-xs text-gray-400 line-through">
+                      {formatPrice(Number(order.shipping_base_cost || 0))}
+                    </span>
+                  )}
+                  {Number(order.shipping_cost || 0) === 0
+                    ? <span className="font-semibold text-emerald-600">{tr('FREE', 'GRATIS')}</span>
+                    : formatPrice(Number(order.shipping_cost || 0))}
+                </span>
+              </div>
+            )}
             {(order.applied_promotions || []).map((promotion) => (
               <p key={promotion.id} className="text-xs text-emerald-700">
                 {promotion.name_id || promotion.name}
               </p>
             ))}
-            <div className="flex justify-between"><span>{tr('Tax', 'Pajak')}</span><span>{formatPrice(Number(order.tax || 0))}</span></div>
+            {(TAX_ENABLED || Number(order.tax || 0) > 0) && (
+              <div className="flex justify-between"><span>{tr('Tax', 'Pajak')}</span><span>{formatPrice(Number(order.tax || 0))}</span></div>
+            )}
             <div className="flex justify-between text-base font-bold text-black pt-1"><span>{tr('Total', 'Total')}</span><span>{formatPrice(Number(order.total || 0))}</span></div>
           </div>
         </section>

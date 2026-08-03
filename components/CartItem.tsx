@@ -7,7 +7,8 @@ import Link from 'next/link'
 import { Minus, Plus, Trash2, Package } from 'lucide-react'
 import type { CartItem as CartItemType } from '@/lib/supabase'
 import { productService } from '@/lib/products'
-import { formatIDR, getEffectiveIdrPrice } from '@/lib/price'
+import { formatIDR, getDiscountPercent, getEffectiveIdrPrice, getIdrPrice, isDiscounted } from '@/lib/price'
+import DiscountBadge from './DiscountBadge'
 
 interface CartItemProps {
   item: CartItemType
@@ -81,7 +82,10 @@ export default function CartItem({
     }
   }
 
+  const discounted = isDiscounted(product)
+  const discountPercent = getDiscountPercent(product)
   const itemTotal = getEffectiveIdrPrice(product) * item.quantity
+  const originalTotal = getIdrPrice(product) * item.quantity
 
   return (
     <div className="flex flex-col sm:flex-row gap-4 py-4 sm:py-6 border-b border-gray-200">
@@ -129,14 +133,26 @@ export default function CartItem({
             )}
           </div>
 
-          {/* Price - Mobile */}
-          <p className="text-base sm:text-lg font-bold text-black mt-2">
-            {new Intl.NumberFormat('id-ID', {
-              style: 'currency',
-              currency: 'IDR',
-              minimumFractionDigits: 0,
-            }).format(itemTotal)}
-          </p>
+          {/* Price. A discounted line keeps the original visible so the saving
+              carries through from the catalog into the cart. */}
+          <div className="mt-2">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <p
+                className={`text-base sm:text-lg font-bold ${discounted ? 'text-red-600' : 'text-black'}`}
+                suppressHydrationWarning
+              >
+                {formatIDR(itemTotal)}
+              </p>
+              {discounted && discountPercent !== null && discountPercent > 0 && (
+                <DiscountBadge percent={discountPercent} />
+              )}
+            </div>
+            {discounted && (
+              <p className="text-xs sm:text-sm text-gray-400 line-through" suppressHydrationWarning>
+                {formatIDR(originalTotal)}
+              </p>
+            )}
+          </div>
 
           {/* Stock Warning */}
           {product.stock < item.quantity && (

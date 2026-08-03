@@ -10,7 +10,9 @@ import {
   toDestination,
   toParcelItems,
 } from '@/lib/shipping-cart'
-import { findQuote, getShippingQuotes } from '@/lib/shipping-rates'
+import { findQuote, getCartPromotions, getShippingQuotes } from '@/lib/shipping-rates'
+import { SHIPPING_ENABLED, TAX_ENABLED, TAX_RATE } from '@/lib/store-config'
+import type { AppliedPromotion } from '@/lib/supabase'
 
 // POST /api/orders/create
 //
@@ -24,8 +26,10 @@ import { findQuote, getShippingQuotes } from '@/lib/shipping-rates'
 // cart, every price is read from the products table, and shipping is re-quoted
 // server-side, so the total is server-authoritative. A tampered courier choice
 // fails to match a real quote and is rejected rather than trusted.
-
-const TAX_RATE = 0.11
+//
+// While SHIPPING_ENABLED is false no courier is quoted or charged: the order is
+// merchandise minus any order-level promotion, and the admin fills in courier and
+// tracking by hand. TAX_ENABLED does the same for PPN.
 
 const round2 = (value: number) => Math.round(value * 100) / 100
 
@@ -132,47 +136,86 @@ export async function POST(request: NextRequest) {
     })
 
     const subtotal = computeSubtotal(cartLines)
+    const destination = toDestination(address)
+    const parcelItems = toParcelItems(cartLines)
 
-    const quote = await getShippingQuotes(serviceClient, {
-      destination: toDestination(address),
-      items: toParcelItems(cartLines),
-      subtotal,
-    })
+    let shippingCost = 0
+    let orderDiscount = 0
+    let appliedPromotions: AppliedPromotion[] = []
+    let weightGrams = 0
+    // Courier columns on the order row. Left empty while ongkir is hidden — the
+    // admin sets courier and tracking number by hand from the order page.
+    let courierSnapshot: Record<string, unknown> = {}
 
-    if (quote.options.length === 0) {
-      return NextResponse.json(
-        {
-          message: quote.isInternational
-            ? 'Pengiriman internasional belum tersedia untuk alamat ini.'
-            : 'Tidak ada layanan pengiriman untuk alamat ini.',
-        },
-        { status: 409 }
-      )
+    if (SHIPPING_ENABLED) {
+      const quote = await getShippingQuotes(serviceClient, {
+        destination,
+        items: parcelItems,
+        subtotal,
+      })
+
+      if (quote.options.length === 0) {
+        return NextResponse.json(
+          {
+            message: quote.isInternational
+              ? 'Pengiriman internasional belum tersedia untuk alamat ini.'
+              : 'Tidak ada layanan pengiriman untuk alamat ini.',
+          },
+          { status: 409 }
+        )
+      }
+
+      // Re-quoting can legitimately change the option set (a promo expired, a
+      // courier dropped out). Rejecting an unknown pick is safer than silently
+      // charging for a service the customer did not choose.
+      const chosen =
+        courierCode && serviceCode
+          ? findQuote(quote.options, courierCode, serviceCode)
+          : quote.options[0]
+
+      if (!chosen) {
+        return NextResponse.json(
+          {
+            message:
+              'Layanan pengiriman yang dipilih sudah tidak tersedia. Silakan pilih ulang ongkir.',
+            code: 'SHIPPING_OPTION_UNAVAILABLE',
+          },
+          { status: 409 }
+        )
+      }
+
+      shippingCost = round2(chosen.finalCost)
+      orderDiscount = round2(Math.min(chosen.orderDiscount, subtotal))
+      appliedPromotions = chosen.appliedPromotions
+      weightGrams = quote.parcel.weightGrams
+      courierSnapshot = {
+        courier: `${chosen.courierName} ${chosen.serviceName}`.trim(),
+        shipping_courier_code: chosen.courierCode,
+        shipping_service_code: chosen.serviceCode,
+        shipping_service_name: chosen.serviceName,
+        shipping_base_cost: chosen.baseCost,
+        shipping_discount: chosen.discount,
+        shipping_etd_min_days: chosen.etdMinDays,
+        shipping_etd_max_days: chosen.etdMaxDays,
+        shipping_zone_code: chosen.zoneCode,
+        shipping_provider: chosen.provider,
+      }
+    } else {
+      // No courier to quote, but the merchandise-level promotions still count,
+      // and the parcel weight is worth recording for whoever packs the box.
+      const cartPromotions = await getCartPromotions(serviceClient, {
+        destination,
+        items: parcelItems,
+        subtotal,
+      })
+
+      orderDiscount = cartPromotions.orderDiscount
+      appliedPromotions = cartPromotions.applied
+      weightGrams = cartPromotions.parcel.weightGrams
     }
 
-    // Re-quoting can legitimately change the option set (a promo expired, a
-    // courier dropped out). Rejecting an unknown pick is safer than silently
-    // charging for a service the customer did not choose.
-    const chosen =
-      courierCode && serviceCode
-        ? findQuote(quote.options, courierCode, serviceCode)
-        : quote.options[0]
-
-    if (!chosen) {
-      return NextResponse.json(
-        {
-          message:
-            'Layanan pengiriman yang dipilih sudah tidak tersedia. Silakan pilih ulang ongkir.',
-          code: 'SHIPPING_OPTION_UNAVAILABLE',
-        },
-        { status: 409 }
-      )
-    }
-
-    const shippingCost = round2(chosen.finalCost)
-    const orderDiscount = round2(Math.min(chosen.orderDiscount, subtotal))
     const taxableAmount = Math.max(0, subtotal - orderDiscount)
-    const tax = round2(taxableAmount * TAX_RATE)
+    const tax = TAX_ENABLED ? round2(taxableAmount * TAX_RATE) : 0
     const total = round2(taxableAmount + shippingCost + tax)
 
     // Lock the rate PayPal will convert with, so the USD amount cannot drift
@@ -199,18 +242,9 @@ export async function POST(request: NextRequest) {
         shipping_address_id: address.id,
         customer_notes: customerNotes || null,
 
-        courier: `${chosen.courierName} ${chosen.serviceName}`.trim(),
-        shipping_courier_code: chosen.courierCode,
-        shipping_service_code: chosen.serviceCode,
-        shipping_service_name: chosen.serviceName,
-        shipping_base_cost: chosen.baseCost,
-        shipping_discount: chosen.discount,
-        shipping_etd_min_days: chosen.etdMinDays,
-        shipping_etd_max_days: chosen.etdMaxDays,
-        shipping_weight_grams: quote.parcel.weightGrams,
-        shipping_zone_code: chosen.zoneCode,
-        shipping_provider: chosen.provider,
-        applied_promotions: chosen.appliedPromotions,
+        ...courierSnapshot,
+        shipping_weight_grams: weightGrams,
+        applied_promotions: appliedPromotions,
         fx_rate_idr_usd: fxRate,
       })
       .select()
@@ -242,10 +276,10 @@ export async function POST(request: NextRequest) {
     if (paymentError) throw paymentError
 
     // Usage counters are advisory: a failure here must not undo a paid-for order.
-    if (chosen.appliedPromotions.length > 0) {
+    if (appliedPromotions.length > 0) {
       await serviceClient
         .rpc('increment_promotion_usage', {
-          promotion_ids: chosen.appliedPromotions.map((promotion) => promotion.id),
+          promotion_ids: appliedPromotions.map((promotion) => promotion.id),
         })
         .then(({ error }) => {
           if (error) console.error('Failed to increment promotion usage:', error.message)

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { capturePayPalOrder } from '@/lib/paypal'
+import { isCaptureVerified, markCaptureFailed, markOrderPaid } from '@/lib/paypal-settlement'
 
 const getErrorMessage = (error: unknown) => (error instanceof Error ? error.message : 'Unknown error')
 
@@ -22,10 +23,6 @@ const getSupabaseServiceClient = () => {
     auth: { autoRefreshToken: false, persistSession: false },
   })
 }
-
-// A capture never differs from the amount we asked PayPal to charge by more than this
-// (covers floating point / string rounding, not a real tolerance for underpayment).
-const AMOUNT_EPSILON = 0.01
 
 // POST /api/paypal/capture-order
 // Captures a previously created PayPal order and, only after independently verifying
@@ -92,17 +89,9 @@ export async function POST(request: NextRequest) {
     }
 
     const capture = await capturePayPalOrder(paypalOrderId)
-
-    const capturedAmount = capture.capturedAmount ? Number(capture.capturedAmount) : NaN
     const expectedAmount = Number(payment.amount)
 
-    const isVerified =
-      capture.status === 'COMPLETED' &&
-      capture.customId === order.order_number &&
-      Number.isFinite(capturedAmount) &&
-      Math.abs(capturedAmount - expectedAmount) <= AMOUNT_EPSILON
-
-    if (!isVerified) {
+    if (!isCaptureVerified({ capture, orderNumber: order.order_number, expectedAmount })) {
       console.error('PayPal capture failed verification:', {
         orderNumber,
         paypalOrderId,
@@ -110,47 +99,18 @@ export async function POST(request: NextRequest) {
         expectedAmount,
       })
 
-      await serviceClient
-        .from('payments')
-        .update({
-          status: 'failed',
-          gateway_response: { stage: 'capture_verification_failed', capture: capture.raw },
-        })
-        .eq('id', payment.id)
+      await markCaptureFailed(serviceClient, { paymentId: payment.id, capture })
 
       return NextResponse.json({ message: 'PayPal payment could not be verified' }, { status: 402 })
     }
 
-    const nowIso = new Date().toISOString()
-
-    const { error: updatePaymentError } = await serviceClient
-      .from('payments')
-      .update({
-        status: 'success',
-        transaction_id: capture.captureId || paypalOrderId,
-        gateway_response: { stage: 'captured', capture: capture.raw },
-        paid_at: nowIso,
-      })
-      .eq('id', payment.id)
-
-    if (updatePaymentError) {
-      console.error('Failed to update payment after PayPal capture:', updatePaymentError)
-      throw new Error(getErrorMessage(updatePaymentError))
-    }
-
-    const { error: updateOrderError } = await serviceClient
-      .from('orders')
-      .update({
-        payment_status: 'paid',
-        status: 'confirmed',
-        confirmed_at: nowIso,
-      })
-      .eq('id', order.id)
-
-    if (updateOrderError) {
-      console.error('Failed to update order after PayPal capture:', updateOrderError)
-      throw new Error(getErrorMessage(updateOrderError))
-    }
+    await markOrderPaid(serviceClient, {
+      orderId: order.id,
+      orderNumber: order.order_number,
+      paymentId: payment.id,
+      capture,
+      fallbackTransactionId: paypalOrderId,
+    })
 
     return NextResponse.json({ message: 'Payment captured', orderNumber: order.order_number }, { status: 200 })
   } catch (error) {

@@ -10,7 +10,8 @@ import { orderService } from '@/lib/orders'
 import { shippingService } from '@/lib/shipping'
 import { loadActivePaymentMethods } from '@/lib/payment-methods'
 import { notificationService } from '@/lib/notifications'
-import { getEffectiveIdrPrice } from '@/lib/price'
+import { getEffectiveIdrPrice, getIdrPrice } from '@/lib/price'
+import { SHIPPING_ENABLED, TAX_ENABLED, TAX_RATE } from '@/lib/store-config'
 import {
   findRegionByName,
   getDisplayRegionName,
@@ -27,7 +28,13 @@ import { COUNTRIES, countryName, isIndonesia, requiresPostalCode } from '@/lib/c
 import { useLanguage } from '@/lib/i18n'
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
 import PayPalCheckoutButton from '@/components/PayPalCheckoutButton'
-import type { CartItem, ShippingAddress, PaymentMethodConfig, Order } from '@/lib/supabase'
+import type {
+  AppliedPromotion,
+  CartItem,
+  ShippingAddress,
+  PaymentMethodConfig,
+  Order,
+} from '@/lib/supabase'
 
 type Step = 'shipping' | 'payment' | 'review'
 
@@ -81,6 +88,10 @@ export default function CheckoutPage() {
   const [nearMisses, setNearMisses] = useState<ShippingNearMiss[]>([])
   const [customsNote, setCustomsNote] = useState<{ en: string; id: string } | null>(null)
   const [parcelWeightGrams, setParcelWeightGrams] = useState(0)
+  // Merchandise-level promotions, the only ones that still apply while ongkir is
+  // hidden. Kept separate so the courier path keeps reading them off its option.
+  const [cartDiscount, setCartDiscount] = useState(0)
+  const [cartPromotions, setCartPromotions] = useState<AppliedPromotion[]>([])
 
   // Payment
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodConfig[]>([])
@@ -233,8 +244,21 @@ export default function CheckoutPage() {
 
         const result = await fetchShippingRates(addressId)
 
-        setShippingOptions(result.options)
         setNearMisses(result.nearMisses)
+        setCartDiscount(result.cartDiscount)
+        setCartPromotions(result.cartPromotions)
+
+        // With ongkir hidden the call is only worth its promotions: no courier
+        // list, and nothing to complain about when no courier serves the address.
+        if (!SHIPPING_ENABLED) {
+          setShippingOptions([])
+          setSelectedShippingKey('')
+          setCustomsNote(null)
+          setParcelWeightGrams(0)
+          return
+        }
+
+        setShippingOptions(result.options)
         setCustomsNote(result.customsNote)
         setParcelWeightGrams(result.parcel?.weightGrams || 0)
 
@@ -261,9 +285,16 @@ export default function CheckoutPage() {
         console.error('Error loading shipping rates:', error)
         setShippingOptions([])
         setSelectedShippingKey('')
-        setRatesError(
-          tr('Failed to calculate shipping cost.', 'Gagal menghitung ongkos kirim.')
-        )
+        setCartDiscount(0)
+        setCartPromotions([])
+
+        // Nothing is quoted while ongkir is hidden, so a failure here costs the
+        // customer at most a promotion line — never a blocked checkout.
+        if (SHIPPING_ENABLED) {
+          setRatesError(
+            tr('Failed to calculate shipping cost.', 'Gagal menghitung ongkos kirim.')
+          )
+        }
       } finally {
         setLoadingRates(false)
       }
@@ -275,6 +306,8 @@ export default function CheckoutPage() {
     if (!selectedAddress?.id || cartItems.length === 0) {
       setShippingOptions([])
       setSelectedShippingKey('')
+      setCartDiscount(0)
+      setCartPromotions([])
       return
     }
 
@@ -545,7 +578,7 @@ export default function CheckoutPage() {
       return
     }
 
-    if (!selectedShippingOption) {
+    if (SHIPPING_ENABLED && !selectedShippingOption) {
       alert(tr('Please select a shipping service', 'Silakan pilih layanan pengiriman'))
       setCurrentStep('shipping')
       return
@@ -633,14 +666,29 @@ export default function CheckoutPage() {
     },
     0
   )
+  // What the same cart would cost at list price, so a markdown reads as a saving.
+  const originalSubtotal = cartItems.reduce(
+    (sum, item) => {
+      const price = item.product ? getIdrPrice(item.product) : 0
+      return sum + price * item.quantity
+    },
+    0
+  )
+  const productSavings = Math.max(0, originalSubtotal - subtotal)
   const selectedShippingOption =
     shippingOptions.find((option) => option.key === selectedShippingKey) || null
-  const shippingCost = selectedShippingOption?.finalCost ?? 0
+  const shippingCost = SHIPPING_ENABLED ? selectedShippingOption?.finalCost ?? 0 : 0
   const shippingDiscount = selectedShippingOption?.discount ?? 0
-  const orderDiscount = Math.min(selectedShippingOption?.orderDiscount ?? 0, subtotal)
+  const orderDiscount = Math.min(
+    SHIPPING_ENABLED ? selectedShippingOption?.orderDiscount ?? 0 : cartDiscount,
+    subtotal
+  )
   const taxableAmount = Math.max(0, subtotal - orderDiscount)
-  const total = taxableAmount + shippingCost
-  const appliedPromotions = selectedShippingOption?.appliedPromotions ?? []
+  const tax = TAX_ENABLED ? Math.round(taxableAmount * TAX_RATE * 100) / 100 : 0
+  const total = taxableAmount + shippingCost + tax
+  const appliedPromotions = SHIPPING_ENABLED
+    ? selectedShippingOption?.appliedPromotions ?? []
+    : cartPromotions
 
   const postalCodeSuggestions = Array.from(
     new Set(
@@ -977,17 +1025,20 @@ export default function CheckoutPage() {
                         {tr('Set as default address', 'Jadikan sebagai alamat utama')}
                       </label>
                     </div>
-                    <p className="text-xs text-gray-500">
-                      {isFormDomestic
-                        ? tr(
-                            'Province and city are loaded from wilayah.id API. Postal code is entered manually because the API does not provide postal code data.',
-                            'Provinsi dan kota dimuat dari API wilayah.id. Kode pos diisi manual karena API tidak menyediakan data kode pos.'
-                          )
-                        : tr(
-                            'Shipping cost is calculated automatically once the address is saved.',
-                            'Ongkos kirim dihitung otomatis setelah alamat disimpan.'
-                          )}
-                    </p>
+                    {/* The ongkir note only makes sense when ongkir is on show. */}
+                    {(isFormDomestic || SHIPPING_ENABLED) && (
+                      <p className="text-xs text-gray-500">
+                        {isFormDomestic
+                          ? tr(
+                              'Province and city are loaded from wilayah.id API. Postal code is entered manually because the API does not provide postal code data.',
+                              'Provinsi dan kota dimuat dari API wilayah.id. Kode pos diisi manual karena API tidak menyediakan data kode pos.'
+                            )
+                          : tr(
+                              'Shipping cost is calculated automatically once the address is saved.',
+                              'Ongkos kirim dihitung otomatis setelah alamat disimpan.'
+                            )}
+                      </p>
+                    )}
                     <div className="flex gap-2">
                       <button
                         onClick={handleSaveAddress}
@@ -1035,8 +1086,31 @@ export default function CheckoutPage() {
                   </div>
                 )}
 
+                {/* "Spend 50k more for 10% off" — a merchandise promotion is worth
+                    surfacing whether or not couriers are on show. */}
+                {nearMisses.length > 0 && !showAddressForm && (
+                  <div className="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 flex items-start gap-2">
+                    <Gift className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+                    <p className="text-sm text-emerald-800">
+                      {describeNearMiss(
+                        {
+                          promotion: {
+                            condition_type: nearMisses[0].conditionType,
+                            condition_value: nearMisses[0].conditionValue,
+                            reward_type: nearMisses[0].rewardType,
+                            reward_value: nearMisses[0].rewardValue,
+                            max_discount: nearMisses[0].maxDiscount,
+                          },
+                          remaining: nearMisses[0].remaining,
+                        },
+                        language
+                      )}
+                    </p>
+                  </div>
+                )}
+
                 {/* Courier selection — priced live for the selected address */}
-                {selectedAddress && !showAddressForm && (
+                {SHIPPING_ENABLED && selectedAddress && !showAddressForm && (
                   <div className="mt-6 pt-6 border-t border-gray-200">
                     <h3 className="font-semibold text-black mb-1 flex items-center gap-2">
                       <Truck className="w-5 h-5" />
@@ -1053,29 +1127,6 @@ export default function CheckoutPage() {
                             'Ongkir dihitung berdasarkan alamat yang dipilih.'
                           )}
                     </p>
-
-                    {/* "Add 2 more items for free shipping" — the nudge that makes
-                        the promotion visible before the customer has earned it. */}
-                    {nearMisses.length > 0 && (
-                      <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 flex items-start gap-2">
-                        <Gift className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
-                        <p className="text-sm text-emerald-800">
-                          {describeNearMiss(
-                            {
-                              promotion: {
-                                condition_type: nearMisses[0].conditionType,
-                                condition_value: nearMisses[0].conditionValue,
-                                reward_type: nearMisses[0].rewardType,
-                                reward_value: nearMisses[0].rewardValue,
-                                max_discount: nearMisses[0].maxDiscount,
-                              },
-                              remaining: nearMisses[0].remaining,
-                            },
-                            language
-                          )}
-                        </p>
-                      </div>
-                    )}
 
                     {customsNote && (
                       <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 flex items-start gap-2">
@@ -1169,7 +1220,9 @@ export default function CheckoutPage() {
 
                 <button
                   onClick={() => setCurrentStep('payment')}
-                  disabled={!selectedAddress || !selectedShippingOption || loadingRates}
+                  disabled={
+                    !selectedAddress || (SHIPPING_ENABLED && (!selectedShippingOption || loadingRates))
+                  }
                   className="w-full mt-6 py-3 btn-primary-animated"
                 >
                   {tr('Continue to Payment', 'Lanjut ke Pembayaran')}
@@ -1452,65 +1505,90 @@ export default function CheckoutPage() {
 
               {/* Items */}
               <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
-                {cartItems.map((item) => (
-                  <div key={item.id} className="flex gap-3">
-                    <div className="text-sm">
-                      <p className="font-medium text-black">{item.product?.name}</p>
-                      <p className="text-gray-600">{tr('Qty', 'Jumlah')}: {item.quantity}</p>
+                {cartItems.map((item) => {
+                  const unitPrice = item.product ? getEffectiveIdrPrice(item.product) : 0
+                  const listPrice = item.product ? getIdrPrice(item.product) : 0
+                  const lineDiscounted = listPrice > unitPrice
+
+                  return (
+                    <div key={item.id} className="flex justify-between gap-3">
+                      <div className="text-sm min-w-0">
+                        <p className="font-medium text-black truncate">{item.product?.name}</p>
+                        <p className="text-gray-600">{tr('Qty', 'Jumlah')}: {item.quantity}</p>
+                      </div>
+                      <div className="text-sm text-right shrink-0">
+                        {lineDiscounted && (
+                          <p className="text-xs text-gray-400 line-through">
+                            {formatPrice(listPrice * item.quantity)}
+                          </p>
+                        )}
+                        <p className={`font-semibold ${lineDiscounted ? 'text-red-600' : 'text-black'}`}>
+                          {formatPrice(unitPrice * item.quantity)}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
 
               {/* Totals */}
               <div className="space-y-3 pt-4 border-t border-gray-200">
                 <div className="flex justify-between text-gray-600">
                   <span>{tr('Subtotal', 'Subtotal')}</span>
-                  <span>{formatPrice(subtotal)}</span>
+                  <span>{formatPrice(originalSubtotal)}</span>
                 </div>
+                {productSavings > 0 && (
+                  <div className="flex justify-between font-semibold text-red-600">
+                    <span>{tr('Product discount', 'Diskon produk')}</span>
+                    <span>-{formatPrice(productSavings)}</span>
+                  </div>
+                )}
                 {orderDiscount > 0 && (
                   <div className="flex justify-between text-emerald-700 font-medium">
-                    <span>{tr('Discount', 'Diskon')}</span>
+                    <span>{tr('Promo discount', 'Diskon promo')}</span>
                     <span>-{formatPrice(orderDiscount)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-gray-600">
-                  <span>
-                    {tr('Shipping', 'Pengiriman')}
-                    {selectedShippingOption && (
-                      <span className="block text-xs text-gray-500">
-                        {selectedShippingOption.courierName} {selectedShippingOption.serviceName}
-                      </span>
-                    )}
-                  </span>
-                  <span className="text-right">
-                    {!selectedShippingOption ? (
-                      <span className="text-gray-400">
-                        {loadingRates ? tr('Calculating...', 'Menghitung...') : '—'}
-                      </span>
-                    ) : shippingCost === 0 ? (
-                      <>
-                        {shippingDiscount > 0 && (
-                          <span className="block text-xs text-gray-400 line-through">
-                            {formatPrice(selectedShippingOption.baseCost)}
-                          </span>
-                        )}
-                        <span className="font-semibold text-emerald-600">
-                          {tr('FREE', 'GRATIS')}
+                {SHIPPING_ENABLED && (
+                  <div className="flex justify-between text-gray-600">
+                    <span>
+                      {tr('Shipping', 'Pengiriman')}
+                      {selectedShippingOption && (
+                        <span className="block text-xs text-gray-500">
+                          {selectedShippingOption.courierName} {selectedShippingOption.serviceName}
                         </span>
-                      </>
-                    ) : (
-                      <>
-                        {shippingDiscount > 0 && (
-                          <span className="block text-xs text-gray-400 line-through">
-                            {formatPrice(selectedShippingOption.baseCost)}
-                          </span>
-                        )}
-                        {formatPrice(shippingCost)}
-                      </>
-                    )}
-                  </span>
-                </div>
+                      )}
+                    </span>
+                    <span className="text-right">
+                      {!selectedShippingOption ? (
+                        <span className="text-gray-400">
+                          {loadingRates ? tr('Calculating...', 'Menghitung...') : '—'}
+                        </span>
+                      ) : (
+                        <>
+                          {shippingDiscount > 0 && (
+                            <span className="block text-xs text-gray-400 line-through">
+                              {formatPrice(selectedShippingOption.baseCost)}
+                            </span>
+                          )}
+                          {shippingCost === 0 ? (
+                            <span className="font-semibold text-emerald-600">
+                              {tr('FREE', 'GRATIS')}
+                            </span>
+                          ) : (
+                            formatPrice(shippingCost)
+                          )}
+                        </>
+                      )}
+                    </span>
+                  </div>
+                )}
+                {TAX_ENABLED && (
+                  <div className="flex justify-between text-gray-600">
+                    <span>{tr('Tax', 'Pajak')}</span>
+                    <span>{formatPrice(tax)}</span>
+                  </div>
+                )}
                 {appliedPromotions.length > 0 && (
                   <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 space-y-1">
                     {appliedPromotions.map((promotion) => (
@@ -1529,6 +1607,14 @@ export default function CheckoutPage() {
                     <span>{tr('Total', 'Total')}</span>
                     <span>{formatPrice(total)}</span>
                   </div>
+                  {productSavings + orderDiscount > 0 && (
+                    <p className="mt-1 text-sm font-semibold text-emerald-600">
+                      {tr(
+                        `You save ${formatPrice(productSavings + orderDiscount)}`,
+                        `Hemat ${formatPrice(productSavings + orderDiscount)}`
+                      )}
+                    </p>
+                  )}
                   {/* Catalog prices can be shown in USD, but orders are always
                       created and settled in IDR — say so before they pay. */}
                   {language === 'en' && (
