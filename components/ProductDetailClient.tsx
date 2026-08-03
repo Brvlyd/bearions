@@ -32,6 +32,17 @@ export default function ProductDetailClient({
   const productDescription = language === 'id' && product.description_id ? product.description_id : product.description
 
   const handleAddToCart = async () => {
+    if (!selectedSize || !selectedColor) {
+      setMessage({
+        type: 'error',
+        text: tr(
+          'Please select both a size and a color before adding to cart.',
+          'Silakan pilih ukuran dan warna terlebih dahulu sebelum menambahkan ke keranjang.'
+        ),
+      })
+      return
+    }
+
     try {
       setAddingToCart(true)
       setMessage(null)
@@ -47,8 +58,8 @@ export default function ProductDetailClient({
         user.id,
         product.id,
         quantity,
-        selectedSize || undefined,
-        selectedColor || undefined
+        selectedSize,
+        selectedColor
       )
 
       setMessage({ type: 'success', text: t('product.addToCart') + '!' })
@@ -226,8 +237,8 @@ export default function ProductDetailClient({
             {product.stock > 0 ? (
               <button
                 onClick={handleAddToCart}
-                disabled={addingToCart}
-                className="w-full py-4 flex items-center justify-center space-x-2 btn-primary-animated"
+                disabled={addingToCart || !selectedSize || !selectedColor}
+                className="w-full py-4 flex items-center justify-center space-x-2 btn-primary-animated disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ShoppingCart className="w-5 h-5" />
                 <span>{addingToCart ? tr('Adding...', 'Menambahkan...') : tr('Add to Cart', 'Tambah ke Keranjang')}</span>

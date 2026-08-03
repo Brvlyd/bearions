@@ -98,15 +98,12 @@ export const loadActivePaymentMethods = async () => {
   }
 
   const methods = (data || []) as PaymentMethodConfig[]
-  // Ensure any DEFAULT_PAYMENT_METHODS not present in DB are included as fallback (e.g., QRIS)
-  const existingCodes = new Set(methods.map((m) => m.code))
-  for (const def of DEFAULT_PAYMENT_METHODS) {
-    if (!existingCodes.has(def.code) && def.is_active) {
-      methods.push(def)
-    }
-  }
-  // Sort by sort_order after merging
-  methods.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+  // DEFAULT_PAYMENT_METHODS is only a stand-in for when the table itself is
+  // unreachable (see the error branch above). Splicing entries like QRIS into
+  // a successful query — because admin hasn't added that code yet — let
+  // customers pick and complete a whole checkout with a method
+  // /api/orders/create then rejects, since it checks the real table and finds
+  // no matching row. Only ever show what is actually configured.
   if (methods.length === 0) {
     return {
       methods: DEFAULT_PAYMENT_METHODS,

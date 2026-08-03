@@ -443,7 +443,12 @@ export default function CheckoutPage() {
     // A street detail line is what makes a domestic parcel findable; abroad the
     // city/state/postcode triple carries that weight instead.
     if (domestic && !newAddress.address_line2.trim()) {
-      setAddressFormError(tr('Please fill all address fields', 'Mohon isi semua field alamat'))
+      setAddressFormError(
+        tr(
+          'Please fill in Address Line 2 (RT/RW, block, or landmark) — couriers need it to find domestic addresses.',
+          'Mohon isi Alamat Baris 2 (RT/RW, blok, atau patokan) — kurir butuh ini untuk menemukan alamat domestik.'
+        )
+      )
       return
     }
 
@@ -896,7 +901,11 @@ export default function CheckoutPage() {
                       />
                       <input
                         type="text"
-                        placeholder={tr('Address Line 2', 'Alamat Baris 2')}
+                        placeholder={
+                          isFormDomestic
+                            ? tr('Address Line 2 (RT/RW, block, landmark)', 'Alamat Baris 2 (RT/RW, blok, patokan)')
+                            : tr('Address Line 2 (optional)', 'Alamat Baris 2 (opsional)')
+                        }
                         value={newAddress.address_line2}
                         onChange={(e) => setNewAddress({ ...newAddress, address_line2: e.target.value })}
                         className="col-span-2 px-4 py-2 border border-gray-300 rounded-lg bg-white text-black placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-black"

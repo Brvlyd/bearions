@@ -153,11 +153,13 @@ export const authService = {
 
       // If role is specified, check that table
       if (role === 'admin') {
+        // maybeSingle: a non-admin account is a normal outcome here, not an
+        // error — .single() would make PostgREST answer 406 for every one.
         const { data: adminData, error: adminError } = await supabase
           .from('admins')
           .select('*')
           .eq('id', data.user?.id)
-          .single()
+          .maybeSingle()
 
         if (adminError || !adminData) {
           await supabase.auth.signOut()
@@ -170,7 +172,7 @@ export const authService = {
           .from('users')
           .select('*')
           .eq('id', data.user?.id)
-          .single()
+          .maybeSingle()
 
         if (userError || !userData) {
           await supabase.auth.signOut()
@@ -278,12 +280,14 @@ export const authService = {
   async getUserWithRole(user: User) {
     if (!user) return null
 
-    // Check if admin
+    // maybeSingle throughout: this runs on every session check, and the
+    // overwhelming majority of accounts are not admins — .single() would
+    // turn that normal case into a 406 from PostgREST on every page load.
     const { data: adminData } = await supabase
       .from('admins')
       .select('*')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
 
     if (adminData) {
       return { user, profile: adminData, role: 'admin' as UserRole }
@@ -294,7 +298,7 @@ export const authService = {
       .from('users')
       .select('*')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
 
     if (userData) {
       return { user, profile: userData, role: 'user' as UserRole }
@@ -324,7 +328,7 @@ export const authService = {
         .from('admins')
         .select('*')
         .eq('id', session.user.id)
-        .single()
+        .maybeSingle()
 
       return !error && !!data
     } catch {

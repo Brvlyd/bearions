@@ -41,12 +41,22 @@ export async function loadCartLines(
   client: SupabaseClient,
   userId: string
 ): Promise<CartLine[]> {
-  const { data: cart } = await client
+  // Mirrors cartService.getOrCreateCart's "most recent cart" pick. Some
+  // accounts ended up with more than one cart row for the same user (a race
+  // in getOrCreateCart let two concurrent calls both insert); a bare
+  // .maybeSingle() errors out on that instead of picking one, and with the
+  // error left unchecked it read as "no cart" — every rate quote and order
+  // for that account silently saw an empty cart.
+  const { data: carts, error: cartError } = await client
     .from('carts')
     .select('id')
     .eq('user_id', userId)
-    .maybeSingle()
+    .order('created_at', { ascending: false })
+    .limit(1)
 
+  if (cartError) throw cartError
+
+  const cart = carts?.[0]
   if (!cart) return []
 
   const { data, error } = await client

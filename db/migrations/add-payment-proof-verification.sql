@@ -36,19 +36,22 @@ IS 'Timestamp when the payment proof was verified or rejected';
 
 -- Update RLS policy to allow admin users to update payment proof verification
 -- This policy grants update permission to admins to set verification status
+-- (fixed to match the app's actual admins table: `admins.id` references
+-- auth.users.id directly — there is no `admin_users` table or `user_id`
+-- column, so the policy as originally written would fail to apply at all)
 CREATE POLICY "Allow admin to update payment proof verification"
 ON payments
 FOR UPDATE
 USING (
   EXISTS (
-    SELECT 1 FROM admin_users 
-    WHERE user_id = auth.uid()
+    SELECT 1 FROM admins
+    WHERE id = auth.uid()
   )
 )
 WITH CHECK (
   EXISTS (
-    SELECT 1 FROM admin_users 
-    WHERE user_id = auth.uid()
+    SELECT 1 FROM admins
+    WHERE id = auth.uid()
   )
 );
 
