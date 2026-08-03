@@ -16,7 +16,6 @@ function LoginPageContent() {
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
   const [redirecting, setRedirecting] = useState(false)
-  const [resetLoading, setResetLoading] = useState(false)
   const [verificationLoading, setVerificationLoading] = useState(false)
   const [verificationCooldown, setVerificationCooldown] = useState(0)
   const [showVerificationActions, setShowVerificationActions] = useState(false)
@@ -186,38 +185,6 @@ function LoginPageContent() {
     }
   }
 
-  const handleSendResetPassword = async () => {
-    setError('')
-    setSuccess('')
-
-    if (!isValidEmail(email)) {
-        setError(
-          language === 'en'
-            ? '🔑 Please enter a valid email first to reset password.'
-            : '🔑 Masukkan email yang valid terlebih dahulu untuk reset password.'
-        )
-      return
-    }
-
-    try {
-      setResetLoading(true)
-      await authService.sendPasswordResetEmail(email.trim().toLowerCase(), language)
-        setSuccess(
-          language === 'en'
-            ? '📩 Password reset link has been sent. Please check your inbox and spam/junk folder.'
-            : '📩 Link reset password sudah dikirim. Silakan cek inbox dan folder spam/junk.'
-        )
-    } catch (err: unknown) {
-      console.error('Reset password email error:', err)
-        const message =
-          (err instanceof Error ? err.message : String(err ?? '')) ||
-          (language === 'en' ? 'Failed to send reset password email.' : 'Gagal mengirim email reset password.')
-      setError(`❌ ${message}`)
-    } finally {
-      setResetLoading(false)
-    }
-  }
-
   return (
     <div className="min-h-screen bg-white flex items-center justify-center px-4 pt-20">
       <div className="w-full max-w-md">
@@ -263,16 +230,12 @@ function LoginPageContent() {
                 <label htmlFor="password" className="block text-sm font-medium text-black">
                   {t('login.password')}
                 </label>
-                <button
-                  type="button"
-                  onClick={handleSendResetPassword}
-                  disabled={resetLoading}
-                  className="text-xs text-black hover:underline disabled:text-gray-400 disabled:no-underline py-2 -my-2 px-1 -mr-1"
+                <Link
+                  href={`/forgot-password${email.trim() ? `?email=${encodeURIComponent(email.trim().toLowerCase())}` : ''}`}
+                  className="text-xs text-black hover:underline py-2 -my-2 px-1 -mr-1"
                 >
-                    {resetLoading
-                      ? (language === 'en' ? 'Sending...' : 'Mengirim...')
-                      : (language === 'en' ? 'Forgot password?' : 'Lupa password?')}
-                </button>
+                  {language === 'en' ? 'Forgot password?' : 'Lupa password?'}
+                </Link>
               </div>
               <input
                 id="password"
@@ -287,7 +250,7 @@ function LoginPageContent() {
 
             <button
               type="submit"
-              disabled={loading || redirecting || resetLoading || verificationLoading}
+              disabled={loading || redirecting || verificationLoading}
               className="w-full btn-primary-animated"
             >
                 {redirecting
@@ -301,7 +264,7 @@ function LoginPageContent() {
               <button
                 type="button"
                 onClick={handleResendVerification}
-                disabled={verificationLoading || verificationCooldown > 0 || loading || resetLoading}
+                disabled={verificationLoading || verificationCooldown > 0 || loading}
                 className="w-full px-4 py-3 rounded-lg border border-black text-black font-medium hover:bg-black hover:text-white transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {verificationLoading

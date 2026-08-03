@@ -9,7 +9,7 @@
  * While false, orders are created with shipping_cost 0 and no courier picked;
  * admins still set the courier and tracking number by hand on the order page.
  */
-export const SHIPPING_ENABLED: boolean = false
+export const SHIPPING_ENABLED: boolean = true
 
 /** Charge and display PPN on orders. While false, every order stores tax 0. */
 export const TAX_ENABLED: boolean = false

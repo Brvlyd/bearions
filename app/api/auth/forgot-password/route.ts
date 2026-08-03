@@ -12,8 +12,9 @@ import { getSiteOrigin } from '@/lib/site-url'
 // mints the recovery token, so the security model is unchanged — only the
 // delivery and the template are ours.
 //
-// The response is always a generic success. Telling the caller whether an email
-// is registered would turn this endpoint into an account-enumeration oracle.
+// By product decision this endpoint explicitly reports when an email is not
+// registered (see the `isNotFound` branch below), trading account-enumeration
+// resistance for a clearer "you never signed up with this address" message.
 
 /** Matches Supabase's default recovery token lifetime (Auth -> Providers -> Email). */
 const LINK_EXPIRY_MINUTES = 60
@@ -27,22 +28,18 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const getSiteUrl = (request: NextRequest) => getSiteOrigin(request.nextUrl.origin)
 
 export async function POST(request: NextRequest) {
-  // Generic payload — returned on success, on unknown emails, and on send failures.
-  const genericResponse = NextResponse.json(
-    {
-      message:
-        'Jika email tersebut terdaftar, kami sudah mengirimkan link reset kata sandi. Silakan cek inbox dan folder spam.',
-    },
-    { status: 200 }
-  )
+  let language: EmailLanguage = 'id'
 
   try {
     const body = await request.json().catch(() => ({}))
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
-    const language: EmailLanguage = body.language === 'en' ? 'en' : 'id'
+    language = body.language === 'en' ? 'en' : 'id'
 
     if (!email || !EMAIL_PATTERN.test(email)) {
-      return NextResponse.json({ message: 'Format email tidak valid.' }, { status: 400 })
+      return NextResponse.json(
+        { message: language === 'en' ? 'Invalid email format.' : 'Format email tidak valid.' },
+        { status: 400 }
+      )
     }
 
     const limit = checkRateLimit({
@@ -53,7 +50,12 @@ export async function POST(request: NextRequest) {
 
     if (!limit.allowed) {
       return NextResponse.json(
-        { message: 'Terlalu banyak permintaan reset. Coba lagi dalam beberapa menit.' },
+        {
+          message:
+            language === 'en'
+              ? 'Too many reset requests. Please try again in a few minutes.'
+              : 'Terlalu banyak permintaan reset. Coba lagi dalam beberapa menit.',
+        },
         { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } }
       )
     }
@@ -81,9 +83,36 @@ export async function POST(request: NextRequest) {
     const resetUrl = data?.properties?.action_link
 
     if (error || !resetUrl) {
-      // Unknown email lands here too — log it, but do not tell the caller.
-      console.warn('Forgot password: could not generate recovery link', error?.message)
-      return genericResponse
+      // Supabase reports an unregistered address as a 404/`user_not_found`
+      // AuthApiError — surface that distinctly per product decision, but keep
+      // any other failure (outage, bad service key, ...) ambiguous so it falls
+      // through to the client-side Supabase-email fallback instead.
+      const isNotFound =
+        error?.status === 404 || (error?.message ?? '').toLowerCase().includes('not found')
+
+      if (isNotFound) {
+        console.warn('Forgot password: no account registered for that address')
+        return NextResponse.json(
+          {
+            message:
+              language === 'en'
+                ? 'NOT_REGISTERED: This email is not registered. Please sign up first.'
+                : 'NOT_REGISTERED: Email ini belum terdaftar. Silakan daftar akun terlebih dahulu.',
+          },
+          { status: 404 }
+        )
+      }
+
+      console.error('Forgot password: could not generate recovery link', error?.message)
+      return NextResponse.json(
+        {
+          message:
+            language === 'en'
+              ? 'Failed to send reset password email. Please try again.'
+              : 'Gagal mengirim email reset password. Silakan coba lagi.',
+        },
+        { status: 500 }
+      )
     }
 
     const recipientName =
@@ -104,10 +133,25 @@ export async function POST(request: NextRequest) {
       tags: ['password-reset'],
     })
 
-    return genericResponse
+    return NextResponse.json(
+      {
+        message:
+          language === 'en'
+            ? 'Password reset link sent. Please check your inbox and spam folder.'
+            : 'Link reset kata sandi sudah kami kirim. Silakan cek inbox dan folder spam.',
+      },
+      { status: 200 }
+    )
   } catch (error) {
-    // A Brevo outage should not reveal whether the account exists either.
     console.error('Error in forgot-password API:', error)
-    return genericResponse
+    return NextResponse.json(
+      {
+        message:
+          language === 'en'
+            ? 'Failed to send reset password email. Please try again.'
+            : 'Gagal mengirim email reset password. Silakan coba lagi.',
+      },
+      { status: 500 }
+    )
   }
 }
