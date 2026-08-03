@@ -6,15 +6,11 @@ import { useLanguage } from '@/lib/i18n'
 import ProductCard from './ProductCard'
 import Pagination from './Pagination'
 import { usePagination } from '@/lib/hooks/usePagination'
-import { Product, supabase } from '@/lib/supabase'
+import { Product } from '@/lib/supabase'
 import { productService } from '@/lib/products'
 import { getEffectiveIdrPrice } from '@/lib/price'
-
-interface Category {
-  id: string
-  name: string
-  description?: string
-}
+import { useCategories } from './CategoryProvider'
+import { getCategoryLabel } from '@/lib/categories'
 
 const PRODUCTS_PER_PAGE = 9
 /** Above this count the category list gets its own search box. */
@@ -22,8 +18,8 @@ const CATEGORY_SEARCH_THRESHOLD = 8
 
 export default function CatalogView() {
   const { t, tr, language } = useLanguage()
+  const categories = useCategories()
   const [products, setProducts] = useState<Product[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
   const [selectedCategory, setSelectedCategory] = useState('All Products')
   const [categoryQuery, setCategoryQuery] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
@@ -34,7 +30,6 @@ export default function CatalogView() {
 
   useEffect(() => {
     loadProducts()
-    loadCategories()
   }, [])
 
   const loadProducts = async () => {
@@ -57,20 +52,6 @@ export default function CatalogView() {
       console.error('Error loading products:', error)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const loadCategories = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .order('name', { ascending: true })
-
-      if (error) throw error
-      setCategories(data || [])
-    } catch (error) {
-      console.error('Error loading categories:', error)
     }
   }
 
@@ -112,7 +93,13 @@ export default function CatalogView() {
   const visibleCategories = useMemo(() => {
     const query = categoryQuery.trim().toLowerCase()
     if (!query) return categories
-    return categories.filter(c => c.name.toLowerCase().includes(query))
+    // Match whichever language's name the customer is typing in, not just
+    // whichever one happens to be on display.
+    return categories.filter(
+      c =>
+        c.name.toLowerCase().includes(query) ||
+        c.name_id?.toLowerCase().includes(query)
+    )
   }, [categories, categoryQuery])
 
   const { page, setPage, totalPages, pageItems, firstItemIndex, lastItemIndex, totalItems } =
@@ -185,9 +172,9 @@ export default function CatalogView() {
                   <button
                     onClick={() => selectCategory(category.name)}
                     className={categoryButtonClass(selectedCategory === category.name)}
-                    title={category.name}
+                    title={getCategoryLabel(category.name, categories, language)}
                   >
-                    {category.name}
+                    {getCategoryLabel(category.name, categories, language)}
                   </button>
                 </li>
               ))}
@@ -216,7 +203,7 @@ export default function CatalogView() {
             <h1 className="text-2xl font-bold text-black wrap-break-word min-w-0">
               {selectedCategory === 'All Products'
                 ? (language === 'id' ? 'Semua Produk' : 'All Products')
-                : selectedCategory
+                : getCategoryLabel(selectedCategory, categories, language)
               }
             </h1>
           </div>

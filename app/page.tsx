@@ -113,7 +113,7 @@ export default function Home() {
               shadow the button sinks into when pressed. */}
           <Link
             href="/catalog"
-            className="relative inline-flex items-center gap-3 rounded-2xl bg-gray-100 px-10 py-5 lg:px-14 lg:py-6 text-xl lg:text-3xl font-extrabold text-black shadow-[0_7px_0_0_#000000] transition-all duration-200 ease-out will-change-transform hover:-translate-y-1 hover:rotate-2 hover:scale-105 hover:bg-gray-300 hover:shadow-[0_10px_0_0_#000000] active:translate-y-1.5 active:rotate-0 active:scale-100 active:shadow-[0_1px_0_0_#000000] active:duration-75 focus-visible:outline-hidden"
+            className="relative inline-flex items-center gap-3 rounded-2xl border-2 border-black bg-black px-10 py-5 lg:px-14 lg:py-6 text-xl lg:text-3xl font-extrabold text-white shadow-[0_7px_0_0_#ffffff] transition-all duration-200 ease-out will-change-transform hover:-translate-y-1 hover:rotate-2 hover:scale-105 hover:bg-gray-900 hover:shadow-[0_10px_0_0_#ffffff] active:translate-y-1.5 active:rotate-0 active:scale-100 active:shadow-[0_1px_0_0_#ffffff] active:duration-75 focus-visible:outline-hidden"
           >
             <span aria-hidden="true" className="hero-cta-mascot inline-block">
             </span>

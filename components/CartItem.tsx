@@ -9,6 +9,8 @@ import type { CartItem as CartItemType } from '@/lib/supabase'
 import { productService } from '@/lib/products'
 import { formatIDR, getDiscountPercent, getEffectiveIdrPrice, getIdrPrice, isDiscounted } from '@/lib/price'
 import DiscountBadge from './DiscountBadge'
+import { useCategories } from './CategoryProvider'
+import { getCategoryLabel } from '@/lib/categories'
 
 interface CartItemProps {
   item: CartItemType
@@ -23,7 +25,8 @@ export default function CartItem({
   onRemove,
   disabled = false,
 }: CartItemProps) {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
+  const categories = useCategories()
   const [isUpdating, setIsUpdating] = useState(false)
   const [displayImage, setDisplayImage] = useState<string | null>(item.product?.image_url || null)
   const product = item.product
@@ -117,7 +120,9 @@ export default function CartItem({
             </h3>
           </Link>
 
-          <p className="text-xs sm:text-sm text-gray-600 mt-1">{product.category}</p>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">
+            {getCategoryLabel(product.category, categories, language)}
+          </p>
 
           {/* Size and Color */}
           <div className="flex gap-2 sm:gap-4 mt-2 text-xs sm:text-sm text-gray-600">

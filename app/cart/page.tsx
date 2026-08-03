@@ -54,13 +54,14 @@ function CartPageContent() {
     }
   }
 
+  // Updates apply to the local list in place instead of re-running loadCart,
+  // which used to flip the page-level `loading` flag and swap the whole cart
+  // out for the full-screen spinner on every +/- click.
   const handleUpdateQuantity = async (itemId: string, quantity: number) => {
     try {
       setUpdating(true)
-      await cartService.updateCartItemQuantity(itemId, quantity)
-      if (userId) {
-        await loadCart(userId)
-      }
+      const updatedItem = await cartService.updateCartItemQuantity(itemId, quantity)
+      setCartItems((prev) => prev.map((item) => (item.id === itemId ? updatedItem : item)))
     } catch (error) {
       console.error('Error updating quantity:', error)
       alert(t('common.edit'))
@@ -73,9 +74,7 @@ function CartPageContent() {
     try {
       setUpdating(true)
       await cartService.removeFromCart(itemId)
-      if (userId) {
-        await loadCart(userId)
-      }
+      setCartItems((prev) => prev.filter((item) => item.id !== itemId))
     } catch (error) {
       console.error('Error removing item:', error)
       alert(t('cart.remove'))
@@ -91,7 +90,7 @@ function CartPageContent() {
       setUpdating(true)
       if (userId) {
         await cartService.clearCart(userId)
-        await loadCart(userId)
+        setCartItems([])
       }
     } catch (error) {
       console.error('Error clearing cart:', error)

@@ -11,6 +11,8 @@ import { cartService } from '@/lib/cart'
 import { isDiscounted } from '@/lib/price'
 import ProductPrice from '@/components/ProductPrice'
 import { supabase } from '@/lib/supabase'
+import { useCategories } from '@/components/CategoryProvider'
+import { getCategoryLabel } from '@/lib/categories'
 
 export default function ProductDetailClient({
   product,
@@ -21,6 +23,7 @@ export default function ProductDetailClient({
 }) {
   const router = useRouter()
   const { t, tr, language } = useLanguage()
+  const categories = useCategories()
   const [quantity, setQuantity] = useState(1)
   const [selectedSize, setSelectedSize] = useState<string>('')
   const [selectedColor, setSelectedColor] = useState<string>('')
@@ -130,7 +133,7 @@ export default function ProductDetailClient({
           <div className="flex flex-col">
             <div className="mb-4">
               <span className="inline-block px-3 py-1 bg-gray-100 text-sm rounded text-black">
-                {product.category}
+                {getCategoryLabel(product.category, categories, language)}
               </span>
             </div>
             <h1 className="text-2xl lg:text-4xl font-bold mb-4 text-black">{productName}</h1>

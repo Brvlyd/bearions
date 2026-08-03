@@ -3,12 +3,15 @@
 import { useLanguage } from '@/lib/i18n'
 import {
   formatIDR,
+  formatUSD,
   formatProductPrice,
   formatProductPriceAlt,
   getDiscountAmount,
   getDiscountPercent,
   getIdrPrice,
   getSalePrice,
+  getUsdPrice,
+  getUsdSalePrice,
   isDiscounted,
   type PricedProduct,
 } from '@/lib/price'
@@ -18,8 +21,10 @@ import DiscountBadge from './DiscountBadge'
 // way everywhere: the sale price loud and in red, the original crossed out next
 // to it, and the percentage saved as a badge.
 //
-// A discount is always quoted in rupiah because sale_price is an IDR column —
-// the manual USD price is a full-price figure and would contradict the markdown.
+// sale_price itself is an IDR-only column, so an English visitor's markdown is
+// shown by applying that same percent-off to the product's manual USD price
+// (getUsdSalePrice) rather than by reading a USD discount straight from the
+// database — there is no such column.
 
 type Size = 'sm' | 'md' | 'lg'
 
@@ -63,12 +68,15 @@ export default function ProductPrice({
   if (isDiscounted(product)) {
     const percent = getDiscountPercent(product)
     const savings = getDiscountAmount(product)
+    const usdPrice = getUsdPrice(product)
+    const usdSalePrice = getUsdSalePrice(product)
+    const showUsd = language === 'en' && usdPrice !== null && usdSalePrice !== null
 
     return (
       <div className={className}>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className={`${SALE_CLASS[size]} text-red-600`} suppressHydrationWarning>
-            {formatIDR(getSalePrice(product)!)}
+            {showUsd ? formatUSD(usdSalePrice!) : formatIDR(getSalePrice(product)!)}
           </span>
           {percent !== null && percent > 0 && (
             <DiscountBadge percent={percent} size={size === 'lg' ? 'md' : 'sm'} />
@@ -78,11 +86,13 @@ export default function ProductPrice({
           className={`${ORIGINAL_CLASS[size]} text-gray-400 line-through`}
           suppressHydrationWarning
         >
-          {formatIDR(getIdrPrice(product))}
+          {showUsd ? formatUSD(usdPrice!) : formatIDR(getIdrPrice(product))}
         </p>
         {showSavings && savings > 0 && (
           <p className="mt-1 text-sm font-semibold text-emerald-600" suppressHydrationWarning>
-            {tr(`You save ${formatIDR(savings)}`, `Hemat ${formatIDR(savings)}`)}
+            {showUsd
+              ? tr(`You save ${formatUSD(usdPrice! - usdSalePrice!)}`, `Hemat ${formatIDR(savings)}`)
+              : tr(`You save ${formatIDR(savings)}`, `Hemat ${formatIDR(savings)}`)}
           </p>
         )}
       </div>

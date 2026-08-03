@@ -67,6 +67,23 @@ export const getDiscountAmount = (product: PricedProduct): number => {
   return getIdrPrice(product) - getSalePrice(product)!
 }
 
+/**
+ * The USD sale price, derived by applying the same percent-off to price_usd
+ * as sale_price applies to the IDR price. sale_price itself is IDR-only —
+ * there is no admin field for a USD markdown — so this is the only way to
+ * show a discount to English visitors without contradicting the IDR discount
+ * percentage. Null when the product has no manual USD price or is not on sale.
+ */
+export const getUsdSalePrice = (product: PricedProduct): number | null => {
+  const usd = getUsdPrice(product)
+  if (usd === null || !isDiscounted(product)) return null
+
+  const price = getIdrPrice(product)
+  if (price <= 0) return null
+
+  return usd * (getSalePrice(product)! / price)
+}
+
 export type SalePriceDraft = {
   /** The admin typed something into the sale price field. */
   filled: boolean
