@@ -6,6 +6,7 @@ import { useLanguage } from '@/lib/i18n'
 import { AboutUsContentBlock, supabase } from '@/lib/supabase'
 import { DEFAULT_ABOUT_US_CONTENT, loadAboutUsContent, parseAboutUsError } from '@/lib/about-us'
 import ImageEditorModal from '@/components/ImageEditorModal'
+import LoadingSpinner from '@/components/LoadingSpinner'
 
 type Message = {
   type: 'success' | 'error'
@@ -302,11 +303,7 @@ export default function AdminAboutPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black" />
-      </div>
-    )
+    return <LoadingSpinner className="min-h-[60vh]" />
   }
 
   return (
@@ -393,7 +390,7 @@ export default function AdminAboutPage() {
             </div>
 
             <div className="pt-2 border-t border-gray-200">
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                 <p className="text-sm font-semibold text-black">{text.contentBlocks}</p>
                 <div className="flex gap-2">
                   <button

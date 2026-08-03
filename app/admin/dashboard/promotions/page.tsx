@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Gift, Plus, Save, Trash2, Sparkles, Calculator } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n'
+import { useDialog } from '@/lib/dialog'
+import LoadingSpinner from '@/components/LoadingSpinner'
 import { supabase, type ShippingPromotion } from '@/lib/supabase'
 import {
   describePromotion,
@@ -91,6 +93,7 @@ const toLocalInput = (iso: string | null) => (iso ? iso.slice(0, 16) : '')
 
 export default function AdminPromotionsPage() {
   const { language } = useLanguage()
+  const { confirmDialog } = useDialog()
   const [promotions, setPromotions] = useState<ShippingPromotion[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -266,11 +269,12 @@ export default function AdminPromotionsPage() {
   }
 
   const handleDelete = async (promotion: ShippingPromotion) => {
-    const confirmed = window.confirm(
+    const confirmed = await confirmDialog(
       t(
         `Delete "${promotion.name}"? Orders that already used it keep their discount.`,
         `Hapus "${promotion.name}"? Pesanan yang sudah memakainya tetap mendapat diskon.`
-      )
+      ),
+      { isDangerous: true, confirmText: t('Delete', 'Hapus') }
     )
 
     if (!confirmed) return
@@ -393,7 +397,7 @@ export default function AdminPromotionsPage() {
         {/* ---------------------------------------------------------------- */}
         <div className="xl:col-span-3 space-y-6">
           <div className="bg-white border border-gray-200 rounded-2xl p-5 lg:p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-5">
               <h2 className="text-lg font-semibold text-black">
                 {form.id ? t('Edit Rule', 'Ubah Aturan') : t('New Rule', 'Aturan Baru')}
               </h2>
@@ -743,9 +747,7 @@ export default function AdminPromotionsPage() {
             </h2>
 
             {loading ? (
-              <div className="py-8 text-center">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-black" />
-              </div>
+              <LoadingSpinner />
             ) : promotions.length === 0 ? (
               <p className="text-sm text-gray-600 py-6 text-center">
                 {t('No promotions yet.', 'Belum ada promo.')}

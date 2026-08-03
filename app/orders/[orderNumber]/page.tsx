@@ -10,6 +10,7 @@ import { supabase, type Order, type OrderItem, type Payment, type ShippingAddres
 import { useLanguage } from '@/lib/i18n'
 import { SHIPPING_ENABLED, TAX_ENABLED } from '@/lib/store-config'
 import OrderTrackingTimeline from '@/components/OrderTrackingTimeline'
+import LoadingSpinner from '@/components/LoadingSpinner'
 
 type LoadState = 'loading' | 'ready' | 'forbidden' | 'not-found'
 
@@ -147,14 +148,7 @@ export default function UserOrderDetailPage() {
   }, [orderNumber, router])
 
   if (state === 'loading') {
-    return (
-      <div className="min-h-screen bg-gray-50 pt-24 px-4">
-        <div className="max-w-4xl mx-auto bg-white rounded-2xl border border-gray-200 p-8 text-center">
-          <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-black" />
-          <p className="text-gray-600 mt-4">{tr('Loading order details...', 'Memuat detail pesanan...')}</p>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner fullScreen label={tr('Loading order details...', 'Memuat detail pesanan...')} />
   }
 
   if (state === 'forbidden') {
@@ -192,7 +186,7 @@ export default function UserOrderDetailPage() {
   return (
     <div className="min-h-screen bg-gray-50 pt-24 pb-12 px-4">
       <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <Link href="/profile" className="inline-flex items-center gap-2 text-gray-700 hover:text-black">
             <ArrowLeft className="w-4 h-4" />
             {tr('Back to profile', 'Kembali ke profil')}

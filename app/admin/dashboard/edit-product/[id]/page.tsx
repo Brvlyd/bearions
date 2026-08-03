@@ -10,6 +10,7 @@ import { ArrowLeft } from 'lucide-react'
 import MultiImageUpload from '@/components/MultiImageUpload'
 import ProductPrice from '@/components/ProductPrice'
 import Notification from '@/components/Notification'
+import LoadingSpinner from '@/components/LoadingSpinner'
 import { getErrorMessage } from '@/lib/errors'
 import { describeSalePriceDraft } from '@/lib/price'
 
@@ -179,12 +180,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   }
 
   if (loading) {
-    return (
-      <div className="text-center py-12">
-        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-        <p className="mt-4 text-gray-600">{tr('Loading product...', 'Memuat produk...')}</p>
-      </div>
-    )
+    return <LoadingSpinner label={tr('Loading product...', 'Memuat produk...')} />
   }
 
   if (!product) {

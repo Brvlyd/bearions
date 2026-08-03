@@ -7,6 +7,7 @@ import { type EmailOtpType } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { authService, getDashboardPath } from '@/lib/auth'
 import { useLanguage } from '@/lib/i18n'
+import LoadingSpinner from '@/components/LoadingSpinner'
 
 type VerifyState = 'verifying' | 'success' | 'error'
 
@@ -195,7 +196,7 @@ function ConfirmAuthContent() {
 
           {state === 'verifying' && (
             <>
-              <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-black mb-4"></div>
+              <LoadingSpinner padded={false} className="mb-4" />
               <h1 className="text-2xl font-bold text-black mb-2">
                 {language === 'en' ? 'Verifying your email' : 'Memverifikasi email Anda'}
               </h1>
@@ -272,18 +273,7 @@ function ConfirmAuthContent() {
 export default function ConfirmAuthPage() {
   const { tr } = useLanguage()
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-white flex items-center justify-center px-4 pt-20 pb-12">
-          <div className="w-full max-w-md">
-            <div className="bg-white border border-gray-200 rounded-lg p-8 shadow-lg text-center">
-              <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-black mb-4"></div>
-              <h1 className="text-2xl font-bold text-black mb-2">{tr('Loading...', 'Memuat...')}</h1>
-            </div>
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingSpinner fullScreen label={tr('Loading...', 'Memuat...')} />}>
       <ConfirmAuthContent />
     </Suspense>
   )

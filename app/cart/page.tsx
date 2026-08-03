@@ -2,18 +2,30 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useLanguage } from '@/lib/i18n'
+import { useDialog } from '@/lib/dialog'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ShoppingBag, ArrowRight, AlertCircle } from 'lucide-react'
+import { ShoppingBag, ArrowRight, AlertCircle, Gift, Truck } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cartService } from '@/lib/cart'
-import CartItem from '@/components/CartItem'
-import { formatIDR, getEffectiveIdrPrice, getIdrPrice } from '@/lib/price'
+import { shippingService } from '@/lib/shipping'
+import { fetchShippingRates } from '@/lib/shipping-client'
 import { SHIPPING_ENABLED } from '@/lib/store-config'
-import type { CartItem as CartItemType } from '@/lib/supabase'
+import CartItem from '@/components/CartItem'
+import LoadingSpinner from '@/components/LoadingSpinner'
+import { formatIDR, getEffectiveIdrPrice, getIdrPrice } from '@/lib/price'
+import type { AppliedPromotion, CartItem as CartItemType } from '@/lib/supabase'
+
+type PromoPreview = {
+  orderDiscount: number
+  shippingDiscount: number
+  shippingIsFree: boolean
+  appliedPromotions: AppliedPromotion[]
+}
 
 function CartPageContent() {
-  const { t, tr } = useLanguage()
+  const { t, tr, language } = useLanguage()
+  const { confirmDialog, alertDialog } = useDialog()
   const searchParams = useSearchParams()
   const checkoutSuccess = searchParams.get('checkout') === 'success'
   const [cartItems, setCartItems] = useState<CartItemType[]>([])
@@ -21,6 +33,7 @@ function CartPageContent() {
   const [userId, setUserId] = useState<string | null>(null)
   const [updating, setUpdating] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [promoPreview, setPromoPreview] = useState<PromoPreview | null>(null)
 
   useEffect(() => {
     checkAuth()
@@ -64,7 +77,7 @@ function CartPageContent() {
       setCartItems((prev) => prev.map((item) => (item.id === itemId ? updatedItem : item)))
     } catch (error) {
       console.error('Error updating quantity:', error)
-      alert(t('common.edit'))
+      await alertDialog(t('common.edit'), { variant: 'error' })
     } finally {
       setUpdating(false)
     }
@@ -77,14 +90,18 @@ function CartPageContent() {
       setCartItems((prev) => prev.filter((item) => item.id !== itemId))
     } catch (error) {
       console.error('Error removing item:', error)
-      alert(t('cart.remove'))
+      await alertDialog(t('cart.remove'), { variant: 'error' })
     } finally {
       setUpdating(false)
     }
   }
 
   const handleClearCart = async () => {
-    if (!confirm(t('cart.clearCart') + '?')) return
+    const confirmed = await confirmDialog(tr('Clear cart?', 'Kosongkan keranjang?'), {
+      confirmText: t('cart.clearCart'),
+      isDangerous: true,
+    })
+    if (!confirmed) return
 
     try {
       setUpdating(true)
@@ -94,7 +111,7 @@ function CartPageContent() {
       }
     } catch (error) {
       console.error('Error clearing cart:', error)
-      alert(t('cart.clearCart'))
+      await alertDialog(t('cart.clearCart'), { variant: 'error' })
     } finally {
       setUpdating(false)
     }
@@ -113,8 +130,60 @@ function CartPageContent() {
   }, 0)
 
   const productSavings = Math.max(0, originalSubtotal - subtotal)
-  const shippingCost = SHIPPING_ENABLED && subtotal > 0 ? 15000 : 0
-  const total = subtotal + shippingCost
+  // Shipping is quoted at checkout once a delivery address is chosen, so the
+  // cart total is product cost only — no placeholder shipping estimate here.
+  const total = subtotal
+
+  // Preview promo/shipping discounts using the user's default saved address, so
+  // the cart shows the same incentive checkout will apply — without moving the
+  // shipping cost itself into this page's total, which is still resolved at
+  // checkout once the customer confirms (or changes) the delivery address.
+  useEffect(() => {
+    if (!userId || cartItems.length === 0) {
+      setPromoPreview(null)
+      return
+    }
+
+    let cancelled = false
+
+    const timer = setTimeout(async () => {
+      try {
+        const savedAddresses = await shippingService.getUserAddresses(userId)
+        const address = savedAddresses.find((entry) => entry.is_default) || savedAddresses[0]
+        if (!address) {
+          if (!cancelled) setPromoPreview(null)
+          return
+        }
+
+        const result = await fetchShippingRates(address.id)
+        const cheapest = result.options[0] || null
+
+        const orderDiscount = SHIPPING_ENABLED ? cheapest?.orderDiscount ?? 0 : result.cartDiscount
+        const shippingDiscount = cheapest?.discount ?? 0
+        const shippingIsFree = SHIPPING_ENABLED && !!cheapest && cheapest.finalCost === 0
+        const appliedPromotions = SHIPPING_ENABLED
+          ? cheapest?.appliedPromotions ?? []
+          : result.cartPromotions
+
+        if (cancelled) return
+
+        if (orderDiscount <= 0 && shippingDiscount <= 0 && !shippingIsFree) {
+          setPromoPreview(null)
+          return
+        }
+
+        setPromoPreview({ orderDiscount, shippingDiscount, shippingIsFree, appliedPromotions })
+      } catch (error) {
+        console.error('Error loading cart promo preview:', error)
+        if (!cancelled) setPromoPreview(null)
+      }
+    }, 400)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [userId, cartItems.length, subtotal])
 
   // Check if any items are out of stock
   const hasOutOfStock = cartItems.some((item) => item.product?.stock === 0)
@@ -123,16 +192,7 @@ function CartPageContent() {
   )
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-white">
-        <div className="container mx-auto px-4 py-12 pt-24">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-            <p className="mt-4 text-gray-600">{t('cart.loading') || 'Loading cart...'}</p>
-          </div>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner fullScreen label={t('cart.loading') || 'Loading cart...'} />
   }
 
   if (!isLoggedIn) {
@@ -266,12 +326,47 @@ function CartPageContent() {
                   </div>
                 )}
 
-                {SHIPPING_ENABLED && (
-                  <div className="flex justify-between text-gray-600">
-                    <span>{t('cart.shipping')}</span>
-                    <span suppressHydrationWarning>
-                      {shippingCost === 0 ? t('cart.freeShipping') : formatIDR(shippingCost)}
+                {promoPreview && promoPreview.orderDiscount > 0 && (
+                  <div className="flex justify-between font-semibold text-emerald-700">
+                    <span>{tr('Promo discount', 'Diskon promo')}</span>
+                    <span suppressHydrationWarning>-{formatIDR(promoPreview.orderDiscount)}</span>
+                  </div>
+                )}
+
+                {promoPreview && (promoPreview.shippingDiscount > 0 || promoPreview.shippingIsFree) && (
+                  <div className="flex justify-between font-semibold text-emerald-700">
+                    <span className="inline-flex items-center gap-1">
+                      <Truck className="w-4 h-4" />
+                      {tr('Shipping discount', 'Diskon ongkir')}
                     </span>
+                    <span suppressHydrationWarning>
+                      {promoPreview.shippingIsFree
+                        ? tr('FREE', 'GRATIS')
+                        : `-${formatIDR(promoPreview.shippingDiscount)}`}
+                    </span>
+                  </div>
+                )}
+
+                {promoPreview && (promoPreview.shippingDiscount > 0 || promoPreview.shippingIsFree) && (
+                  <p className="text-xs text-gray-500 -mt-2">
+                    {tr(
+                      'Estimated for your default address — confirmed at checkout.',
+                      'Estimasi untuk alamat utama Anda — dipastikan saat checkout.'
+                    )}
+                  </p>
+                )}
+
+                {promoPreview && promoPreview.appliedPromotions.length > 0 && (
+                  <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 space-y-1">
+                    {promoPreview.appliedPromotions.map((promotion) => (
+                      <p
+                        key={promotion.id}
+                        className="text-xs text-emerald-800 inline-flex items-center gap-1"
+                      >
+                        <Gift className="w-3 h-3 shrink-0" />
+                        {language === 'en' ? promotion.name : promotion.name_id || promotion.name}
+                      </p>
+                    ))}
                   </div>
                 )}
 
@@ -327,18 +422,7 @@ function CartPageContent() {
 export default function CartPage() {
   const { tr } = useLanguage()
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-white">
-          <div className="container mx-auto px-4 py-12 pt-24">
-            <div className="text-center">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-              <p className="mt-4 text-gray-600">{tr('Loading cart...', 'Memuat keranjang...')}</p>
-            </div>
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingSpinner fullScreen label={tr('Loading cart...', 'Memuat keranjang...')} />}>
       <CartPageContent />
     </Suspense>
   )

@@ -5,6 +5,7 @@ import { Upload, Save, Globe, Trash2, RotateCcw, AlertTriangle, Crop } from 'luc
 import { useLanguage } from '@/lib/i18n'
 import { supabase } from '@/lib/supabase'
 import ImageEditorModal from '@/components/ImageEditorModal'
+import LoadingSpinner from '@/components/LoadingSpinner'
 import {
   DEFAULT_SITE_SETTINGS,
   LOGO_ASPECT_RATIO,
@@ -408,11 +409,7 @@ export default function AdminSiteSettingsPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black" />
-      </div>
-    )
+    return <LoadingSpinner className="min-h-[60vh]" />
   }
 
   const previewFavicon = resolveFaviconLink(form.favicon_url)

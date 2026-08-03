@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { useLanguage } from '@/lib/i18n'
 import { getErrorMessage } from '@/lib/errors'
 import ImageEditorModal from './ImageEditorModal'
+import LoadingSpinner from './LoadingSpinner'
 
 interface ImageUploadProps {
   currentImageUrl?: string
@@ -226,10 +227,7 @@ export default function ImageUpload({ currentImageUrl, onImageChange, productId 
           
           <div className="flex flex-col items-center">
             {uploading ? (
-              <>
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mb-4"></div>
-                <p className="text-black font-medium">{tr('Uploading...', 'Mengunggah...')}</p>
-              </>
+              <LoadingSpinner label={tr('Uploading...', 'Mengunggah...')} />
             ) : (
               <>
                 <ImageIcon className="w-16 h-16 text-gray-400 mb-4" />

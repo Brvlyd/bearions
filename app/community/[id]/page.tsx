@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { CommunityPost, supabase } from '@/lib/supabase'
 import { ArrowLeft } from 'lucide-react'
 import { getImageUrl } from '@/lib/image-utils'
+import LoadingSpinner from '@/components/LoadingSpinner'
 
 export default function CommunityPostPage({ params }: { params: Promise<{ id: string }> }) {
   const { language } = useLanguage()
@@ -50,13 +51,7 @@ export default function CommunityPostPage({ params }: { params: Promise<{ id: st
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner fullScreen />
   }
 
   if (!post) {

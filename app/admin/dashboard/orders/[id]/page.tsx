@@ -12,6 +12,7 @@ import { SHIPPING_ENABLED } from '@/lib/store-config'
 import SafeImage from '@/components/SafeImage'
 import Notification from '@/components/Notification'
 import OrderTrackingTimeline from '@/components/OrderTrackingTimeline'
+import LoadingSpinner from '@/components/LoadingSpinner'
 import Link from 'next/link'
 import { 
   ArrowLeft, User, Mail, Phone, MapPin, Package, DollarSign, 
@@ -435,12 +436,7 @@ export default function OrderDetailPage() {
   }
 
   if (loading) {
-    return (
-      <div className="text-center py-12">
-        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-        <p className="mt-4 text-gray-600">{tr('Loading order details...', 'Memuat detail pesanan...')}</p>
-      </div>
-    )
+    return <LoadingSpinner label={tr('Loading order details...', 'Memuat detail pesanan...')} />
   }
 
   if (!order) {

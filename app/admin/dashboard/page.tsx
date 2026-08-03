@@ -6,6 +6,7 @@ import { useLanguage } from '@/lib/i18n'
 import { useRealtimeProducts } from '@/lib/hooks/useRealtimeProducts'
 import { Package, TrendingUp, AlertCircle, ShoppingBag } from 'lucide-react'
 import Link from 'next/link'
+import LoadingSpinner from '@/components/LoadingSpinner'
 
 export default function AdminDashboardPage() {
   const { t, tr } = useLanguage()
@@ -39,12 +40,7 @@ export default function AdminDashboardPage() {
   ]
 
   if (loading) {
-    return (
-      <div className="text-center py-12">
-        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-        <p className="mt-4 text-gray-600">{tr('Loading analytics...', 'Memuat analitik...')}</p>
-      </div>
-    )
+    return <LoadingSpinner label={tr('Loading analytics...', 'Memuat analitik...')} />
   }
 
   return (

@@ -7,6 +7,7 @@ import { CommunityPost, supabase } from '@/lib/supabase'
 import { getImageUrl } from '@/lib/image-utils'
 import { usePagination } from '@/lib/hooks/usePagination'
 import Pagination from '@/components/Pagination'
+import LoadingSpinner from '@/components/LoadingSpinner'
 import {
   getCommunityTileClassName,
   normalizeCommunityLayoutSize,
@@ -200,11 +201,7 @@ export default function CommunityPage() {
           </div>
         )}
 
-        {loading && (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-          </div>
-        )}
+        {loading && <LoadingSpinner />}
 
         {!loading && (
           <div id="community-gallery" className="grid grid-cols-2 md:grid-cols-4 auto-rows-[120px] md:auto-rows-[140px] grid-flow-dense gap-3 md:gap-4">

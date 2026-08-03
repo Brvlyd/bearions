@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { CreditCard, Plus, Save, Eye } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n'
+import { useDialog } from '@/lib/dialog'
+import LoadingSpinner from '@/components/LoadingSpinner'
 import { PaymentMethodConfig, supabase } from '@/lib/supabase'
 import {
   DEFAULT_PAYMENT_METHODS,
@@ -43,6 +45,7 @@ const DEFAULT_FORM: MethodForm = {
 
 export default function AdminPaymentMethodsPage() {
   const { language } = useLanguage()
+  const { confirmDialog } = useDialog()
   const [methods, setMethods] = useState<PaymentMethodConfig[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -250,8 +253,9 @@ export default function AdminPaymentMethodsPage() {
   }
 
   const handleDelete = async (methodId: string) => {
-    const confirmed = window.confirm(
-      language === 'en' ? 'Delete this payment method?' : 'Hapus metode pembayaran ini?'
+    const confirmed = await confirmDialog(
+      language === 'en' ? 'Delete this payment method?' : 'Hapus metode pembayaran ini?',
+      { isDangerous: true, confirmText: text.delete }
     )
 
     if (!confirmed) return
@@ -283,11 +287,7 @@ export default function AdminPaymentMethodsPage() {
   const selectedPreview = previewMethods.find((method) => method.code === previewCode) || previewMethods[0] || null
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black" />
-      </div>
-    )
+    return <LoadingSpinner className="min-h-[60vh]" />
   }
 
   return (
@@ -317,7 +317,7 @@ export default function AdminPaymentMethodsPage() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         <div className="space-y-6">
           <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
               <h3 className="text-lg font-bold text-black">{form.id ? text.formTitleEdit : text.formTitleAdd}</h3>
               <button
                 type="button"

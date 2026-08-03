@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { authService } from '@/lib/auth'
 import { Package, BarChart3, Users, ShoppingCart, X, Image, Images, Info, CreditCard, Settings, Truck, Gift } from 'lucide-react'
 import AdminHeader from '@/components/AdminHeader'
+import LoadingSpinner from '@/components/LoadingSpinner'
 
 export default function AdminLayout({
   children,
@@ -49,14 +50,7 @@ export default function AdminLayout({
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-white text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
-          <p className="mt-4">{t('admin.verifyingAccess')}</p>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner fullScreen variant="light" className="bg-black" label={t('admin.verifyingAccess')} />
   }
 
   if (!isAdmin) {

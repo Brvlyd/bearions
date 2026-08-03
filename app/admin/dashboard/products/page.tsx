@@ -9,6 +9,7 @@ import { usePagination } from '@/lib/hooks/usePagination'
 import SafeImage from '@/components/SafeImage'
 import Pagination from '@/components/Pagination'
 import DiscountBadge from '@/components/DiscountBadge'
+import LoadingSpinner from '@/components/LoadingSpinner'
 import {
   formatIDR,
   formatUSD,
@@ -335,12 +336,7 @@ export default function MonitoringPage() {
   const outOfStockCount = products.filter(p => p.stock === 0).length
 
   if (loading) {
-    return (
-      <div className="text-center py-12">
-        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-        <p className="mt-4 text-gray-600">{tr('Loading products...', 'Memuat produk...')}</p>
-      </div>
-    )
+    return <LoadingSpinner label={tr('Loading products...', 'Memuat produk...')} />
   }
 
   return (

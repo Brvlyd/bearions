@@ -26,7 +26,9 @@ import {
 import { describeNearMiss } from '@/lib/promotions'
 import { COUNTRIES, countryName, isIndonesia, requiresPostalCode } from '@/lib/countries'
 import { useLanguage } from '@/lib/i18n'
+import { useDialog } from '@/lib/dialog'
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
+import LoadingSpinner from '@/components/LoadingSpinner'
 import PayPalCheckoutButton from '@/components/PayPalCheckoutButton'
 import type {
   AppliedPromotion,
@@ -56,6 +58,7 @@ const EMPTY_ADDRESS_FORM = {
 export default function CheckoutPage() {
   const router = useRouter()
   const { tr, language } = useLanguage()
+  const { alertDialog } = useDialog()
   const [currentStep, setCurrentStep] = useState<Step>('shipping')
   const [userId, setUserId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string>('')
@@ -314,6 +317,14 @@ export default function CheckoutPage() {
     void loadShippingRates(selectedAddress.id)
   }, [selectedAddress?.id, cartItems.length, loadShippingRates])
 
+  // Scroll the address form into view once it renders, so the user notices
+  // it opened instead of wondering why nothing happened after clicking Edit.
+  useEffect(() => {
+    if (showAddressForm) {
+      document.getElementById('address-form')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [showAddressForm, editingAddressId])
+
   const resetAddressForm = () => {
     setNewAddress({ ...EMPTY_ADDRESS_FORM })
     setEditingAddressId(null)
@@ -492,10 +503,19 @@ export default function CheckoutPage() {
         ? refreshedAddresses.find((address) => address.id === targetAddressId)
         : refreshedAddresses.find((address) => address.is_default) || refreshedAddresses[0]
 
+      // Editing the address that's already selected keeps its id unchanged, so
+      // the [selectedAddress?.id] effect below won't re-fire on its own — quote
+      // it here explicitly instead of leaving the old rate on screen.
+      const wasEditingCurrentSelection = Boolean(editingAddressId) && selectedAddress?.id === editingAddressId
+
       setAddresses(refreshedAddresses)
       setSelectedAddress(nextSelectedAddress || null)
       setShowAddressForm(false)
       resetAddressForm()
+
+      if (wasEditingCurrentSelection && nextSelectedAddress) {
+        void loadShippingRates(nextSelectedAddress.id)
+      }
     } catch (error) {
       console.error('Error saving address:', error)
 
@@ -571,7 +591,7 @@ export default function CheckoutPage() {
       setTimeout(() => setCopiedValue(''), 2000)
     } catch (error) {
       console.error('Failed to copy account number:', error)
-      alert(tr('Failed to copy account number', 'Gagal menyalin nomor rekening'))
+      await alertDialog(tr('Failed to copy account number', 'Gagal menyalin nomor rekening'), { variant: 'error' })
     }
   }
 
@@ -579,12 +599,12 @@ export default function CheckoutPage() {
     if (!userId || !selectedAddress) return
 
     if (!paymentMethod) {
-      alert(tr('Please select a payment method', 'Silakan pilih metode pembayaran'))
+      await alertDialog(tr('Please select a payment method', 'Silakan pilih metode pembayaran'), { variant: 'error' })
       return
     }
 
     if (SHIPPING_ENABLED && !selectedShippingOption) {
-      alert(tr('Please select a shipping service', 'Silakan pilih layanan pengiriman'))
+      await alertDialog(tr('Please select a shipping service', 'Silakan pilih layanan pengiriman'), { variant: 'error' })
       setCurrentStep('shipping')
       return
     }
@@ -634,13 +654,15 @@ export default function CheckoutPage() {
       // that dropped out mid-checkout lands here. Re-quote and let them re-pick
       // rather than charging a price they never agreed to.
       if (message.toLowerCase().includes('pengiriman')) {
-        alert(message)
+        await alertDialog(message, { variant: 'error' })
         setCurrentStep('shipping')
         if (selectedAddress) void loadShippingRates(selectedAddress.id)
         return
       }
 
-      alert(tr('Failed to place order. Please try again.', 'Gagal membuat pesanan. Silakan coba lagi.'))
+      await alertDialog(tr('Failed to place order. Please try again.', 'Gagal membuat pesanan. Silakan coba lagi.'), {
+        variant: 'error',
+      })
     } finally {
       setProcessing(false)
     }
@@ -720,16 +742,7 @@ export default function CheckoutPage() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 text-black">
-        <div className="container mx-auto px-4 pt-28 lg:pt-32 pb-12">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-            <p className="mt-4 text-gray-600">{tr('Loading checkout...', 'Memuat checkout...')}</p>
-          </div>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner fullScreen label={tr('Loading checkout...', 'Memuat checkout...')} />
   }
 
   return (
@@ -858,7 +871,7 @@ export default function CheckoutPage() {
 
                 {/* Add Address Form */}
                 {showAddressForm ? (
-                  <div className="border border-gray-200 rounded-lg p-4 space-y-4">
+                  <div id="address-form" className="border border-gray-200 rounded-lg p-4 space-y-4">
                     <h3 className="font-semibold text-sm lg:text-base text-black">
                       {editingAddressId
                         ? tr('Edit Address', 'Ubah Alamat')
@@ -1147,12 +1160,7 @@ export default function CheckoutPage() {
                     )}
 
                     {loadingRates ? (
-                      <div className="text-center py-6">
-                        <div className="inline-block animate-spin rounded-full h-7 w-7 border-b-2 border-black" />
-                        <p className="mt-2 text-sm text-gray-600">
-                          {tr('Calculating shipping cost...', 'Menghitung ongkos kirim...')}
-                        </p>
-                      </div>
+                      <LoadingSpinner label={tr('Calculating shipping cost...', 'Menghitung ongkos kirim...')} />
                     ) : ratesError ? (
                       <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-3 text-sm text-red-700">
                         <p>{ratesError}</p>
@@ -1254,12 +1262,7 @@ export default function CheckoutPage() {
                 )}
 
                 {loadingPaymentMethods ? (
-                  <div className="mb-6 text-center py-8">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
-                    <p className="mt-2 text-sm text-gray-600">
-                      {tr('Loading payment methods...', 'Memuat metode pembayaran...')}
-                    </p>
-                  </div>
+                  <LoadingSpinner label={tr('Loading payment methods...', 'Memuat metode pembayaran...')} />
                 ) : (
                   <div className="space-y-3 mb-6">
                     {paymentMethods.map((method) => (

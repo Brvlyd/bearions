@@ -4,11 +4,13 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { authService } from '@/lib/auth'
 import { useLanguage } from '@/lib/i18n'
+import { useDialog } from '@/lib/dialog'
 import Link from 'next/link'
 
 export default function RegisterPage() {
   const router = useRouter()
   const { t, language } = useLanguage()
+  const { alertDialog } = useDialog()
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -84,7 +86,7 @@ export default function RegisterPage() {
             '✅ Pendaftaran berhasil!\n\nAnda bisa langsung login sekarang.')
       )
       
-      alert(successMessage)
+      await alertDialog(successMessage, { variant: 'success' })
       if (result?.needsEmailConfirmation) {
         const encodedEmail = encodeURIComponent(formData.email.trim().toLowerCase())
         router.push(`/auth/otp?email=${encodedEmail}&source=register`)

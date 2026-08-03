@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { authService } from '@/lib/auth'
 import { useLanguage } from '@/lib/i18n'
 import { getErrorMessage } from '@/lib/errors'
+import LoadingSpinner from '@/components/LoadingSpinner'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
@@ -130,12 +131,9 @@ export default function ResetPasswordPage() {
           )}
 
           {checkingSession ? (
-            <div className="text-center py-6">
-              <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-black"></div>
-              <p className="text-sm text-gray-600 mt-3">
-                {language === 'en' ? 'Validating recovery session...' : 'Memvalidasi sesi pemulihan...'}
-              </p>
-            </div>
+            <LoadingSpinner
+              label={language === 'en' ? 'Validating recovery session...' : 'Memvalidasi sesi pemulihan...'}
+            />
           ) : canReset ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>

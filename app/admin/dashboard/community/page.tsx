@@ -7,6 +7,7 @@ import { Upload, Image as ImageIcon, Trash2, ArrowUp, ArrowDown, Crop } from 'lu
 import { useLanguage } from '@/lib/i18n'
 import ImageEditorModal from '@/components/ImageEditorModal'
 import Pagination from '@/components/Pagination'
+import LoadingSpinner from '@/components/LoadingSpinner'
 import { usePagination } from '@/lib/hooks/usePagination'
 import {
   DEFAULT_COMMUNITY_LAYOUT_SIZE,
@@ -629,9 +630,7 @@ export default function AdminCommunityGalleryPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-black"></div>
-        </div>
+        <LoadingSpinner />
       ) : posts.length === 0 ? (
         <div className="text-center py-12 border border-dashed border-gray-300 rounded-lg bg-white">
           <ImageIcon className="w-12 h-12 mx-auto text-gray-300 mb-3" />

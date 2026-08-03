@@ -21,6 +21,7 @@ import {
   type ShippingZoneRate,
 } from '@/lib/supabase'
 import { SHIPPING_ENABLED } from '@/lib/store-config'
+import LoadingSpinner from '@/components/LoadingSpinner'
 
 // Shipping control panel: where parcels leave from, which engine prices them,
 // and the rate card the zone engine uses.
@@ -358,11 +359,7 @@ export default function AdminShippingPage() {
   const pendingRateEdits = Object.keys(rateDrafts).length
 
   if (loading) {
-    return (
-      <div className="py-16 text-center">
-        <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-black" />
-      </div>
-    )
+    return <LoadingSpinner />
   }
 
   if (schemaMissing) {
@@ -381,6 +378,11 @@ export default function AdminShippingPage() {
   }
 
   const usingBiteship = settings?.shipping_provider === 'biteship'
+  // Locked out while the account cannot actually quote, so nobody flips the
+  // toggle on stage and finds out live it silently falls back to the zone
+  // table. Already-selected 'biteship' is left alone -- this only blocks new
+  // clicks, it does not revert an existing choice.
+  const biteshipSelectable = usingBiteship || status?.healthy === true
   const statusInfo = status ? explainStatus(status) : null
 
   return (
@@ -500,10 +502,13 @@ export default function AdminShippingPage() {
               <button
                 type="button"
                 onClick={() => patchSettings({ shipping_provider: 'biteship' })}
+                disabled={!biteshipSelectable}
                 className={`text-left border-2 rounded-xl p-4 transition ${
                   settings.shipping_provider === 'biteship'
                     ? 'border-black bg-gray-50'
-                    : 'border-gray-200 hover:border-gray-300'
+                    : biteshipSelectable
+                      ? 'border-gray-200 hover:border-gray-300'
+                      : 'border-gray-200 opacity-50 cursor-not-allowed'
                 }`}
               >
                 <p className="font-semibold text-black">Tarif Kurir Otomatis (Biteship)</p>
@@ -512,6 +517,11 @@ export default function AdminShippingPage() {
                   diperbarui manual. Butuh saldo Biteship. Kalau sewaktu-waktu gagal, sistem otomatis
                   memakai Tabel Tarif Sendiri supaya pembeli tetap bisa checkout.
                 </p>
+                {!biteshipSelectable && (
+                  <p className="text-xs text-amber-700 mt-2 font-medium">
+                    Belum bisa dipilih sampai saldo Biteship terisi (lihat kotak status di atas).
+                  </p>
+                )}
               </button>
             </div>
 

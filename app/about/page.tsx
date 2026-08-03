@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useLanguage } from '@/lib/i18n'
 import { AboutUsContent } from '@/lib/supabase'
 import { DEFAULT_ABOUT_US_CONTENT, loadAboutUsContent } from '@/lib/about-us'
+import LoadingSpinner from '@/components/LoadingSpinner'
 
 export default function AboutPage() {
   const { tr } = useLanguage()
@@ -51,9 +52,7 @@ export default function AboutPage() {
           )}
 
           {loading ? (
-            <div className="flex items-center justify-center py-10">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-black" />
-            </div>
+            <LoadingSpinner />
           ) : (
             <>
               <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-black">{content.title}</h1>

@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import SiteSettingsProvider from "@/components/SiteSettingsProvider";
 import CategoryProvider from "@/components/CategoryProvider";
 import { LanguageProvider } from "@/lib/i18n";
+import { DialogProvider } from "@/lib/dialog";
 import { resolveFaviconLink } from "@/lib/site-settings";
 import { getSiteSettings } from "@/lib/site-settings-server";
 
@@ -42,10 +43,12 @@ export default async function RootLayout({
       <body className={`${inter.variable} font-sans antialiased`} suppressHydrationWarning>
         <SiteSettingsProvider initialSettings={settings}>
           <LanguageProvider>
-            <CategoryProvider>
-              <Header />
-              {children}
-            </CategoryProvider>
+            <DialogProvider>
+              <CategoryProvider>
+                <Header />
+                {children}
+              </CategoryProvider>
+            </DialogProvider>
           </LanguageProvider>
         </SiteSettingsProvider>
       </body>

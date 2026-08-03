@@ -7,6 +7,7 @@ import { useLanguage } from '@/lib/i18n'
 import { getErrorMessage } from '@/lib/errors'
 import { usePagination } from '@/lib/hooks/usePagination'
 import Pagination from '@/components/Pagination'
+import LoadingSpinner from '@/components/LoadingSpinner'
 
 const USERS_PER_PAGE = 10
 
@@ -173,11 +174,7 @@ export default function UsersManagementPage() {
   }, [searchQuery, setPage])
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-      </div>
-    )
+    return <LoadingSpinner fullScreen />
   }
 
   return (

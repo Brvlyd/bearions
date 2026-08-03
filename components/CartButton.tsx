@@ -45,6 +45,19 @@ export default function CartButton() {
     return () => subscription.unsubscribe()
   }, [])
 
+  // Quick-add (and anything else that mutates the cart outside /cart) fires this
+  // so the badge updates immediately instead of waiting for a remount.
+  useEffect(() => {
+    if (!userId) return
+
+    const handleCartUpdated = () => {
+      loadCartCount(userId)
+    }
+
+    window.addEventListener('cart:updated', handleCartUpdated)
+    return () => window.removeEventListener('cart:updated', handleCartUpdated)
+  }, [userId])
+
   const handleClick = () => {
     setIsAnimating(true)
     setTimeout(() => setIsAnimating(false), 300)

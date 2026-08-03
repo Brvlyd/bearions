@@ -89,7 +89,6 @@ const translations: Translations = {
   'cart.continueShopping': { en: 'Continue Shopping', id: 'Lanjutkan Belanja' },
   'cart.outOfStockWarning': { en: 'Some items in your cart are out of stock.', id: 'Beberapa item di keranjang Anda stok habis.' },
   'cart.insufficientStockWarning': { en: 'Some items have insufficient stock available.', id: 'Beberapa item memiliki stok yang tidak mencukupi.' },
-  'cart.freeShipping': { en: 'Free', id: 'Gratis' },
   'cart.startShopping': { en: 'Start Shopping', id: 'Mulai Belanja' },
   'cart.outOfStock': { en: 'Out of stock', id: 'Stok habis' },
   'cart.insufficientStock': { en: 'Only {stock} in stock', id: 'Hanya {stock} stok tersedia' },
@@ -97,10 +96,12 @@ const translations: Translations = {
   'cart.summary': { en: 'Order Summary', id: 'Ringkasan Pesanan' },
   'cart.subtotal': { en: 'Subtotal', id: 'Subtotal' },
   'cart.tax': { en: 'Tax (11%)', id: 'Pajak (11%)' },
-  'cart.shipping': { en: 'Shipping', id: 'Ongkir' },
   'cart.total': { en: 'Total', id: 'Total' },
   'cart.checkout': { en: 'Proceed to Checkout', id: 'Lanjut ke Checkout' },
-  'cart.secureCheckout': { en: '🔒 Secure Checkout', id: '🔒 Checkout Aman' },
+  'cart.secureCheckout': {
+    en: '🔒 Encrypted transaction — your information stays private',
+    id: '🔒 Transaksi terenkripsi — informasi Anda tidak akan disebarluaskan',
+  },
   
   // Checkout Page
   'checkout.title': { en: 'Checkout', id: 'Checkout' },

@@ -29,6 +29,7 @@ import {
   resolveOutputMimeType,
   supportsQuality,
 } from '@/lib/image-editor'
+import LoadingSpinner from './LoadingSpinner'
 
 export interface ImageEditorModalProps {
   open: boolean
@@ -435,7 +436,7 @@ export default function ImageEditorModal({
               style={CHECKERBOARD_STYLE}
             >
               {loading ? (
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-black" />
+                <LoadingSpinner />
               ) : loadError ? (
                 <p className="text-sm text-red-600 py-10">{loadError}</p>
               ) : (

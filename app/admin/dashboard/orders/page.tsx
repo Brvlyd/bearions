@@ -6,6 +6,7 @@ import { useLanguage } from '@/lib/i18n'
 import { useRealtimeOrders } from '@/lib/hooks/useRealtimeOrders'
 import { usePagination } from '@/lib/hooks/usePagination'
 import Pagination from '@/components/Pagination'
+import LoadingSpinner from '@/components/LoadingSpinner'
 import Link from 'next/link'
 import { ShoppingBag, Eye, Search, Filter, Package, DollarSign, Clock, CheckCircle, XCircle, Truck } from 'lucide-react'
 
@@ -183,12 +184,7 @@ export default function OrdersPage() {
     .reduce((sum, o) => sum + parseFloat(o.total.toString()), 0)
 
   if (loading) {
-    return (
-      <div className="text-center py-12">
-        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-        <p className="mt-4 text-gray-600">{tr('Loading orders...', 'Memuat pesanan...')}</p>
-      </div>
-    )
+    return <LoadingSpinner label={tr('Loading orders...', 'Memuat pesanan...')} />
   }
 
   return (

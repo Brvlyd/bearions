@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { ArrowLeft, ShoppingCart, Plus, Minus } from 'lucide-react'
 import ImageCarousel from '@/components/ImageCarousel'
 import { Product } from '@/lib/supabase'
@@ -13,6 +12,7 @@ import ProductPrice from '@/components/ProductPrice'
 import { supabase } from '@/lib/supabase'
 import { useCategories } from '@/components/CategoryProvider'
 import { getCategoryLabel } from '@/lib/categories'
+import { PRODUCT_COLOR_OPTIONS, PRODUCT_SIZE_OPTIONS, productColorLabel } from '@/lib/product-options'
 
 export default function ProductDetailClient({
   product,
@@ -64,6 +64,7 @@ export default function ProductDetailClient({
         selectedSize,
         selectedColor
       )
+      window.dispatchEvent(new Event('cart:updated'))
 
       setMessage({ type: 'success', text: t('product.addToCart') + '!' })
 
@@ -103,8 +104,6 @@ export default function ProductDetailClient({
       setQuantity(quantity - 1)
     }
   }
-
-  const colorOptions = ['Black', 'White', 'Navy', 'Gray', 'Beige']
 
   return (
     <div className="min-h-screen bg-white pt-20">
@@ -168,7 +167,7 @@ export default function ProductDetailClient({
                 <div className="mb-6">
                   <h2 className="text-base lg:text-lg font-semibold mb-3 text-black">{tr('Size', 'Ukuran')}</h2>
                   <div className="flex flex-wrap gap-2">
-                    {['S', 'M', 'L', 'XL', 'XXL'].map((size) => (
+                    {PRODUCT_SIZE_OPTIONS.map((size) => (
                       <button
                         key={size}
                         onClick={() => setSelectedSize(size)}
@@ -187,7 +186,7 @@ export default function ProductDetailClient({
                 <div className="mb-6">
                   <h2 className="text-base lg:text-lg font-semibold mb-3 text-black">{tr('Color', 'Warna')}</h2>
                   <div className="flex flex-wrap gap-2">
-                    {colorOptions.map((color) => (
+                    {PRODUCT_COLOR_OPTIONS.map((color) => (
                       <button
                         key={color}
                         onClick={() => setSelectedColor(color)}
@@ -197,18 +196,7 @@ export default function ProductDetailClient({
                             : 'border-gray-300 text-black hover:border-black'
                         }`}
                       >
-                        {tr(
-                          color,
-                          color === 'Black'
-                            ? 'Hitam'
-                            : color === 'White'
-                              ? 'Putih'
-                              : color === 'Navy'
-                                ? 'Biru Navy'
-                                : color === 'Gray'
-                                  ? 'Abu-abu'
-                                  : 'Krem'
-                        )}
+                        {productColorLabel(color, language)}
                       </button>
                     ))}
                   </div>
@@ -261,12 +249,6 @@ export default function ProductDetailClient({
               </p>
             )}
           </div>
-        </div>
-
-        <div className="mt-10">
-          <Link href="/catalog" className="text-black underline">
-            {t('nav.catalog')}
-          </Link>
         </div>
       </div>
     </div>

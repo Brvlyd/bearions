@@ -5,6 +5,7 @@ import { Search, X } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n'
 import ProductCard from './ProductCard'
 import Pagination from './Pagination'
+import LoadingSpinner from './LoadingSpinner'
 import { usePagination } from '@/lib/hooks/usePagination'
 import { Product } from '@/lib/supabase'
 import { productService } from '@/lib/products'
@@ -244,10 +245,7 @@ export default function CatalogView() {
           {/* Products Grid */}
           <div id="catalog-products">
             {loading ? (
-              <div className="text-center py-12">
-                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-                <p className="mt-4 text-gray-600">{t('common.loading')}</p>
-              </div>
+              <LoadingSpinner label={t('common.loading')} />
             ) : filteredProducts.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-gray-600 text-lg">{t('catalog.noProducts')}</p>

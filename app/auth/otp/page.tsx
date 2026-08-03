@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { authService } from '@/lib/auth'
 import { useLanguage } from '@/lib/i18n'
 import { getErrorMessage } from '@/lib/errors'
+import LoadingSpinner from '@/components/LoadingSpinner'
 
 function OtpVerificationContent() {
   const router = useRouter()
@@ -156,18 +157,7 @@ function OtpVerificationContent() {
 export default function OtpVerificationPage() {
   const { tr } = useLanguage()
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-white flex items-center justify-center px-4 pt-20 pb-12">
-          <div className="w-full max-w-md">
-            <div className="bg-white border border-gray-200 rounded-lg p-8 shadow-lg text-center">
-              <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-black mb-4"></div>
-              <h1 className="text-2xl font-bold text-black mb-2">{tr('Loading...', 'Memuat...')}</h1>
-            </div>
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingSpinner fullScreen label={tr('Loading...', 'Memuat...')} />}>
       <OtpVerificationContent />
     </Suspense>
   )

@@ -4,12 +4,14 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { authService } from '@/lib/auth'
 import { useLanguage } from '@/lib/i18n'
+import { useDialog } from '@/lib/dialog'
 import Link from 'next/link'
 import { orderService } from '@/lib/orders'
 import { shippingService } from '@/lib/shipping'
 import { COUNTRIES, countryName, isIndonesia, requiresPostalCode } from '@/lib/countries'
 import type { Order, ShippingAddress } from '@/lib/supabase'
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
+import LoadingSpinner from '@/components/LoadingSpinner'
 import Pagination from '@/components/Pagination'
 import { usePagination } from '@/lib/hooks/usePagination'
 import {
@@ -26,7 +28,6 @@ import {
   ShieldCheck,
   Trash2,
   User,
-  UserCircle2,
 } from 'lucide-react'
 
 type UserProfile = {
@@ -35,7 +36,10 @@ type UserProfile = {
   full_name?: string | null
   phone?: string | null
   address?: string | null
+  created_at?: string | null
 }
+
+type ProfileTab = 'account' | 'addresses' | 'orders' | 'security'
 
 type AddressFormState = {
   recipient_name: string
@@ -73,6 +77,7 @@ const ORDERS_PER_PAGE = 6
 export default function UserProfilePage() {
   const router = useRouter()
   const { t, tr, language } = useLanguage()
+  const { confirmDialog, alertDialog } = useDialog()
 
   const [loading, setLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -94,6 +99,8 @@ export default function UserProfilePage() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
+  const [activeTab, setActiveTab] = useState<ProfileTab>('account')
+
   // Delete address modal state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [addressToDelete, setAddressToDelete] = useState<ShippingAddress | null>(null)
@@ -111,6 +118,23 @@ export default function UserProfilePage() {
       currency: 'IDR',
       minimumFractionDigits: 0,
     }).format(amount)
+  }
+
+  const getInitials = (name?: string | null, email?: string | null) => {
+    const trimmedName = (name || '').trim()
+    if (trimmedName) {
+      const parts = trimmedName.split(/\s+/).filter(Boolean)
+      if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
+      return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
+    }
+    return (email || '?').charAt(0).toUpperCase()
+  }
+
+  const formatMemberSince = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US', {
+      year: 'numeric',
+      month: 'long',
+    })
   }
 
   const getStatusBadge = (status: Order['status']) => {
@@ -366,497 +390,532 @@ export default function UserProfilePage() {
   }
 
   const handleLogout = async () => {
-    if (!confirm(t('nav.logout') + '?')) return
-    
+    const confirmed = await confirmDialog(tr('Logout?', 'Keluar?'), {
+      confirmText: t('nav.logout'),
+    })
+    if (!confirmed) return
+
     setIsSubmitting(true)
     try {
       await authService.logout()
       router.push('/')
     } catch (error) {
       console.error('Logout error:', error)
-      alert('Failed to logout')
+      await alertDialog(tr('Failed to logout', 'Gagal keluar'), { variant: 'error' })
     } finally {
       setIsSubmitting(false)
     }
   }
 
+  const tabs: { id: ProfileTab; label: string; icon: typeof User; count?: number }[] = [
+    { id: 'account', label: tr('Account Info', 'Informasi Akun'), icon: User },
+    { id: 'addresses', label: tr('Shipping Addresses', 'Alamat Pengiriman'), icon: MapPin, count: addresses.length },
+    { id: 'orders', label: tr('Order History', 'Riwayat Pesanan'), icon: ClipboardList, count: orders.length },
+    { id: 'security', label: tr('Security', 'Keamanan'), icon: ShieldCheck },
+  ]
+
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 pt-20 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center">
-            <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-black" />
-            <p className="mt-4 text-gray-600">{t('common.loading')}</p>
-          </div>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner fullScreen label={t('common.loading')} />
   }
 
   return (
-    <div className="min-h-screen bg-white pt-20 pb-12 px-4">
-      <div className="max-w-5xl mx-auto space-y-6">
-        <section className="rounded-lg border border-gray-200 bg-white p-6 lg:p-8 shadow-sm card-hover">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="h-14 w-14 rounded-full bg-black text-white inline-flex items-center justify-center shrink-0">
-                <UserCircle2 className="w-8 h-8" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">{tr('Welcome back', 'Selamat datang kembali')}</p>
-                <h1 className="text-2xl lg:text-3xl font-bold text-black mt-1">{profile?.full_name || t('profile.title')}</h1>
-                <p className="text-gray-600 mt-1">{profile?.email}</p>
-                <p className="text-sm text-gray-500 mt-2">
-                  {tr(
-                    'Manage account details, password access, delivery addresses, and your order journey.',
-                    'Kelola detail akun, akses password, alamat pengiriman, dan perjalanan pesanan Anda.'
-                  )}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <Link
-                href="/catalog"
-                className="btn-primary-animated"
-              >
-                {t('nav.catalog')}
-              </Link>
-              <button
-                type="button"
-                onClick={handleLogout}
-                disabled={isSubmitting}
-                className="btn-secondary-animated inline-flex items-center gap-2"
-              >
-                <LogOut className="w-4 h-4" />
-                {t('nav.logout')}
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-            <p className="text-sm text-gray-600">
-              {tr(
-                'Your account is ready. You can update profile details, manage addresses, and open each order for full details below.',
-                'Akun Anda siap digunakan. Anda dapat memperbarui profil, mengelola alamat, dan membuka detail tiap pesanan di bawah.'
-              )}
-            </p>
-          </div>
-        </section>
+    <div className="min-h-screen bg-gray-50 pt-20 pb-12 px-4">
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-6">
+          <h1 className="text-2xl lg:text-3xl font-bold text-black">{t('profile.title')}</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            {tr(
+              'Manage account details, password access, delivery addresses, and your order journey.',
+              'Kelola detail akun, akses password, alamat pengiriman, dan perjalanan pesanan Anda.'
+            )}
+          </p>
+        </div>
 
         {message && (
-          <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          <div className="mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
             {message}
           </div>
         )}
 
         {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         )}
 
-        <div className="space-y-6">
-          <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm card-hover">
-            <div className="flex items-center gap-2 mb-4">
-              <ShieldCheck className="w-5 h-5 text-black" />
-              <h2 className="text-lg font-semibold text-black">
-                {tr('Security Access', 'Akses Keamanan')}
-              </h2>
-            </div>
-            <p className="text-sm text-gray-600 mb-4">
-              {tr(
-                'Need to update your password? We will send a secure reset link to your email.',
-                'Perlu memperbarui password? Kami akan mengirimkan link reset yang aman ke email Anda.'
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
+          <aside className="w-full lg:w-72 shrink-0 lg:sticky lg:top-24 space-y-4">
+            <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm card-hover">
+              <div className="flex items-center gap-4">
+                <div className="h-16 w-16 rounded-full bg-black text-white inline-flex items-center justify-center text-xl font-semibold shrink-0">
+                  {getInitials(profile?.full_name, profile?.email)}
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold text-black truncate">{profile?.full_name || t('profile.title')}</p>
+                  <p className="text-sm text-gray-500 truncate">{profile?.email}</p>
+                </div>
+              </div>
+
+              {profile?.created_at && (
+                <p className="text-xs text-gray-400 mt-3">
+                  {tr('Member since', 'Member sejak')} {formatMemberSince(profile.created_at)}
+                </p>
               )}
-            </p>
-            <button
-              type="button"
-              onClick={handleSendResetPassword}
-              disabled={sendingReset}
-              className="btn-secondary-animated inline-flex items-center gap-2"
-            >
-              <KeyRound className="w-4 h-4" />
-              {sendingReset
-                ? tr('Sending...', 'Mengirim...')
-                : tr('Request Forgot Password Link', 'Minta Link Lupa Password')}
-            </button>
-          </section>
 
-          <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm card-hover">
-              <div className="flex items-center gap-2 mb-4">
-                <User className="w-5 h-5 text-black" />
-                <h2 className="text-lg font-semibold text-black">
-                  {tr('Account Information', 'Informasi Akun')}
-                </h2>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-black mb-1">
-                    {tr('Full Name', 'Nama Lengkap')}
-                  </label>
-                  <input
-                    type="text"
-                    value={profileForm.full_name}
-                    onChange={(e) => setProfileForm((prev) => ({ ...prev, full_name: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black"
-                    placeholder={tr('Enter your full name', 'Masukkan nama lengkap')}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-black mb-1">
-                    {tr('Email', 'Email')}
-                  </label>
-                  <input
-                    type="email"
-                    value={profile?.email || ''}
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-gray-500 bg-gray-100"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-black mb-1">
-                    {tr('Phone Number', 'Nomor Telepon')}
-                  </label>
-                  <input
-                    type="text"
-                    value={profileForm.phone}
-                    onChange={(e) => setProfileForm((prev) => ({ ...prev, phone: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black"
-                    placeholder={tr('08xxxxxxxxxx', '08xxxxxxxxxx')}
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-black mb-1">
-                    {tr('Primary Address', 'Alamat Utama')}
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={profileForm.address}
-                    onChange={(e) => setProfileForm((prev) => ({ ...prev, address: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black"
-                    placeholder={tr('Street, district, city', 'Jalan, kecamatan, kota')}
-                  />
-                </div>
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="mt-4 flex flex-col gap-2">
+                <Link href="/catalog" className="btn-secondary-animated text-sm text-center">
+                  {t('nav.catalog')}
+                </Link>
                 <button
                   type="button"
-                  onClick={handleProfileSave}
+                  onClick={handleLogout}
                   disabled={isSubmitting}
-                  className="btn-primary-animated inline-flex items-center gap-2"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border border-red-200 text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Save className="w-4 h-4" />
-                  {tr('Save Profile', 'Simpan Profil')}
+                  <LogOut className="w-4 h-4" />
+                  {t('nav.logout')}
                 </button>
               </div>
-          </section>
+            </div>
 
-          <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm card-hover">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-black" />
+            <nav className="rounded-lg border border-gray-200 bg-white p-2 shadow-sm flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors shrink-0 lg:w-full ${
+                    activeTab === tab.id ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <tab.icon className="w-4 h-4 shrink-0" />
+                  {tab.label}
+                  {typeof tab.count === 'number' && (
+                    <span
+                      className={`ml-auto text-xs rounded-full px-1.5 py-0.5 ${
+                        activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
+                      }`}
+                    >
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </nav>
+          </aside>
+
+          <main className="flex-1 min-w-0 space-y-6">
+            {activeTab === 'account' && (
+              <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm card-hover">
+                  <div className="flex items-center gap-2 mb-4">
+                    <User className="w-5 h-5 text-black" />
+                    <h2 className="text-lg font-semibold text-black">
+                      {tr('Account Information', 'Informasi Akun')}
+                    </h2>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-black mb-1">
+                        {tr('Full Name', 'Nama Lengkap')}
+                      </label>
+                      <input
+                        type="text"
+                        value={profileForm.full_name}
+                        onChange={(e) => setProfileForm((prev) => ({ ...prev, full_name: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black"
+                        placeholder={tr('Enter your full name', 'Masukkan nama lengkap')}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-black mb-1">
+                        {tr('Email', 'Email')}
+                      </label>
+                      <input
+                        type="email"
+                        value={profile?.email || ''}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-gray-500 bg-gray-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-black mb-1">
+                        {tr('Phone Number', 'Nomor Telepon')}
+                      </label>
+                      <input
+                        type="text"
+                        value={profileForm.phone}
+                        onChange={(e) => setProfileForm((prev) => ({ ...prev, phone: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black"
+                        placeholder={tr('08xxxxxxxxxx', '08xxxxxxxxxx')}
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-black mb-1">
+                        {tr('Primary Address', 'Alamat Utama')}
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={profileForm.address}
+                        onChange={(e) => setProfileForm((prev) => ({ ...prev, address: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black"
+                        placeholder={tr('Street, district, city', 'Jalan, kecamatan, kota')}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={handleProfileSave}
+                      disabled={isSubmitting}
+                      className="btn-primary-animated inline-flex items-center gap-2"
+                    >
+                      <Save className="w-4 h-4" />
+                      {tr('Save Profile', 'Simpan Profil')}
+                    </button>
+                  </div>
+              </section>
+            )}
+
+            {activeTab === 'addresses' && (
+              <>
+                <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm card-hover">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-5 h-5 text-black" />
+                        <h2 className="text-lg font-semibold text-black">
+                          {tr('Shipping Addresses', 'Alamat Pengiriman')}
+                        </h2>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleStartCreateAddress}
+                        className="btn-secondary-animated inline-flex items-center gap-2 text-sm"
+                      >
+                        <PlusCircle className="w-4 h-4" />
+                        {tr('Add Address', 'Tambah Alamat')}
+                      </button>
+                    </div>
+
+                    {addresses.length === 0 ? (
+                      <p className="text-sm text-gray-600">
+                        {tr('No saved addresses yet.', 'Belum ada alamat tersimpan.')}
+                      </p>
+                    ) : (
+                      <div id="saved-addresses" className="space-y-3">
+                        {addressPagination.pageItems.map((address) => (
+                          <div key={address.id} className="rounded-lg border border-gray-200 p-4 hover:border-black transition">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="font-semibold text-black">
+                                  {address.recipient_name}
+                                  {address.label ? ` (${address.label})` : ''}
+                                </p>
+                                <p className="text-sm text-gray-600">{address.phone}</p>
+                                <p className="text-sm text-gray-600 mt-1">
+                                  {address.address_line1}
+                                  {address.address_line2 ? `, ${address.address_line2}` : ''}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  {address.city}, {address.province} {address.postal_code}
+                                </p>
+                                {address.is_default && (
+                                  <span className="inline-flex mt-2 px-2 py-1 rounded bg-black text-white text-xs font-semibold">
+                                    {tr('Default Address', 'Alamat Utama')}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex flex-wrap gap-2 justify-end">
+                                {!address.is_default && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      void handleSetDefaultAddress(address.id)
+                                    }}
+                                    className="px-2 py-1 text-xs rounded border border-gray-300 text-gray-700 hover:bg-gray-100"
+                                  >
+                                    <span className="inline-flex items-center gap-1">
+                                      <Check className="w-3 h-3" />
+                                      {tr('Set Default', 'Jadikan Utama')}
+                                    </span>
+                                  </button>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleStartEditAddress(address)}
+                                  className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-300 text-gray-700 hover:bg-gray-100"
+                                >
+                                  <Edit3 className="w-3 h-3" />
+                                  {tr('Edit', 'Ubah')}
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    void handleDeleteAddress(address)
+                                  }}
+                                  className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-red-300 text-red-600 hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  {tr('Delete', 'Hapus')}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+
+                        <Pagination
+                          page={addressPagination.page}
+                          totalPages={addressPagination.totalPages}
+                          onPageChange={addressPagination.setPage}
+                          firstItemIndex={addressPagination.firstItemIndex}
+                          lastItemIndex={addressPagination.lastItemIndex}
+                          totalItems={addressPagination.totalItems}
+                          itemLabel={{ en: 'addresses', id: 'alamat' }}
+                          scrollTargetId="saved-addresses"
+                        />
+                      </div>
+                    )}
+                  </section>
+
+                {showAddressForm && (
+                  <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm card-hover">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Home className="w-5 h-5 text-black" />
+                        <h3 className="text-base font-semibold text-black">
+                          {editingAddressId
+                            ? tr('Edit Address', 'Ubah Alamat')
+                            : tr('Create New Address', 'Buat Alamat Baru')}
+                        </h3>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <input
+                          value={addressForm.recipient_name}
+                          onChange={(e) => setAddressForm((prev) => ({ ...prev, recipient_name: e.target.value }))}
+                          className="px-3 py-2 border border-gray-300 rounded-lg text-black"
+                          placeholder={tr('Recipient name', 'Nama penerima')}
+                        />
+                        <input
+                          value={addressForm.phone}
+                          onChange={(e) => setAddressForm((prev) => ({ ...prev, phone: e.target.value }))}
+                          className="px-3 py-2 border border-gray-300 rounded-lg text-black"
+                          placeholder={tr('Phone number', 'Nomor telepon')}
+                        />
+                        <input
+                          value={addressForm.address_line1}
+                          onChange={(e) => setAddressForm((prev) => ({ ...prev, address_line1: e.target.value }))}
+                          className="md:col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-black"
+                          placeholder={tr('Address line 1', 'Alamat baris 1')}
+                        />
+                        <input
+                          value={addressForm.address_line2}
+                          onChange={(e) => setAddressForm((prev) => ({ ...prev, address_line2: e.target.value }))}
+                          className="md:col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-black"
+                          placeholder={tr('Address line 2 (optional)', 'Alamat baris 2 (opsional)')}
+                        />
+                        <select
+                          value={addressForm.country_code}
+                          onChange={(e) => {
+                            const code = e.target.value
+                            const country = COUNTRIES.find((entry) => entry.code === code)
+                            setAddressForm((prev) => ({
+                              ...prev,
+                              country_code: code,
+                              country: country?.name || code,
+                            }))
+                          }}
+                          className="md:col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-black bg-white"
+                        >
+                          {COUNTRIES.map((country) => (
+                            <option key={country.code} value={country.code}>
+                              {countryName(country.code, language)}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          value={addressForm.city}
+                          onChange={(e) => setAddressForm((prev) => ({ ...prev, city: e.target.value }))}
+                          className="px-3 py-2 border border-gray-300 rounded-lg text-black"
+                          placeholder={tr('City', 'Kota')}
+                        />
+                        <input
+                          value={addressForm.province}
+                          onChange={(e) => setAddressForm((prev) => ({ ...prev, province: e.target.value }))}
+                          className="px-3 py-2 border border-gray-300 rounded-lg text-black"
+                          placeholder={
+                            isIndonesia(addressForm.country_code)
+                              ? tr('Province', 'Provinsi')
+                              : tr('State / Province / Region', 'Negara Bagian / Provinsi')
+                          }
+                        />
+                        {/* Couriers rate to kecamatan level for Indonesian addresses. */}
+                        {isIndonesia(addressForm.country_code) && (
+                          <input
+                            value={addressForm.district}
+                            onChange={(e) => setAddressForm((prev) => ({ ...prev, district: e.target.value }))}
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-black"
+                            placeholder={tr('District (Kecamatan)', 'Kecamatan')}
+                          />
+                        )}
+                        <input
+                          value={addressForm.postal_code}
+                          onChange={(e) => setAddressForm((prev) => ({ ...prev, postal_code: e.target.value }))}
+                          className="px-3 py-2 border border-gray-300 rounded-lg text-black"
+                          placeholder={
+                            requiresPostalCode(addressForm.country_code)
+                              ? tr('Postal code', 'Kode pos')
+                              : tr('Postal code (optional)', 'Kode pos (opsional)')
+                          }
+                        />
+                        <input
+                          value={addressForm.label}
+                          onChange={(e) => setAddressForm((prev) => ({ ...prev, label: e.target.value }))}
+                          className="px-3 py-2 border border-gray-300 rounded-lg text-black"
+                          placeholder={tr('Label (Home, Office)', 'Label (Rumah, Kantor)')}
+                        />
+
+                        <label className="md:col-span-2 inline-flex items-center gap-2 text-sm text-gray-700">
+                          <input
+                            type="checkbox"
+                            checked={addressForm.is_default}
+                            onChange={(e) => setAddressForm((prev) => ({ ...prev, is_default: e.target.checked }))}
+                          />
+                          {tr('Set as default address', 'Jadikan alamat utama')}
+                        </label>
+                      </div>
+
+                      <div className="mt-4 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void handleSaveAddress()
+                          }}
+                          disabled={isSubmitting}
+                          className="btn-primary-animated"
+                        >
+                          {tr('Save Address', 'Simpan Alamat')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowAddressForm(false)
+                            resetAddressEditor()
+                          }}
+                          className="btn-secondary-animated"
+                        >
+                          {tr('Cancel', 'Batal')}
+                        </button>
+                      </div>
+                  </section>
+                )}
+              </>
+            )}
+
+            {activeTab === 'orders' && (
+              <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm card-hover">
+                  <div className="flex items-center gap-2 mb-4">
+                    <ClipboardList className="w-5 h-5 text-black" />
+                    <h2 className="text-lg font-semibold text-black">
+                      {tr('Order History', 'Riwayat Pesanan')}
+                    </h2>
+                  </div>
+
+                  {orders.length === 0 ? (
+                    <p className="text-sm text-gray-600 mb-4">
+                      {tr('You do not have any orders yet.', 'Anda belum memiliki pesanan.')}
+                    </p>
+                  ) : (
+                    <div id="order-history" className="space-y-3">
+                      {orderPagination.pageItems.map((order) => (
+                        <Link
+                          key={order.id}
+                          href={`/orders/${order.order_number}`}
+                          className="block rounded-lg border border-gray-200 p-3 hover:border-black hover:shadow-sm transition"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="text-xs text-gray-500">{tr('Order Number', 'Nomor Pesanan')}</p>
+                              <p className="font-semibold text-black">{order.order_number}</p>
+                            </div>
+                            <span className={`px-2 py-1 rounded text-xs font-semibold ${getStatusBadge(order.status)}`}>
+                              {getStatusLabel(order.status)}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-sm text-gray-600">
+                            {new Date(order.created_at).toLocaleDateString()} • {formatPrice(Number(order.total || 0))}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {tr('Payment', 'Pembayaran')}: {order.payment_status} • {order.payment_method || '-'}
+                          </p>
+                          <p className="text-sm font-medium text-black mt-2 inline-flex items-center gap-1">
+                            {tr('View details', 'Lihat detail')}
+                            <ArrowRight className="w-4 h-4" />
+                          </p>
+                        </Link>
+                      ))}
+
+                      <Pagination
+                        page={orderPagination.page}
+                        totalPages={orderPagination.totalPages}
+                        onPageChange={orderPagination.setPage}
+                        firstItemIndex={orderPagination.firstItemIndex}
+                        lastItemIndex={orderPagination.lastItemIndex}
+                        totalItems={orderPagination.totalItems}
+                        itemLabel={{ en: 'orders', id: 'pesanan' }}
+                        scrollTargetId="order-history"
+                      />
+                    </div>
+                  )}
+
+                  <div className="mt-4 pt-4 border-t border-gray-200 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs text-gray-500">
+                      {tr('Click each order to open full detail page.', 'Klik setiap pesanan untuk membuka halaman detail lengkap.')}
+                    </p>
+                    <Link
+                      href="/catalog"
+                      className="text-sm font-medium text-black hover:underline inline-flex items-center min-h-11 px-1"
+                    >
+                      {tr('Shop again', 'Belanja lagi')}
+                    </Link>
+                  </div>
+              </section>
+            )}
+
+            {activeTab === 'security' && (
+              <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm card-hover">
+                <div className="flex items-center gap-2 mb-4">
+                  <ShieldCheck className="w-5 h-5 text-black" />
                   <h2 className="text-lg font-semibold text-black">
-                    {tr('Shipping Addresses', 'Alamat Pengiriman')}
+                    {tr('Security Access', 'Akses Keamanan')}
                   </h2>
                 </div>
+                <p className="text-sm text-gray-600 mb-4">
+                  {tr(
+                    'Need to update your password? We will send a secure reset link to your email.',
+                    'Perlu memperbarui password? Kami akan mengirimkan link reset yang aman ke email Anda.'
+                  )}
+                </p>
                 <button
                   type="button"
-                  onClick={handleStartCreateAddress}
-                  className="btn-secondary-animated inline-flex items-center gap-2 text-sm"
+                  onClick={handleSendResetPassword}
+                  disabled={sendingReset}
+                  className="btn-secondary-animated inline-flex items-center gap-2"
                 >
-                  <PlusCircle className="w-4 h-4" />
-                  {tr('Add Address', 'Tambah Alamat')}
+                  <KeyRound className="w-4 h-4" />
+                  {sendingReset
+                    ? tr('Sending...', 'Mengirim...')
+                    : tr('Request Forgot Password Link', 'Minta Link Lupa Password')}
                 </button>
-              </div>
-
-              {addresses.length === 0 ? (
-                <p className="text-sm text-gray-600">
-                  {tr('No saved addresses yet.', 'Belum ada alamat tersimpan.')}
-                </p>
-              ) : (
-                <div id="saved-addresses" className="space-y-3">
-                  {addressPagination.pageItems.map((address) => (
-                    <div key={address.id} className="rounded-lg border border-gray-200 p-4 hover:border-black transition">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-semibold text-black">
-                            {address.recipient_name}
-                            {address.label ? ` (${address.label})` : ''}
-                          </p>
-                          <p className="text-sm text-gray-600">{address.phone}</p>
-                          <p className="text-sm text-gray-600 mt-1">
-                            {address.address_line1}
-                            {address.address_line2 ? `, ${address.address_line2}` : ''}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            {address.city}, {address.province} {address.postal_code}
-                          </p>
-                          {address.is_default && (
-                            <span className="inline-flex mt-2 px-2 py-1 rounded bg-black text-white text-xs font-semibold">
-                              {tr('Default Address', 'Alamat Utama')}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 justify-end">
-                          {!address.is_default && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                void handleSetDefaultAddress(address.id)
-                              }}
-                              className="px-2 py-1 text-xs rounded border border-gray-300 text-gray-700 hover:bg-gray-100"
-                            >
-                              <span className="inline-flex items-center gap-1">
-                                <Check className="w-3 h-3" />
-                                {tr('Set Default', 'Jadikan Utama')}
-                              </span>
-                            </button>
-                          )}
-
-                          <button
-                            type="button"
-                            onClick={() => handleStartEditAddress(address)}
-                            className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-300 text-gray-700 hover:bg-gray-100"
-                          >
-                            <Edit3 className="w-3 h-3" />
-                            {tr('Edit', 'Ubah')}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              void handleDeleteAddress(address)
-                            }}
-                            className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-red-300 text-red-600 hover:bg-red-50"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                            {tr('Delete', 'Hapus')}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-
-                  <Pagination
-                    page={addressPagination.page}
-                    totalPages={addressPagination.totalPages}
-                    onPageChange={addressPagination.setPage}
-                    firstItemIndex={addressPagination.firstItemIndex}
-                    lastItemIndex={addressPagination.lastItemIndex}
-                    totalItems={addressPagination.totalItems}
-                    itemLabel={{ en: 'addresses', id: 'alamat' }}
-                    scrollTargetId="saved-addresses"
-                  />
-                </div>
-              )}
-            </section>
-
-          {showAddressForm && (
-            <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm card-hover">
-                <div className="flex items-center gap-2 mb-4">
-                  <Home className="w-5 h-5 text-black" />
-                  <h3 className="text-base font-semibold text-black">
-                    {editingAddressId
-                      ? tr('Edit Address', 'Ubah Alamat')
-                      : tr('Create New Address', 'Buat Alamat Baru')}
-                  </h3>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <input
-                    value={addressForm.recipient_name}
-                    onChange={(e) => setAddressForm((prev) => ({ ...prev, recipient_name: e.target.value }))}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-black"
-                    placeholder={tr('Recipient name', 'Nama penerima')}
-                  />
-                  <input
-                    value={addressForm.phone}
-                    onChange={(e) => setAddressForm((prev) => ({ ...prev, phone: e.target.value }))}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-black"
-                    placeholder={tr('Phone number', 'Nomor telepon')}
-                  />
-                  <input
-                    value={addressForm.address_line1}
-                    onChange={(e) => setAddressForm((prev) => ({ ...prev, address_line1: e.target.value }))}
-                    className="md:col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-black"
-                    placeholder={tr('Address line 1', 'Alamat baris 1')}
-                  />
-                  <input
-                    value={addressForm.address_line2}
-                    onChange={(e) => setAddressForm((prev) => ({ ...prev, address_line2: e.target.value }))}
-                    className="md:col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-black"
-                    placeholder={tr('Address line 2 (optional)', 'Alamat baris 2 (opsional)')}
-                  />
-                  <select
-                    value={addressForm.country_code}
-                    onChange={(e) => {
-                      const code = e.target.value
-                      const country = COUNTRIES.find((entry) => entry.code === code)
-                      setAddressForm((prev) => ({
-                        ...prev,
-                        country_code: code,
-                        country: country?.name || code,
-                      }))
-                    }}
-                    className="md:col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-black bg-white"
-                  >
-                    {COUNTRIES.map((country) => (
-                      <option key={country.code} value={country.code}>
-                        {countryName(country.code, language)}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    value={addressForm.city}
-                    onChange={(e) => setAddressForm((prev) => ({ ...prev, city: e.target.value }))}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-black"
-                    placeholder={tr('City', 'Kota')}
-                  />
-                  <input
-                    value={addressForm.province}
-                    onChange={(e) => setAddressForm((prev) => ({ ...prev, province: e.target.value }))}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-black"
-                    placeholder={
-                      isIndonesia(addressForm.country_code)
-                        ? tr('Province', 'Provinsi')
-                        : tr('State / Province / Region', 'Negara Bagian / Provinsi')
-                    }
-                  />
-                  {/* Couriers rate to kecamatan level for Indonesian addresses. */}
-                  {isIndonesia(addressForm.country_code) && (
-                    <input
-                      value={addressForm.district}
-                      onChange={(e) => setAddressForm((prev) => ({ ...prev, district: e.target.value }))}
-                      className="px-3 py-2 border border-gray-300 rounded-lg text-black"
-                      placeholder={tr('District (Kecamatan)', 'Kecamatan')}
-                    />
-                  )}
-                  <input
-                    value={addressForm.postal_code}
-                    onChange={(e) => setAddressForm((prev) => ({ ...prev, postal_code: e.target.value }))}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-black"
-                    placeholder={
-                      requiresPostalCode(addressForm.country_code)
-                        ? tr('Postal code', 'Kode pos')
-                        : tr('Postal code (optional)', 'Kode pos (opsional)')
-                    }
-                  />
-                  <input
-                    value={addressForm.label}
-                    onChange={(e) => setAddressForm((prev) => ({ ...prev, label: e.target.value }))}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-black"
-                    placeholder={tr('Label (Home, Office)', 'Label (Rumah, Kantor)')}
-                  />
-
-                  <label className="md:col-span-2 inline-flex items-center gap-2 text-sm text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={addressForm.is_default}
-                      onChange={(e) => setAddressForm((prev) => ({ ...prev, is_default: e.target.checked }))}
-                    />
-                    {tr('Set as default address', 'Jadikan alamat utama')}
-                  </label>
-                </div>
-
-                <div className="mt-4 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void handleSaveAddress()
-                    }}
-                    disabled={isSubmitting}
-                    className="btn-primary-animated"
-                  >
-                    {tr('Save Address', 'Simpan Alamat')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowAddressForm(false)
-                      resetAddressEditor()
-                    }}
-                    className="btn-secondary-animated"
-                  >
-                    {tr('Cancel', 'Batal')}
-                  </button>
-                </div>
-            </section>
-          )}
-
-          <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm card-hover">
-              <div className="flex items-center gap-2 mb-4">
-                <ClipboardList className="w-5 h-5 text-black" />
-                <h2 className="text-lg font-semibold text-black">
-                  {tr('Order History', 'Riwayat Pesanan')}
-                </h2>
-              </div>
-
-              {orders.length === 0 ? (
-                <p className="text-sm text-gray-600 mb-4">
-                  {tr('You do not have any orders yet.', 'Anda belum memiliki pesanan.')}
-                </p>
-              ) : (
-                <div id="order-history" className="space-y-3">
-                  {orderPagination.pageItems.map((order) => (
-                    <Link
-                      key={order.id}
-                      href={`/orders/${order.order_number}`}
-                      className="block rounded-lg border border-gray-200 p-3 hover:border-black hover:shadow-sm transition"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="text-xs text-gray-500">{tr('Order Number', 'Nomor Pesanan')}</p>
-                          <p className="font-semibold text-black">{order.order_number}</p>
-                        </div>
-                        <span className={`px-2 py-1 rounded text-xs font-semibold ${getStatusBadge(order.status)}`}>
-                          {getStatusLabel(order.status)}
-                        </span>
-                      </div>
-                      <p className="mt-2 text-sm text-gray-600">
-                        {new Date(order.created_at).toLocaleDateString()} • {formatPrice(Number(order.total || 0))}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {tr('Payment', 'Pembayaran')}: {order.payment_status} • {order.payment_method || '-'}
-                      </p>
-                      <p className="text-sm font-medium text-black mt-2 inline-flex items-center gap-1">
-                        {tr('View details', 'Lihat detail')}
-                        <ArrowRight className="w-4 h-4" />
-                      </p>
-                    </Link>
-                  ))}
-
-                  <Pagination
-                    page={orderPagination.page}
-                    totalPages={orderPagination.totalPages}
-                    onPageChange={orderPagination.setPage}
-                    firstItemIndex={orderPagination.firstItemIndex}
-                    lastItemIndex={orderPagination.lastItemIndex}
-                    totalItems={orderPagination.totalItems}
-                    itemLabel={{ en: 'orders', id: 'pesanan' }}
-                    scrollTargetId="order-history"
-                  />
-                </div>
-              )}
-
-              <div className="mt-4 pt-4 border-t border-gray-200 flex flex-wrap items-center justify-between gap-2">
-                <p className="text-xs text-gray-500">
-                  {tr('Click each order to open full detail page.', 'Klik setiap pesanan untuk membuka halaman detail lengkap.')}
-                </p>
-                <Link
-                  href="/catalog"
-                  className="text-sm font-medium text-black hover:underline inline-flex items-center min-h-11 px-1"
-                >
-                  {tr('Shop again', 'Belanja lagi')}
-                </Link>
-              </div>
-          </section>
+              </section>
+            )}
+          </main>
         </div>
       </div>
 

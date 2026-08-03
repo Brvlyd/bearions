@@ -7,6 +7,7 @@ import { getImageUrl } from '@/lib/image-utils'
 import { useLanguage } from '@/lib/i18n'
 import { getErrorMessage } from '@/lib/errors'
 import ImageEditorModal from '@/components/ImageEditorModal'
+import LoadingSpinner from '@/components/LoadingSpinner'
 
 interface LandingPageImage {
   id: string
@@ -231,11 +232,7 @@ export default function LandingPageManager() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-      </div>
-    )
+    return <LoadingSpinner fullScreen />
   }
 
   return (
@@ -280,7 +277,7 @@ export default function LandingPageManager() {
                 
                 {isUploading && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+                    <LoadingSpinner variant="light" />
                   </div>
                 )}
               </div>

@@ -10,6 +10,7 @@ import { paymentService } from '@/lib/payments'
 import { usePaymentProofUrl } from '@/lib/payment-proof-url'
 import { DEFAULT_PAYMENT_METHODS, parsePaymentMethodError } from '@/lib/payment-methods'
 import { useLanguage } from '@/lib/i18n'
+import LoadingSpinner from '@/components/LoadingSpinner'
 import type { Order, Payment, PaymentMethodConfig } from '@/lib/supabase'
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024
@@ -182,16 +183,7 @@ export default function PaymentPage() {
   const { url: proofSignedUrl } = usePaymentProofUrl(payment?.id, !!payment?.payment_proof_url)
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 text-black">
-        <div className="container mx-auto px-4 pt-28 lg:pt-32 pb-12">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-            <p className="mt-4 text-gray-600">{tr('Loading payment page...', 'Memuat halaman pembayaran...')}</p>
-          </div>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner fullScreen label={tr('Loading payment page...', 'Memuat halaman pembayaran...')} />
   }
 
   if (pageError || !order || !payment) {
@@ -396,7 +388,7 @@ export default function PaymentPage() {
                     <img
                       src={proofSignedUrl}
                       alt={tr('Payment proof preview', 'Preview bukti pembayaran')}
-                      className="max-h-80 w-auto rounded-lg border border-gray-200"
+                      className="max-h-80 max-w-full w-auto rounded-lg border border-gray-200"
                     />
                   ) : (
                     <div className="flex items-center gap-3 text-gray-700">

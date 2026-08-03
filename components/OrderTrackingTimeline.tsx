@@ -8,6 +8,7 @@ import {
   trackingStatusLabel,
   type OrderTracking,
 } from '@/lib/shipping-client'
+import LoadingSpinner from './LoadingSpinner'
 
 // The parcel's journey, assembled without anyone typing an update.
 //
@@ -78,14 +79,7 @@ export default function OrderTrackingTimeline({ orderNumber, autoRefresh = true 
   }
 
   if (loading) {
-    return (
-      <div className="py-6 text-center">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-black" />
-        <p className="mt-2 text-sm text-gray-600">
-          {tr('Loading tracking...', 'Memuat pelacakan...')}
-        </p>
-      </div>
-    )
+    return <LoadingSpinner padded={false} className="py-6" label={tr('Loading tracking...', 'Memuat pelacakan...')} />
   }
 
   if (error) {
