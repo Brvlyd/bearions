@@ -2,6 +2,13 @@
 // Requires NEXT_PUBLIC_PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, and PAYPAL_API_BASE.
 // Never import this file from client components — PAYPAL_CLIENT_SECRET must stay server-side.
 
+// Re-exported so callers that already import the IDR->USD math from here
+// (e.g. app/api/paypal/create-order) don't need to change — the canonical
+// definition lives in lib/price.ts, which is also safe to import client-side
+// for display-only conversions (shipping, cart totals) that must use the
+// exact same formula as the actual charge.
+export { convertIdrToUsd } from './price'
+
 type PayPalAccessToken = {
   token: string
   expiresAt: number
@@ -89,10 +96,6 @@ export async function getIdrPerUsdRate(): Promise<number> {
     }
     throw error
   }
-}
-
-export function convertIdrToUsd(idrAmount: number, idrPerUsd: number): string {
-  return (idrAmount / idrPerUsd).toFixed(2)
 }
 
 export async function createPayPalOrder(params: {

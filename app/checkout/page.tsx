@@ -10,7 +10,8 @@ import { orderService } from '@/lib/orders'
 import { shippingService } from '@/lib/shipping'
 import { loadActivePaymentMethods } from '@/lib/payment-methods'
 import { notificationService } from '@/lib/notifications'
-import { getEffectiveIdrPrice, getIdrPrice } from '@/lib/price'
+import { formatIdrAmount, getEffectiveIdrPrice, getIdrPrice } from '@/lib/price'
+import { useIdrPerUsdRate } from '@/lib/use-fx-rate'
 import { SHIPPING_ENABLED, TAX_ENABLED, TAX_RATE } from '@/lib/store-config'
 import {
   findRegionByName,
@@ -59,6 +60,7 @@ export default function CheckoutPage() {
   const router = useRouter()
   const { tr, language } = useLanguage()
   const { alertDialog } = useDialog()
+  const idrPerUsd = useIdrPerUsdRate()
   const [currentStep, setCurrentStep] = useState<Step>('shipping')
   const [userId, setUserId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string>('')
@@ -733,13 +735,10 @@ export default function CheckoutPage() {
   const isFormPostalRequired = requiresPostalCode(newAddress.country_code)
   const selectedPaymentMethod = paymentMethods.find((method) => method.code === paymentMethod) || null
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(price)
-  }
+  // Shows the live USD estimate once the rate loads and the visitor is on the
+  // English site; every price in this page (courier options, order summary)
+  // goes through here so switching language switches all of them together.
+  const formatPrice = (price: number) => formatIdrAmount(price, language, idrPerUsd)
 
   if (loading) {
     return <LoadingSpinner fullScreen label={tr('Loading checkout...', 'Memuat checkout...')} />

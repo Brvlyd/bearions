@@ -19,6 +19,31 @@ export const formatUSD = (value: number) =>
   }).format(value)
 
 /**
+ * Same division PayPal settlement uses (see app/api/paypal/create-order),
+ * so a displayed USD estimate always matches what the customer would
+ * actually be charged at that rate.
+ */
+export const convertIdrToUsd = (idrAmount: number, idrPerUsd: number): string =>
+  (idrAmount / idrPerUsd).toFixed(2)
+
+/**
+ * Renders an arbitrary IDR amount — shipping, cart/order totals, anything
+ * not tied to a product's manual `price_usd` — in USD for English visitors
+ * once a live rate has loaded. Falls back to IDR while the rate is still
+ * loading or unavailable, since there is nothing else to convert with.
+ */
+export const formatIdrAmount = (
+  amount: number,
+  language: PriceLanguage,
+  idrPerUsd: number | null
+): string => {
+  if (language === 'en' && idrPerUsd) {
+    return formatUSD(Number(convertIdrToUsd(amount, idrPerUsd)))
+  }
+  return formatIDR(amount)
+}
+
+/**
  * The USD price an admin typed into the CMS, or null when there is none.
  * Postgres numerics can arrive as strings, so coerce before trusting the value.
  */

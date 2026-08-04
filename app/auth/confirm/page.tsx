@@ -11,10 +11,10 @@ import LoadingSpinner from '@/components/LoadingSpinner'
 
 type VerifyState = 'verifying' | 'success' | 'error'
 
-const allowedOtpTypes: EmailOtpType[] = ['signup', 'recovery', 'email_change', 'email']
+const allowedOtpTypes: EmailOtpType[] = ['signup', 'recovery', 'email_change', 'email', 'magiclink', 'invite']
 
 /** How long the success screen stays up before the redirect fires. */
-const REDIRECT_DELAY_SECONDS = 3
+const REDIRECT_DELAY_SECONDS = 1
 
 function ConfirmAuthContent() {
   const searchParams = useSearchParams()
@@ -141,8 +141,8 @@ function ConfirmAuthContent() {
         setState('success')
         setMessage(
           language === 'en'
-            ? 'Your email is verified and you are signed in. Taking you to your dashboard...'
-            : 'Email Anda terverifikasi dan Anda sudah masuk. Mengarahkan ke dashboard...'
+            ? 'Congratulations, you are logged in! Taking you to your dashboard...'
+            : 'Selamat, Anda berhasil login! Mengarahkan ke dashboard...'
         )
         setDestination(requestedNext ?? getDashboardPath(account?.role))
       } catch (error: unknown) {

@@ -13,7 +13,8 @@ import { fetchShippingRates } from '@/lib/shipping-client'
 import { SHIPPING_ENABLED } from '@/lib/store-config'
 import CartItem from '@/components/CartItem'
 import LoadingSpinner from '@/components/LoadingSpinner'
-import { formatIDR, getEffectiveIdrPrice, getIdrPrice } from '@/lib/price'
+import { formatIdrAmount, getEffectiveIdrPrice, getIdrPrice } from '@/lib/price'
+import { useIdrPerUsdRate } from '@/lib/use-fx-rate'
 import type { AppliedPromotion, CartItem as CartItemType } from '@/lib/supabase'
 
 type PromoPreview = {
@@ -26,6 +27,10 @@ type PromoPreview = {
 function CartPageContent() {
   const { t, tr, language } = useLanguage()
   const { confirmDialog, alertDialog } = useDialog()
+  const idrPerUsd = useIdrPerUsdRate()
+  // Same live rate PayPal settlement uses (lib/paypal.ts), so this estimate
+  // never disagrees with what checkout would actually charge.
+  const formatPrice = (price: number) => formatIdrAmount(price, language, idrPerUsd)
   const searchParams = useSearchParams()
   const checkoutSuccess = searchParams.get('checkout') === 'success'
   const [cartItems, setCartItems] = useState<CartItemType[]>([])
@@ -316,20 +321,20 @@ function CartPageContent() {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-gray-600">
                   <span>{t('cart.subtotal')}</span>
-                  <span suppressHydrationWarning>{formatIDR(originalSubtotal)}</span>
+                  <span suppressHydrationWarning>{formatPrice(originalSubtotal)}</span>
                 </div>
 
                 {productSavings > 0 && (
                   <div className="flex justify-between font-semibold text-red-600">
                     <span>{tr('Product discount', 'Diskon produk')}</span>
-                    <span suppressHydrationWarning>-{formatIDR(productSavings)}</span>
+                    <span suppressHydrationWarning>-{formatPrice(productSavings)}</span>
                   </div>
                 )}
 
                 {promoPreview && promoPreview.orderDiscount > 0 && (
                   <div className="flex justify-between font-semibold text-emerald-700">
                     <span>{tr('Promo discount', 'Diskon promo')}</span>
-                    <span suppressHydrationWarning>-{formatIDR(promoPreview.orderDiscount)}</span>
+                    <span suppressHydrationWarning>-{formatPrice(promoPreview.orderDiscount)}</span>
                   </div>
                 )}
 
@@ -342,7 +347,7 @@ function CartPageContent() {
                     <span suppressHydrationWarning>
                       {promoPreview.shippingIsFree
                         ? tr('FREE', 'GRATIS')
-                        : `-${formatIDR(promoPreview.shippingDiscount)}`}
+                        : `-${formatPrice(promoPreview.shippingDiscount)}`}
                     </span>
                   </div>
                 )}
@@ -373,13 +378,13 @@ function CartPageContent() {
                 <div className="border-t border-gray-200 pt-3">
                   <div className="flex justify-between text-lg font-bold text-black">
                     <span>{t('cart.total')}</span>
-                    <span suppressHydrationWarning>{formatIDR(total)}</span>
+                    <span suppressHydrationWarning>{formatPrice(total)}</span>
                   </div>
                   {productSavings > 0 && (
                     <p className="mt-1 text-sm font-semibold text-emerald-600" suppressHydrationWarning>
                       {tr(
-                        `You save ${formatIDR(productSavings)}`,
-                        `Hemat ${formatIDR(productSavings)}`
+                        `You save ${formatPrice(productSavings)}`,
+                        `Hemat ${formatPrice(productSavings)}`
                       )}
                     </p>
                   )}
