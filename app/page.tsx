@@ -4,28 +4,13 @@ import { useEffect, useState } from 'react'
 import Link from "next/link";
 import { useLanguage } from '@/lib/i18n'
 import { supabase } from '@/lib/supabase'
-import { getImageUrl } from '@/lib/image-utils'
-
-interface LandingPageImage {
-  id: string
-  position: number
-  image_url: string
-}
-
-const MAX_LANDING_IMAGES = 6
-
-const getGridColumnsClass = (count: number) => {
-  if (count <= 1) return 'grid-cols-1'
-  if (count === 2) return 'grid-cols-1 md:grid-cols-2'
-  if (count === 3) return 'grid-cols-1 md:grid-cols-3'
-  if (count === 4) return 'grid-cols-1 sm:grid-cols-2'
-  return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
-}
+import { splitHeroImagesByDevice, type HeroImageRow } from '@/lib/hero-images'
+import HeroBackground from '@/components/HeroBackground'
+import WelcomeIntroModal from '@/components/WelcomeIntroModal'
 
 export default function Home() {
-  const { t } = useLanguage()
-  const [images, setImages] = useState<LandingPageImage[]>([])
-  const [loading, setLoading] = useState(true)
+  const { t, tr } = useLanguage()
+  const [images, setImages] = useState<HeroImageRow[]>([])
 
   useEffect(() => {
     loadImages()
@@ -36,68 +21,27 @@ export default function Home() {
       const { data, error } = await supabase
         .from('landing_page_images')
         .select('*')
-        .order('position', { ascending: true })
-        .limit(MAX_LANDING_IMAGES)
 
       if (error) throw error
       setImages(data || [])
     } catch (error) {
       console.error('Error loading landing page images:', error)
-    } finally {
-      setLoading(false)
     }
   }
-  
-  const backgroundImages = images
-    .filter((img) => !!img.image_url)
-    .sort((a, b) => a.position - b.position)
-    .slice(0, MAX_LANDING_IMAGES)
 
-  const displayedCount = Math.max(backgroundImages.length, 1)
-  const gridClass = getGridColumnsClass(displayedCount)
-  //const fallbackEmojis = ['🐻', '✨', '🎁', '🧸', '🛍️', '🌟']
-  const fallbackGradients = [
-    'from-gray-100 to-gray-200',
-    'from-gray-200 to-gray-300',
-    'from-gray-300 to-gray-400',
-    'from-slate-200 to-slate-300',
-    'from-zinc-200 to-zinc-300',
-    'from-stone-200 to-stone-300'
-  ]
+  const { desktop: desktopImages, mobile: mobileImages } = splitHeroImagesByDevice(images)
 
   return (
     // dvh (not vh) so the hero matches the space actually visible once mobile
     // browser chrome is accounted for; min-h lets it grow rather than clip if
     // the copy ever outgrows one screen.
     <div className="min-h-dvh bg-white relative">
-      {/* Dynamic Image Grid Background */}
-      <div className={`absolute inset-0 grid ${gridClass} auto-rows-fr gap-0`}>
-        {(backgroundImages.length > 0 ? backgroundImages : [null]).map((image, index) => {
-          const gradient = fallbackGradients[index % fallbackGradients.length]
-          //const emoji = fallbackEmojis[index % fallbackEmojis.length]
-
-          return (
-            <div
-              key={image?.id || `fallback-${index}`}
-              className={`relative overflow-hidden bg-linear-to-br ${gradient}`}
-            >
-              {image?.image_url ? (
-                <img
-                  src={getImageUrl(image.image_url)}
-                  alt={`Landing page background ${index + 1}`}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    {/* <div className="text-8xl">{emoji}</div> */}
-                  </div>
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
+      <WelcomeIntroModal />
+      <HeroBackground
+        desktopImages={desktopImages}
+        mobileImages={mobileImages}
+        alt={tr('Landing page background', 'Latar belakang landing page')}
+      />
 
       {/* CTA Overlay — the button is the only content on the hero, so it gets a
           bobs on a loop and sits on a halo so it reads over any photo behind it. */}

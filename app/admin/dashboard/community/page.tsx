@@ -6,6 +6,7 @@ import { getImageUrl } from '@/lib/image-utils'
 import { Upload, Image as ImageIcon, Trash2, ArrowUp, ArrowDown, Crop } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n'
 import ImageEditorModal from '@/components/ImageEditorModal'
+import HeroImageManager from '@/components/HeroImageManager'
 import Pagination from '@/components/Pagination'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import { usePagination } from '@/lib/hooks/usePagination'
@@ -505,6 +506,15 @@ export default function AdminCommunityGalleryPage() {
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-black mb-2">{text.heading}</h2>
         <p className="text-gray-600">{text.subtitle}</p>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
+        <HeroImageManager
+          table="community_page_images"
+          storagePathPrefix="community-hero"
+          heading="Banner Halaman Community"
+          subheading="Foto latar di bagian atas halaman Community (di atas galeri post), beda untuk desktop dan mobile. Kosongkan kalau tidak mau pakai banner."
+        />
       </div>
 
       {schemaMissing && (

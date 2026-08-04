@@ -48,6 +48,18 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
           : null,
       logo_url:
         typeof data.logo_url === 'string' && data.logo_url.trim() ? data.logo_url.trim() : null,
+      contact_address:
+        typeof data.contact_address === 'string' && data.contact_address.trim()
+          ? data.contact_address.trim()
+          : DEFAULT_SITE_SETTINGS.contact_address,
+      contact_phone:
+        typeof data.contact_phone === 'string' && data.contact_phone.trim()
+          ? data.contact_phone.trim()
+          : DEFAULT_SITE_SETTINGS.contact_phone,
+      contact_email:
+        typeof data.contact_email === 'string' && data.contact_email.trim()
+          ? data.contact_email.trim()
+          : DEFAULT_SITE_SETTINGS.contact_email,
     }
   } catch {
     // Settings table not provisioned yet, or Supabase unreachable at build time.

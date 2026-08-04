@@ -47,6 +47,7 @@ export default function OrderDetailPage() {
   } | null>(null)
   const [proofMessage, setProofMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null)
+  const [bookingShipment, setBookingShipment] = useState(false)
   const [copiedEmail, setCopiedEmail] = useState(false)
   const [copiedPhone, setCopiedPhone] = useState(false)
   const [copiedAddress, setCopiedAddress] = useState(false)
@@ -161,6 +162,30 @@ export default function OrderDetailPage() {
       }
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleCreateShipment = async () => {
+    if (!order) return
+
+    try {
+      setBookingShipment(true)
+      const updated = await orderService.createBiteshipShipment(order.id)
+      setOrder((previous) => (previous ? { ...previous, ...updated } : previous))
+      setTrackingNumber(updated.tracking_number || '')
+      setNotification({
+        type: 'success',
+        message: tr('Shipment created! Resi is ready to print.', 'Pengiriman berhasil dibuat! Resi siap dicetak.'),
+      })
+    } catch (error) {
+      console.error('Error creating Biteship shipment:', error)
+      const message = error instanceof Error ? error.message : ''
+      setNotification({
+        type: 'error',
+        message: message || tr('Failed to create shipment', 'Gagal membuat pengiriman'),
+      })
+    } finally {
+      setBookingShipment(false)
     }
   }
 
@@ -707,6 +732,53 @@ export default function OrderDetailPage() {
               <Truck className="w-5 h-5" />
               {tr('Shipping & Tracking', 'Pengiriman & Pelacakan')}
             </h3>
+
+            {order.biteship_order_id ? (
+              <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-green-800">
+                    {tr('Shipment booked with Biteship', 'Pengiriman sudah dibuat lewat Biteship')}
+                  </p>
+                  <p className="text-xs text-green-700 mt-0.5">
+                    {tr('Status', 'Status')}: {order.biteship_status || '-'}
+                  </p>
+                </div>
+                <Link
+                  href={`/admin/dashboard/orders/${orderId}/resi`}
+                  target="_blank"
+                  className="px-4 py-2 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
+                >
+                  {tr('Print Resi', 'Cetak Resi')}
+                </Link>
+              </div>
+            ) : (
+              order.shipping_provider === 'biteship' && (
+                <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-sm text-gray-700">
+                    {tr(
+                      'This order was quoted via Biteship — book a real shipment to get a waybill number.',
+                      'Order ini dikutip lewat Biteship — buat pengiriman untuk dapat nomor resi asli.'
+                    )}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleCreateShipment}
+                    disabled={bookingShipment || order.payment_status !== 'paid'}
+                    title={
+                      order.payment_status !== 'paid'
+                        ? tr('Order must be paid first', 'Order harus lunas dulu')
+                        : undefined
+                    }
+                    className="px-4 py-2 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {bookingShipment
+                      ? tr('Creating...', 'Membuat...')
+                      : tr('Create Shipment & Print Resi', 'Buat Pengiriman & Cetak Resi')}
+                  </button>
+                </div>
+              )
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-2">{tr('Courier', 'Kurir')}</label>
@@ -791,7 +863,7 @@ export default function OrderDetailPage() {
             <div className="space-y-4">
               {orderItems.map((item) => (
                 <div key={item.id} className="flex gap-4 pb-4 border-b border-gray-200 last:border-0">
-                  <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden shrink-0">
+                  <div className="relative w-20 h-20 bg-gray-100 rounded-lg overflow-hidden shrink-0">
                     {item.product_image_url ? (
                       <SafeImage
                         src={item.product_image_url}

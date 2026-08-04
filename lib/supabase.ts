@@ -88,6 +88,10 @@ export type SiteSettings = {
   site_description: string
   favicon_url: string | null
   logo_url: string | null
+  /** Public-facing store info, shown on /contact and in LocalBusiness structured data. */
+  contact_address: string | null
+  contact_phone: string | null
+  contact_email: string | null
   updated_at: string
   updated_by: string | null
 }
@@ -101,6 +105,10 @@ export type ShippingSettings = {
   shipping_origin_postal_code: string | null
   shipping_origin_country_code: string | null
   shipping_origin_area_id: string | null
+  /** Sender identity Biteship requires to book a shipment (not needed for quoting). */
+  shipping_origin_contact_name: string | null
+  shipping_origin_contact_phone: string | null
+  shipping_origin_collection_method: 'pickup' | 'drop_off'
   /** 'zone' prices from the CMS rate table; 'biteship' calls the live aggregator. */
   shipping_provider: 'zone' | 'biteship'
   shipping_default_weight_grams: number
@@ -190,6 +198,11 @@ export type Order = {
   shipping_provider?: string | null
   applied_promotions?: AppliedPromotion[] | null
   fx_rate_idr_usd?: number | null
+
+  // Biteship shipment booking. Presence of biteship_order_id means a real
+  // shipment has been created — tracking_number holds the waybill_id.
+  biteship_order_id?: string | null
+  biteship_status?: string | null
 }
 
 export type OrderItem = {

@@ -45,6 +45,9 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   site_description: 'Premium clothing and fashion accessories',
   favicon_url: null,
   logo_url: null,
+  contact_address: 'Jl. Banjarsari No.39, Tembalang, Kec. Tembalang, Kota Semarang, Jawa Tengah 50275',
+  contact_phone: '+62 812 3456 7890',
+  contact_email: 'hello@bearion.com',
   updated_at: new Date(0).toISOString(),
   updated_by: null,
 }
@@ -62,6 +65,21 @@ const normalizeSiteSettings = (value: unknown): SiteSettings => {
       typeof raw.favicon_url === 'string' && raw.favicon_url.trim() ? raw.favicon_url.trim() : null,
     logo_url:
       typeof raw.logo_url === 'string' && raw.logo_url.trim() ? raw.logo_url.trim() : null,
+    // Falls back to the bundled values rather than null: an empty contact card
+    // on a live storefront is worse than a stale one, and this is what renders
+    // before the contact-info migration has been applied.
+    contact_address:
+      typeof raw.contact_address === 'string' && raw.contact_address.trim()
+        ? raw.contact_address.trim()
+        : DEFAULT_SITE_SETTINGS.contact_address,
+    contact_phone:
+      typeof raw.contact_phone === 'string' && raw.contact_phone.trim()
+        ? raw.contact_phone.trim()
+        : DEFAULT_SITE_SETTINGS.contact_phone,
+    contact_email:
+      typeof raw.contact_email === 'string' && raw.contact_email.trim()
+        ? raw.contact_email.trim()
+        : DEFAULT_SITE_SETTINGS.contact_email,
     updated_at:
       typeof raw.updated_at === 'string' ? raw.updated_at : DEFAULT_SITE_SETTINGS.updated_at,
     updated_by: typeof raw.updated_by === 'string' ? raw.updated_by : null,

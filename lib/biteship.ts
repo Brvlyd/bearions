@@ -350,6 +350,138 @@ export async function checkBiteshipStatus(): Promise<BiteshipStatus> {
 }
 
 // ---------------------------------------------------------------------------
+// Order booking (cetak resi)
+// ---------------------------------------------------------------------------
+//
+// Biteship has no shipping-label API — their own docs say so explicitly
+// ("you'll need to set up your own shipping label system"). `courier.link`
+// in the order response is a tracking/PoD link, not a printable resi. So
+// booking a shipment here only gets us a waybill_id and status; the actual
+// printable resi is rendered by our own admin page from that plus the
+// snapshot columns already on the order.
+
+export type BiteshipContact = {
+  name: string
+  phone: string
+  address: string
+  areaId: string | null
+  postalCode: string | null
+}
+
+export type BiteshipOrderParams = {
+  origin: BiteshipContact & { collectionMethod: 'pickup' | 'drop_off'; note?: string }
+  destination: BiteshipContact & { note?: string }
+  courierCompany: string
+  courierType: string
+  referenceId: string
+  itemName: string
+  valueIdr: number
+  weightGrams: number
+}
+
+export type BiteshipOrderResult = {
+  biteshipOrderId: string
+  status: string
+  waybillId: string | null
+  courierCompany: string | null
+  courierType: string | null
+}
+
+type BiteshipOrderResponse = {
+  success?: boolean
+  id?: string
+  status?: string
+  courier?: {
+    waybill_id?: string
+    company?: string
+    type?: string
+  }
+}
+
+const toOrderPayload = (params: BiteshipOrderParams): Record<string, unknown> => {
+  const { origin, destination } = params
+
+  const body: Record<string, unknown> = {
+    origin_contact_name: origin.name,
+    origin_contact_phone: origin.phone,
+    origin_address: origin.address,
+    origin_note: origin.note,
+    origin_collection_method: origin.collectionMethod,
+
+    destination_contact_name: destination.name,
+    destination_contact_phone: destination.phone,
+    destination_address: destination.address,
+    destination_note: destination.note,
+
+    courier_company: params.courierCompany,
+    courier_type: params.courierType,
+
+    delivery_type: 'now',
+
+    reference_id: params.referenceId,
+    order_note: `Bearion order ${params.referenceId}`,
+
+    items: [
+      {
+        name: params.itemName,
+        value: Math.round(params.valueIdr),
+        quantity: 1,
+        weight: params.weightGrams,
+      },
+    ],
+  }
+
+  if (origin.areaId) body.origin_area_id = origin.areaId
+  else body.origin_postal_code = origin.postalCode
+
+  if (destination.areaId) body.destination_area_id = destination.areaId
+  else body.destination_postal_code = destination.postalCode
+
+  return body
+}
+
+const toOrderResult = (data: BiteshipOrderResponse): BiteshipOrderResult => ({
+  biteshipOrderId: data.id || '',
+  status: data.status || 'confirmed',
+  waybillId: data.courier?.waybill_id || null,
+  courierCompany: data.courier?.company || null,
+  courierType: data.courier?.type || null,
+})
+
+/**
+ * Books a real shipment with the courier and returns its waybill number.
+ * Callers must guard against double-booking themselves (check
+ * orders.biteship_order_id first) — this call is not idempotent on Biteship's
+ * side, so calling it twice books (and bills) two shipments.
+ */
+export async function createBiteshipOrder(
+  params: BiteshipOrderParams
+): Promise<BiteshipResult<BiteshipOrderResult>> {
+  const result = await biteshipFetch<BiteshipOrderResponse>('/v1/orders', {
+    method: 'POST',
+    body: toOrderPayload(params),
+  })
+
+  if (!result.ok) return result
+
+  return { ok: true, data: toOrderResult(result.data) }
+}
+
+/** Re-reads a booked shipment — used to refresh status without booking again. */
+export async function getBiteshipOrder(
+  biteshipOrderId: string
+): Promise<BiteshipResult<BiteshipOrderResult>> {
+  const result = await biteshipFetch<BiteshipOrderResponse>(
+    `/v1/orders/${encodeURIComponent(biteshipOrderId)}`,
+    { method: 'GET' }
+  )
+
+  if (!result.ok) return result
+
+  return { ok: true, data: toOrderResult(result.data) }
+}
+
+// ---------------------------------------------------------------------------
 // Tracking
 // ---------------------------------------------------------------------------
 

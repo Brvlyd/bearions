@@ -38,9 +38,27 @@ export default async function RootLayout({
   // paint instead of swapping in after the client fetch resolves.
   const settings = await getSiteSettings();
 
+  // Tells search engines what this store is and where it is. Only what the
+  // CMS actually holds is emitted — a half-filled address is worse than none.
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'ClothingStore',
+    name: settings.site_title.split(' - ')[0],
+    description: settings.site_description,
+    ...(settings.contact_address && {
+      address: { '@type': 'PostalAddress', streetAddress: settings.contact_address },
+    }),
+    ...(settings.contact_phone && { telephone: settings.contact_phone }),
+    ...(settings.contact_email && { email: settings.contact_email }),
+  };
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`} suppressHydrationWarning>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
         <SiteSettingsProvider initialSettings={settings}>
           <LanguageProvider>
             <DialogProvider>

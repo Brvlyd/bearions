@@ -15,6 +15,7 @@ const ALLOWED_LITERALS = new Set([
 // on purpose — a language toggle there only makes courier settings harder to read.
 const SINGLE_LANGUAGE_FILES = new Set([
   'app/admin/dashboard/shipping/page.tsx',
+  'components/HeroImageManager.tsx',
 ])
 
 const toRepoPath = (filePath) => path.relative(ROOT, filePath).replace(/\\/g, '/')

@@ -1,22 +1,26 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, ClipboardList, CreditCard, MapPin, Package, Truck } from 'lucide-react'
+import { ArrowLeft, ClipboardList, CreditCard, MapPin, Package, Truck, XCircle } from 'lucide-react'
 import { authService } from '@/lib/auth'
 import { orderService } from '@/lib/orders'
 import { supabase, type Order, type OrderItem, type Payment, type ShippingAddress } from '@/lib/supabase'
 import { useLanguage } from '@/lib/i18n'
+import { useDialog } from '@/lib/dialog'
 import { SHIPPING_ENABLED, TAX_ENABLED } from '@/lib/store-config'
 import OrderTrackingTimeline from '@/components/OrderTrackingTimeline'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import PayPalCheckoutButton from '@/components/PayPalCheckoutButton'
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
 
 type LoadState = 'loading' | 'ready' | 'forbidden' | 'not-found'
 
 export default function UserOrderDetailPage() {
   const router = useRouter()
   const { tr } = useLanguage()
+  const { alertDialog } = useDialog()
   const params = useParams<{ orderNumber: string }>()
   const orderNumberParam = params?.orderNumber
   const orderNumber = Array.isArray(orderNumberParam) ? orderNumberParam[0] : orderNumberParam
@@ -26,6 +30,9 @@ export default function UserOrderDetailPage() {
   const [orderItems, setOrderItems] = useState<OrderItem[]>([])
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress | null>(null)
   const [payment, setPayment] = useState<Payment | null>(null)
+  const [paypalError, setPaypalError] = useState('')
+  const [cancelModalOpen, setCancelModalOpen] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
 
   const PAYMENT_REJECTION_PREFIX = '[PAYMENT_REJECTION]'
 
@@ -147,6 +154,65 @@ export default function UserOrderDetailPage() {
     void run()
   }, [orderNumber, router])
 
+  // Re-fetch just the order + payment after an in-place action (pay again,
+  // cancel) — no full-page spinner, no re-checking auth or the address again.
+  const refreshOrderAndPayment = useCallback(async () => {
+    if (!orderNumber) return
+
+    const orderData = await orderService.getOrderByNumber(orderNumber)
+    if (!orderData) return
+
+    setOrder(orderData)
+
+    const paymentResult = await supabase
+      .from('payments')
+      .select('*')
+      .eq('order_id', orderData.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    setPayment(paymentResult.data || null)
+  }, [orderNumber])
+
+  const canPayAgainWithPaypal = useMemo(() => {
+    if (!order) return false
+    return order.payment_method === 'paypal' && order.payment_status !== 'paid'
+  }, [order])
+
+  const canCancelOrder = order?.status === 'pending'
+
+  const handlePaypalPayAgainSuccess = () => {
+    setPaypalError('')
+    void refreshOrderAndPayment()
+  }
+
+  const handleCancelOrder = async () => {
+    if (!order) return
+
+    try {
+      setCancelling(true)
+      await orderService.cancelOrder(order.order_number)
+      setCancelModalOpen(false)
+      await refreshOrderAndPayment()
+    } catch (error) {
+      console.error('Error cancelling order:', error)
+      const message = error instanceof Error ? error.message : ''
+      setCancelModalOpen(false)
+      await alertDialog(
+        message.includes('pending')
+          ? tr(
+              'This order can no longer be cancelled — it may already be confirmed.',
+              'Pesanan ini sudah tidak bisa dibatalkan — mungkin sudah dikonfirmasi.'
+            )
+          : tr('Failed to cancel the order. Please try again.', 'Gagal membatalkan pesanan. Silakan coba lagi.'),
+        { variant: 'error' }
+      )
+    } finally {
+      setCancelling(false)
+    }
+  }
+
   if (state === 'loading') {
     return <LoadingSpinner fullScreen label={tr('Loading order details...', 'Memuat detail pesanan...')} />
   }
@@ -241,6 +307,44 @@ export default function UserOrderDetailPage() {
                 <CreditCard className="w-4 h-4" />
                 {tr('Upload payment proof again', 'Upload ulang bukti pembayaran')}
               </Link>
+            </div>
+          )}
+
+          {canPayAgainWithPaypal && (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <p className="text-sm text-amber-800 mb-3">
+                {tr(
+                  'Payment was not completed. Pay again with PayPal to finish this order.',
+                  'Pembayaran belum selesai. Bayar lagi dengan PayPal untuk menyelesaikan pesanan ini.'
+                )}
+              </p>
+              {paypalError && (
+                <p className="text-sm text-red-600 mb-2">{paypalError}</p>
+              )}
+              <PayPalCheckoutButton
+                orderNumber={order.order_number}
+                onSuccess={handlePaypalPayAgainSuccess}
+                onError={setPaypalError}
+              />
+            </div>
+          )}
+
+          {canCancelOrder && (
+            <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-gray-600">
+                {tr(
+                  'Changed your mind? You can cancel this order while it is still pending.',
+                  'Berubah pikiran? Anda bisa membatalkan pesanan ini selama masih berstatus menunggu.'
+                )}
+              </p>
+              <button
+                type="button"
+                onClick={() => setCancelModalOpen(true)}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-red-300 text-red-600 text-sm font-semibold hover:bg-red-50"
+              >
+                <XCircle className="w-4 h-4" />
+                {tr('Cancel Order', 'Batalkan Pesanan')}
+              </button>
             </div>
           )}
         </section>
@@ -358,6 +462,24 @@ export default function UserOrderDetailPage() {
           </p>
         </section>
       </div>
+
+      <ConfirmDeleteModal
+        isOpen={cancelModalOpen}
+        title={tr('Cancel Order', 'Batalkan Pesanan')}
+        description={tr(
+          'Are you sure you want to cancel this order? This action cannot be undone.',
+          'Apakah Anda yakin ingin membatalkan pesanan ini? Tindakan ini tidak dapat dibatalkan.'
+        )}
+        itemName={order.order_number}
+        isLoading={cancelling}
+        onConfirm={() => {
+          void handleCancelOrder()
+        }}
+        onCancel={() => setCancelModalOpen(false)}
+        confirmText={tr('Cancel Order', 'Batalkan Pesanan')}
+        cancelText={tr('Keep Order', 'Pertahankan Pesanan')}
+        isDangerous={true}
+      />
     </div>
   )
 }

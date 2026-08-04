@@ -81,6 +81,28 @@ export const orderService = {
     }
   },
 
+  /**
+   * Cancel the signed-in user's own order while it is still 'pending'.
+   * Server-side re-checks ownership and status; the client never controls that.
+   */
+  async cancelOrder(orderNumber: string): Promise<void> {
+    const { data: sessionData } = await supabase.auth.getSession()
+    const accessToken = sessionData.session?.access_token
+
+    if (!accessToken) throw new Error('Not authenticated')
+
+    const response = await fetch(`/api/orders/${encodeURIComponent(orderNumber)}/cancel`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+
+    const result = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(result.message || 'Failed to cancel order')
+    }
+  },
+
   // Get order by order number
   async getOrderByNumber(orderNumber: string): Promise<Order | null> {
     try {
@@ -239,6 +261,31 @@ export const orderService = {
       console.error('Error updating tracking info:', error)
       throw error
     }
+  },
+
+  /** Books a real Biteship shipment for a paid order and returns the waybill number. */
+  async createBiteshipShipment(orderId: string): Promise<{
+    tracking_number: string | null
+    biteship_order_id: string | null
+    biteship_status: string | null
+  }> {
+    const { data: sessionData } = await supabase.auth.getSession()
+    const accessToken = sessionData.session?.access_token
+
+    if (!accessToken) throw new Error('Not authenticated')
+
+    const response = await fetch(`/api/admin/orders/${orderId}/shipment`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+
+    const result = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(result.message || 'Gagal membuat pengiriman')
+    }
+
+    return result.order
   },
 
   // Get all orders (admin)

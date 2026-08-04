@@ -1,27 +1,34 @@
 # Landing Page Images Setup
 
-This feature allows admin to upload and manage 1 to 6 background images on the landing page.
+This feature allows admin to upload and manage background images on the landing page,
+separately for desktop (1 to 6 images) and mobile (1 image). The same mechanism also
+powers the optional banner at the top of the Community page (`community_page_images`).
 
 ## Database Setup
 
-Run the SQL script in Supabase SQL Editor:
+Run these SQL scripts in Supabase SQL Editor, in order:
 
 ```sql
 -- File: landing-page-images-schema.sql
+-- File: db/migrations/expand-landing-page-images-to-6.sql
+-- File: db/migrations/device-aware-hero-images.sql
 ```
 
-This will:
-1. Create the `landing_page_images` table
-2. Insert default placeholder images (from Unsplash)
-3. Set up Row Level Security policies
-4. Allow public read access and admin-only write access
+The last one:
+1. Adds a `device` ('desktop' | 'mobile') column to `landing_page_images`, scopes its
+   uniqueness to `(device, position)`, and caps mobile to position 1
+2. Fixes the admin-write RLS policy on `landing_page_images` (it referenced a
+   nonexistent `admins.user_id` column, which likely blocked admin writes outright)
+3. Creates `community_page_images` with the same shape, for the Community page banner
 
 ## Admin Interface
 
-Navigate to: **Admin Panel → Landing Page**
+Navigate to: **Admin Panel → Landing Page** (desktop/mobile tabs), or
+**Admin Panel → Community** (banner section at the top of that page).
 
 ### Features:
-- Upload up to 6 images (positions 1 to 6)
+- Desktop tab: upload up to 6 images (positions 1 to 6)
+- Mobile tab: upload exactly 1 image, shown full-bleed on phones
 - Preview current images
 - Replace existing images
 - Remove images you no longer want to display
@@ -47,26 +54,37 @@ Tip: keep important subject in the center safe area (middle 60%) to reduce crop 
 
 ## How It Works
 
-1. **Admin uploads image** → Stored in Supabase Storage (`product-images/landing/`)
-2. **URL saved to database** → Table `landing_page_images`
-3. **Landing page fetches images** → Displays with responsive dynamic grid based on image count
-4. **Fallback to emojis** → If no image uploaded, shows default emojis (🐻, ✨, 🎁)
+1. **Admin uploads image** → Stored in Supabase Storage (`product-images/landing/` for
+   the landing page, `product-images/community-hero/` for the Community banner)
+2. **URL saved to database** → `landing_page_images` or `community_page_images`, tagged
+   with `device` ('desktop' | 'mobile') and `position`
+3. **Public page fetches all rows for the table** → Both a desktop grid and a mobile
+   single-image layer are rendered; CSS (`hidden md:...` / `md:hidden`) picks the right
+   one for the visitor's screen — no client-side device sniffing, so there's no
+   hydration flash
+4. **Fallback** → If a device has no image uploaded, that layer shows a plain gradient
+   instead (landing), or the whole banner is skipped (Community, when neither device has
+   an image)
 
 ## Migration for Existing Databases
 
-If your database was created with the old 3-image limit, run:
-
 ```sql
--- File: expand-landing-page-images-to-6.sql
+-- File: db/migrations/expand-landing-page-images-to-6.sql   (old 3-image limit -> 6)
+-- File: db/migrations/device-aware-hero-images.sql           (adds desktop/mobile split + community banner table)
 ```
 
 ## File Locations
 
-- **Admin Page**: `app/admin/dashboard/landing-page/page.tsx`
-- **Landing Page**: `app/page.tsx`
-- **Database Schema**: `landing-page-images-schema.sql`
-- **Type Definitions**: `lib/supabase.ts`
+- **Shared admin manager**: `components/HeroImageManager.tsx` (desktop/mobile tabs, used by both pages below)
+- **Shared public renderer**: `components/HeroBackground.tsx`
+- **Shared types/config**: `lib/hero-images.ts`
+- **Landing admin page**: `app/admin/dashboard/landing-page/page.tsx`
+- **Landing page**: `app/page.tsx`
+- **Community admin banner section**: `app/admin/dashboard/community/page.tsx` (top of the page)
+- **Community page**: `app/community/page.tsx`
+- **Database schema**: `landing-page-images-schema.sql`, `db/migrations/device-aware-hero-images.sql`
 
 ## Default Images
 
-If you haven't uploaded custom images yet, the system uses placeholder images from Unsplash. Admin can replace these anytime through the admin panel.
+If you haven't uploaded custom images yet, the landing page falls back to a plain
+gradient per slot (no image), and the Community banner simply doesn't render.

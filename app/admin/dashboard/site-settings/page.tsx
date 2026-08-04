@@ -27,6 +27,9 @@ type SiteSettingsFormState = {
   site_description: string
   favicon_url: string | null
   logo_url: string | null
+  contact_address: string | null
+  contact_phone: string | null
+  contact_email: string | null
 }
 
 // Placeholder domain shown in the browser-tab mockup; not user-facing copy.
@@ -104,6 +107,9 @@ export default function AdminSiteSettingsPage() {
     site_description: DEFAULT_SITE_SETTINGS.site_description,
     favicon_url: DEFAULT_SITE_SETTINGS.favicon_url,
     logo_url: DEFAULT_SITE_SETTINGS.logo_url,
+    contact_address: DEFAULT_SITE_SETTINGS.contact_address,
+    contact_phone: DEFAULT_SITE_SETTINGS.contact_phone,
+    contact_email: DEFAULT_SITE_SETTINGS.contact_email,
   })
 
   const text = {
@@ -205,6 +211,14 @@ export default function AdminSiteSettingsPage() {
       language === 'en'
         ? 'Tab icons are square and tiny — centre the mark and keep it large enough to read.'
         : 'Ikon tab berbentuk persegi dan kecil — posisikan logo di tengah dan cukup besar agar terbaca.',
+    contactSection: language === 'en' ? 'Contact Info' : 'Info Kontak',
+    contactHint:
+      language === 'en'
+        ? 'Shown on the Contact page and used so search engines display the right store info.'
+        : 'Ditampilkan di halaman Kontak dan dipakai supaya mesin pencari menampilkan info toko yang benar.',
+    contactAddress: language === 'en' ? 'Store Address' : 'Alamat Toko',
+    contactPhone: language === 'en' ? 'Phone Number' : 'Nomor Telepon',
+    contactEmail: language === 'en' ? 'Email' : 'Email',
   }
 
   useEffect(() => {
@@ -218,6 +232,9 @@ export default function AdminSiteSettingsPage() {
         site_description: result.data.site_description,
         favicon_url: result.data.favicon_url,
         logo_url: result.data.logo_url,
+        contact_address: result.data.contact_address,
+        contact_phone: result.data.contact_phone,
+        contact_email: result.data.contact_email,
       })
 
       if (result.error && !result.tableMissing) {
@@ -388,6 +405,9 @@ export default function AdminSiteSettingsPage() {
         site_description: form.site_description.trim(),
         favicon_url: form.favicon_url?.trim() || null,
         logo_url: form.logo_url?.trim() || null,
+        contact_address: form.contact_address?.trim() || null,
+        contact_phone: form.contact_phone?.trim() || null,
+        contact_email: form.contact_email?.trim() || null,
         updated_at: new Date().toISOString(),
         updated_by: authData.user?.id || null,
       })
@@ -554,6 +574,47 @@ export default function AdminSiteSettingsPage() {
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-black"
               />
               <p className="text-xs text-gray-500 mt-2">{text.descriptionHint}</p>
+            </div>
+
+            <div className="pt-4 border-t border-gray-200 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-black mb-1">{text.contactSection}</label>
+                <p className="text-xs text-gray-500">{text.contactHint}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-black mb-2">{text.contactAddress}</label>
+                <textarea
+                  value={form.contact_address || ''}
+                  onChange={(event) => updateField('contact_address', event.target.value)}
+                  rows={2}
+                  maxLength={300}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-black"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">{text.contactPhone}</label>
+                  <input
+                    type="text"
+                    value={form.contact_phone || ''}
+                    onChange={(event) => updateField('contact_phone', event.target.value)}
+                    maxLength={30}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-black"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">{text.contactEmail}</label>
+                  <input
+                    type="email"
+                    value={form.contact_email || ''}
+                    onChange={(event) => updateField('contact_email', event.target.value)}
+                    maxLength={120}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-black"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="pt-2 border-t border-gray-200">

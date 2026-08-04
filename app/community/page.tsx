@@ -8,6 +8,8 @@ import { getImageUrl } from '@/lib/image-utils'
 import { usePagination } from '@/lib/hooks/usePagination'
 import Pagination from '@/components/Pagination'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import HeroBackground from '@/components/HeroBackground'
+import { splitHeroImagesByDevice, type HeroImageRow } from '@/lib/hero-images'
 import {
   getCommunityTileClassName,
   normalizeCommunityLayoutSize,
@@ -61,13 +63,25 @@ export default function CommunityPage() {
   const [loading, setLoading] = useState(true)
   const [activePost, setActivePost] = useState<CommunityPost | null>(null)
   const [modalReady, setModalReady] = useState(false)
+  const [heroImages, setHeroImages] = useState<HeroImageRow[]>([])
 
   const { page, setPage, totalPages, pageItems, firstItemIndex, lastItemIndex, totalItems } =
     usePagination(posts, POSTS_PER_PAGE)
 
   useEffect(() => {
     loadPosts()
+    void loadHeroImages()
   }, [])
+
+  const loadHeroImages = async () => {
+    const { data, error } = await supabase.from('community_page_images').select('*')
+    if (error) {
+      // Optional feature — a missing table/migration shouldn't block the gallery itself.
+      console.error('Error loading community banner images:', error)
+      return
+    }
+    setHeroImages(data || [])
+  }
 
   useEffect(() => {
     if (!activePost) return
@@ -176,9 +190,22 @@ export default function CommunityPage() {
     }
   }
 
+  const { desktop: heroDesktopImages, mobile: heroMobileImages } = splitHeroImagesByDevice(heroImages)
+  const hasHeroBanner = heroDesktopImages.length > 0 || heroMobileImages.length > 0
+
   return (
     <div className="min-h-screen bg-white pt-20">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {hasHeroBanner && (
+          <div className="relative w-full h-56 sm:h-72 md:h-96 rounded-2xl overflow-hidden border border-gray-200 mb-8">
+            <HeroBackground
+              desktopImages={heroDesktopImages}
+              mobileImages={heroMobileImages}
+              alt={language === 'en' ? 'Community banner' : 'Banner komunitas'}
+            />
+          </div>
+        )}
+
         <div className="mb-8">
           <h1 className="text-2xl font-bold mb-2 text-black text-center">
             {language === 'en' ? 'Community Gallery' : 'Galeri Komunitas'}

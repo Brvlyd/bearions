@@ -228,6 +228,9 @@ export default function AdminShippingPage() {
           shipping_origin_province: settings.shipping_origin_province,
           shipping_origin_postal_code: settings.shipping_origin_postal_code,
           shipping_origin_area_id: settings.shipping_origin_area_id || null,
+          shipping_origin_contact_name: settings.shipping_origin_contact_name,
+          shipping_origin_contact_phone: settings.shipping_origin_contact_phone,
+          shipping_origin_collection_method: settings.shipping_origin_collection_method || 'pickup',
           shipping_provider: settings.shipping_provider,
           shipping_default_weight_grams: Number(settings.shipping_default_weight_grams) || 500,
           shipping_volumetric_divisor: Number(settings.shipping_volumetric_divisor) || 6000,
@@ -719,6 +722,55 @@ export default function AdminShippingPage() {
                 <p className="text-xs text-gray-500 mt-1">
                   Terisi otomatis lewat pencarian di atas. Tidak perlu diisi manual.
                 </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 pt-3 border-t border-gray-100">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nama pengirim (untuk Biteship)
+                </label>
+                <input
+                  value={settings.shipping_origin_contact_name || ''}
+                  onChange={(e) => patchSettings({ shipping_origin_contact_name: e.target.value })}
+                  placeholder="Nama yang dilihat kurir & penerima"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-black"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Telepon pengirim (untuk Biteship)
+                </label>
+                <input
+                  value={settings.shipping_origin_contact_phone || ''}
+                  onChange={(e) => patchSettings({ shipping_origin_contact_phone: e.target.value })}
+                  placeholder="08xxxxxxxxxx"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-black"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <p className="text-xs text-gray-500 mb-2">
+                  Wajib diisi supaya tombol &quot;Buat Pengiriman &amp; Cetak Resi&quot; di halaman order bisa dipakai.
+                </p>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Paket dijemput atau diantar sendiri?</label>
+                <div className="flex gap-4 text-sm text-gray-800">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      checked={(settings.shipping_origin_collection_method || 'pickup') === 'pickup'}
+                      onChange={() => patchSettings({ shipping_origin_collection_method: 'pickup' })}
+                    />
+                    Dijemput kurir
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      checked={settings.shipping_origin_collection_method === 'drop_off'}
+                      onChange={() => patchSettings({ shipping_origin_collection_method: 'drop_off' })}
+                    />
+                    Diantar sendiri ke agen kurir
+                  </label>
+                </div>
               </div>
             </div>
           </div>

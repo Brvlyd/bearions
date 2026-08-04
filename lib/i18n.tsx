@@ -346,6 +346,15 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined)
 const warnedMissingKeys = new Set<string>()
 
+/** Indonesian if any of the browser's preferred languages is Indonesian, English otherwise. */
+const detectBrowserLanguage = (): Language => {
+  const candidates = navigator.languages && navigator.languages.length > 0
+    ? navigator.languages
+    : [navigator.language]
+  const isIndonesian = candidates.some((lang) => lang?.toLowerCase().startsWith('id'))
+  return isIndonesian ? 'id' : 'en'
+}
+
 const applyParams = (text: string, params?: Record<string, string | number>) => {
   let result = text
   if (params) {
@@ -368,6 +377,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     if (savedLang && (savedLang === 'en' || savedLang === 'id')) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setLanguageState(savedLang)
+    } else {
+      // No explicit choice yet: follow the browser's language, then remember
+      // it so this only runs once per visitor (a manual toggle overrides it).
+      const detected = detectBrowserLanguage()
+      setLanguageState(detected)
+      localStorage.setItem('language', detected)
     }
   }, [])
 

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Mail, Phone, MapPin, Clock } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n'
+import { DEFAULT_SITE_SETTINGS, loadSiteSettings } from '@/lib/site-settings'
 
 export default function ContactPage() {
   const { t, tr } = useLanguage()
@@ -12,6 +13,17 @@ export default function ContactPage() {
   const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
+  const [contact, setContact] = useState({
+    address: DEFAULT_SITE_SETTINGS.contact_address,
+    phone: DEFAULT_SITE_SETTINGS.contact_phone,
+    email: DEFAULT_SITE_SETTINGS.contact_email,
+  })
+
+  useEffect(() => {
+    loadSiteSettings().then(({ data }) => {
+      setContact({ address: data.contact_address, phone: data.contact_phone, email: data.contact_email })
+    })
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -138,7 +150,7 @@ export default function ContactPage() {
                 <Mail className="w-5 h-5 text-gray-500 mt-1" />
                 <div>
                   <h3 className="font-medium text-black">{t('contact.email')}</h3>
-                  <p className="text-gray-600">hello@bearion.com</p>
+                  <p className="text-gray-600">{contact.email}</p>
                 </div>
               </div>
 
@@ -146,7 +158,7 @@ export default function ContactPage() {
                 <Phone className="w-5 h-5 text-gray-500 mt-1" />
                 <div>
                   <h3 className="font-medium text-black">{t('contact.phone')}</h3>
-                  <p className="text-gray-600">+62 812 3456 7890</p>
+                  <p className="text-gray-600">{contact.phone}</p>
                 </div>
               </div>
 
@@ -154,7 +166,7 @@ export default function ContactPage() {
                 <MapPin className="w-5 h-5 text-gray-500 mt-1" />
                 <div>
                   <h3 className="font-medium text-black">{t('contact.address')}</h3>
-                  <p className="text-gray-600">{tr('Jakarta, Indonesia', 'Jakarta, Indonesia')}</p>
+                  <p className="text-gray-600">{contact.address}</p>
                 </div>
               </div>
 

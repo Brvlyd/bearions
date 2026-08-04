@@ -63,12 +63,18 @@ export default function SafeImage({
   }
 
   if (fill) {
+    // `fill` positions the image absolutely, so it needs its own relatively
+    // positioned box here rather than trusting every call site to remember
+    // one — otherwise the image escapes to the nearest positioned ancestor
+    // and can balloon far past the intended container.
     return (
-      <Image
-        {...imageProps}
-        fill
-        style={{ objectFit: 'cover' }}
-      />
+      <div className="relative w-full h-full">
+        <Image
+          {...imageProps}
+          fill
+          style={{ objectFit: 'cover' }}
+        />
+      </div>
     )
   }
 
@@ -85,10 +91,12 @@ export default function SafeImage({
 
   // Fallback to fill if no dimensions provided
   return (
-    <Image
-      {...imageProps}
-      fill
-      style={{ objectFit: 'cover' }}
-    />
+    <div className="relative w-full h-full">
+      <Image
+        {...imageProps}
+        fill
+        style={{ objectFit: 'cover' }}
+      />
+    </div>
   )
 }

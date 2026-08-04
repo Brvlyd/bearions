@@ -5,12 +5,14 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { authService, getDashboardPath } from '@/lib/auth'
 import Link from 'next/link'
 import { useLanguage } from '@/lib/i18n'
+import { useDialog } from '@/lib/dialog'
 import LoadingSpinner from '@/components/LoadingSpinner'
 
 function LoginPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { t, language } = useLanguage()
+  const { alertDialog } = useDialog()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -103,17 +105,22 @@ function LoginPageContent() {
         return
       }
       
-      // Show success message
       setRedirecting(true)
-        setSuccess(
-          language === 'en'
-            ? '✅ Login successful! Redirecting...'
-            : '✅ Login berhasil! Mengarahkan ke halaman...'
-        )
-      
-      // Wait a bit to ensure session is properly saved
-      await new Promise(resolve => setTimeout(resolve, 800))
-      
+
+      // Greeting doubles as the "session is saved" pause the old fixed 800ms
+      // timeout used to provide — dismissing it takes at least that long.
+      const displayName = result.profile?.full_name?.trim() || email.split('@')[0]
+      await alertDialog(
+        language === 'en'
+          ? `Hello ${displayName}, welcome to Bearion!`
+          : `Halo ${displayName}, selamat datang di Bearion!`,
+        {
+          title: language === 'en' ? 'Welcome!' : 'Selamat Datang!',
+          variant: 'success',
+          okText: language === 'en' ? 'Continue' : 'Lanjut',
+        }
+      )
+
       if (result.role === 'admin' || result.role === 'user') {
         window.location.href = getDashboardPath(result.role)
       } else {
