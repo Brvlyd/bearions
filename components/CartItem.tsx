@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { Minus, Plus, Trash2, Package } from 'lucide-react'
 import type { CartItem as CartItemType } from '@/lib/supabase'
 import { productService } from '@/lib/products'
-import { formatIDR, getDiscountPercent, getEffectiveIdrPrice, getIdrPrice, isDiscounted } from '@/lib/price'
+import { getDiscountPercent, getEffectiveIdrPrice, getIdrPrice, isDiscounted } from '@/lib/price'
 import DiscountBadge from './DiscountBadge'
 import { useCategories } from './CategoryProvider'
 import { getCategoryLabel } from '@/lib/categories'
@@ -17,6 +17,9 @@ interface CartItemProps {
   onUpdateQuantity: (itemId: string, quantity: number) => void
   onRemove: (itemId: string) => void
   disabled?: boolean
+  /** Same live-rate formatter the cart summary uses, so an item row and the
+   *  totals below it never disagree once the visitor is on the English site. */
+  formatPrice: (price: number) => string
 }
 
 export default function CartItem({
@@ -24,6 +27,7 @@ export default function CartItem({
   onUpdateQuantity,
   onRemove,
   disabled = false,
+  formatPrice,
 }: CartItemProps) {
   const { t, language } = useLanguage()
   const categories = useCategories()
@@ -146,7 +150,7 @@ export default function CartItem({
                 className={`text-base sm:text-lg font-bold ${discounted ? 'text-red-600' : 'text-black'}`}
                 suppressHydrationWarning
               >
-                {formatIDR(itemTotal)}
+                {formatPrice(itemTotal)}
               </p>
               {discounted && discountPercent !== null && discountPercent > 0 && (
                 <DiscountBadge percent={discountPercent} />
@@ -154,7 +158,7 @@ export default function CartItem({
             </div>
             {discounted && (
               <p className="text-xs sm:text-sm text-gray-400 line-through" suppressHydrationWarning>
-                {formatIDR(originalTotal)}
+                {formatPrice(originalTotal)}
               </p>
             )}
           </div>

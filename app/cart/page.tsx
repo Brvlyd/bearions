@@ -297,6 +297,7 @@ function CartPageContent() {
                     onUpdateQuantity={handleUpdateQuantity}
                     onRemove={handleRemoveItem}
                     disabled={updating}
+                    formatPrice={formatPrice}
                   />
                 ))}
               </div>
