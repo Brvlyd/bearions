@@ -7,11 +7,16 @@ import { useLanguage } from '@/lib/i18n'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import MultiImageUpload from '@/components/MultiImageUpload'
+import ProductColorsEditor, {
+  findColorDraftProblems,
+  type ColorDraft,
+} from '@/components/ProductColorsEditor'
 import ProductPrice from '@/components/ProductPrice'
 import { supabase } from '@/lib/supabase'
 import Notification from '@/components/Notification'
 import { getErrorMessage } from '@/lib/errors'
 import { describeSalePriceDraft } from '@/lib/price'
+import { productColorService } from '@/lib/product-colors'
 
 interface Category {
   id: string
@@ -43,6 +48,7 @@ export default function AddProductPage() {
     hs_code: '',
     images: [] as string[]
   })
+  const [colors, setColors] = useState<ColorDraft[]>([])
 
   useEffect(() => {
     loadCategories()
@@ -85,6 +91,22 @@ export default function AddProductPage() {
       return
     }
 
+    // Blank or repeated colour names are rejected by the unique index anyway;
+    // catching them here explains why instead of surfacing a Postgres error.
+    const colorProblems = findColorDraftProblems(colors)
+    if (colorProblems.hasProblem) {
+      setNotification({
+        type: 'error',
+        message: colorProblems.hasBlankName
+          ? tr('Fill in every color name before saving.', 'Isi semua nama warna sebelum menyimpan.')
+          : tr(
+              'Two colors share the same name. Color names must be unique.',
+              'Ada dua warna dengan nama sama. Nama warna harus unik.'
+            ),
+      })
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -111,6 +133,18 @@ export default function AddProductPage() {
       // Save additional images to product_images table
       if (formData.images.length > 0 && product.id) {
         await productService.saveProductImages(product.id, formData.images)
+      }
+
+      if (product.id) {
+        await productColorService.saveProductColors(
+          product.id,
+          colors.map((color) => ({
+            name: color.name,
+            name_id: color.name_id || null,
+            hex_code: color.hex_code || null,
+            image_url: color.image_url || null,
+          }))
+        )
       }
 
       setNotification({ type: 'success', message: t('adminProduct.createSuccess') })
@@ -426,6 +460,12 @@ export default function AddProductPage() {
               initialImages={formData.images}
             />
           </div>
+
+          <ProductColorsEditor
+            value={colors}
+            onChange={setColors}
+            galleryImages={formData.images}
+          />
 
           <div className="flex gap-4 pt-4">
             <button

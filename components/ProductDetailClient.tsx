@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, ShoppingCart, Plus, Minus } from 'lucide-react'
+import { ArrowLeft, ShoppingCart, Plus, Minus, ImageIcon } from 'lucide-react'
 import ImageCarousel from '@/components/ImageCarousel'
+import ColorPreviewModal from '@/components/ColorPreviewModal'
 import { Product } from '@/lib/supabase'
 import { useLanguage } from '@/lib/i18n'
 import { cartService } from '@/lib/cart'
@@ -12,14 +13,20 @@ import ProductPrice from '@/components/ProductPrice'
 import { supabase } from '@/lib/supabase'
 import { useCategories } from '@/components/CategoryProvider'
 import { getCategoryLabel } from '@/lib/categories'
-import { PRODUCT_COLOR_OPTIONS, PRODUCT_SIZE_OPTIONS, productColorLabel } from '@/lib/product-options'
+import { PRODUCT_SIZE_OPTIONS } from '@/lib/product-options'
+import { resolveColorOptions, type ProductColor } from '@/lib/product-colors'
+
+/** Past this many swatches the list scrolls instead of growing the page. */
+const COLOR_SCROLL_THRESHOLD = 10
 
 export default function ProductDetailClient({
   product,
   initialImages,
+  initialColors = [],
 }: {
   product: Product
   initialImages: string[]
+  initialColors?: ProductColor[]
 }) {
   const router = useRouter()
   const { t, tr, language } = useLanguage()
@@ -27,9 +34,25 @@ export default function ProductDetailClient({
   const [quantity, setQuantity] = useState(1)
   const [selectedSize, setSelectedSize] = useState<string>('')
   const [selectedColor, setSelectedColor] = useState<string>('')
+  const [previewColorName, setPreviewColorName] = useState<string | null>(null)
   const [addingToCart, setAddingToCart] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [images] = useState<string[]>(initialImages)
+
+  const colorOptions = useMemo(
+    () => resolveColorOptions(initialColors, language),
+    [initialColors, language]
+  )
+  const previewColor = colorOptions.find((color) => color.name === previewColorName) || null
+
+  const handleColorClick = (name: string) => {
+    setSelectedColor(name)
+
+    // The popup is the point of the swatch, but a colour the admin has not
+    // photographed has nothing to show — that one just selects.
+    const option = colorOptions.find((color) => color.name === name)
+    if (option?.imageUrl) setPreviewColorName(name)
+  }
 
   const productName = language === 'id' && product.name_id ? product.name_id : product.name || ''
   const productDescription = language === 'id' && product.description_id ? product.description_id : product.description
@@ -184,22 +207,63 @@ export default function ProductDetailClient({
                 </div>
 
                 <div className="mb-6">
-                  <h2 className="text-base lg:text-lg font-semibold mb-3 text-black">{tr('Color', 'Warna')}</h2>
-                  <div className="flex flex-wrap gap-2">
-                    {PRODUCT_COLOR_OPTIONS.map((color) => (
+                  <div className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <h2 className="text-base lg:text-lg font-semibold text-black">{tr('Color', 'Warna')}</h2>
+                    {selectedColor && (
+                      <span className="text-sm text-gray-500">
+                        {colorOptions.find((color) => color.name === selectedColor)?.label || selectedColor}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* An admin can add as many colours as the product really has.
+                      The list wraps, and past a threshold it scrolls in place so
+                      a long one cannot push Add to Cart off the screen. */}
+                  <div
+                    className={`flex flex-wrap gap-2 ${
+                      colorOptions.length > COLOR_SCROLL_THRESHOLD
+                        ? 'max-h-44 overflow-y-auto overscroll-contain pr-1'
+                        : ''
+                    }`}
+                  >
+                    {colorOptions.map((color) => (
                       <button
-                        key={color}
-                        onClick={() => setSelectedColor(color)}
-                        className={`px-4 lg:px-6 py-2 border-2 rounded-lg font-semibold transition text-sm lg:text-base ${
-                          selectedColor === color
+                        key={color.name}
+                        onClick={() => handleColorClick(color.name)}
+                        title={color.label}
+                        aria-pressed={selectedColor === color.name}
+                        className={`inline-flex max-w-full items-center gap-2 rounded-lg border-2 px-3 lg:px-4 py-2 text-sm lg:text-base font-semibold transition ${
+                          selectedColor === color.name
                             ? 'border-black bg-black text-white'
                             : 'border-gray-300 text-black hover:border-black'
                         }`}
                       >
-                        {productColorLabel(color, language)}
+                        <span
+                          aria-hidden="true"
+                          className="h-4 w-4 shrink-0 rounded-full border border-black/15 shadow-inner"
+                          style={{ backgroundColor: color.hex || '#e5e7eb' }}
+                        />
+                        <span className="truncate">{color.label}</span>
+                        {color.imageUrl && (
+                          <ImageIcon
+                            aria-hidden="true"
+                            className={`h-3.5 w-3.5 shrink-0 ${
+                              selectedColor === color.name ? 'text-white/70' : 'text-gray-400'
+                            }`}
+                          />
+                        )}
                       </button>
                     ))}
                   </div>
+
+                  {colorOptions.some((color) => color.imageUrl) && (
+                    <p className="mt-2 text-xs text-gray-500">
+                      {tr(
+                        'Tap a color to see this product in it.',
+                        'Klik warna untuk melihat produk dalam warna tersebut.'
+                      )}
+                    </p>
+                  )}
                 </div>
 
                 <div className="mb-8">
@@ -251,6 +315,20 @@ export default function ProductDetailClient({
           </div>
         </div>
       </div>
+
+      {previewColor && (
+        <ColorPreviewModal
+          color={previewColor}
+          productName={productName}
+          category={product.category}
+          selected={selectedColor === previewColor.name}
+          onConfirm={() => {
+            setSelectedColor(previewColor.name)
+            setPreviewColorName(null)
+          }}
+          onClose={() => setPreviewColorName(null)}
+        />
+      )}
     </div>
   )
 }

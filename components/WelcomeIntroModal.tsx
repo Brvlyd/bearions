@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { X, Sparkles } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n'
+import { authService } from '@/lib/auth'
 
 const SEEN_KEY = 'bearion_welcome_seen'
 const SHOW_DELAY_MS = 500
@@ -19,12 +20,27 @@ export default function WelcomeIntroModal() {
     // client markup from the server markup and break hydration.
     if (localStorage.getItem(SEEN_KEY)) return
 
-    const timer = window.setTimeout(() => {
-      setMounted(true)
-      requestAnimationFrame(() => setOpen(true))
-    }, SHOW_DELAY_MS)
+    let cancelled = false
+    let timer = 0
 
-    return () => window.clearTimeout(timer)
+    const run = async () => {
+      // A "Start Shopping" pitch is for customers. An admin landing on the
+      // storefront is on their way to the dashboard, so they never see it.
+      if (await authService.isAdmin()) return
+      if (cancelled) return
+
+      timer = window.setTimeout(() => {
+        setMounted(true)
+        requestAnimationFrame(() => setOpen(true))
+      }, SHOW_DELAY_MS)
+    }
+
+    run()
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
   }, [])
 
   const close = () => {

@@ -345,6 +345,7 @@ export default function AdminHeader({ sidebarOpen, setSidebarOpen }: { sidebarOp
     if (pathname.includes('/edit-product')) return t('admin.editProduct')
     if (pathname.includes('/products')) return t('adminProducts.title')
     if (pathname.includes('/landing-page')) return tr('Landing Page & Categories', 'Landing Page & Kategori')
+    if (pathname.includes('/contact')) return tr('Contact Page', 'Halaman Kontak')
     if (pathname.includes('/users')) return tr('User Management', 'Manajemen Pengguna')
     if (pathname.includes('/orders')) return tr('Orders', 'Pesanan')
     if (pathname.includes('/monitoring')) return tr('Monitoring', 'Monitoring')
@@ -352,37 +353,40 @@ export default function AdminHeader({ sidebarOpen, setSidebarOpen }: { sidebarOp
   }
 
   return (
-    <header className="fixed top-0 left-0 lg:left-64 right-0 h-16 bg-linear-to-r from-gray-900 to-gray-800 border-b border-white/10 z-40">
-      <div className="h-full px-4 lg:px-8 flex items-center justify-between">
+    // h-18 matches the sidebar's brand block exactly, so the two bottom borders
+    // meet in one straight line across the top of the screen. At h-16 the title
+    // and its breadcrumb were also squeezed into 64px with no breathing room.
+    <header className="fixed top-0 left-0 lg:left-64 right-0 h-18 bg-linear-to-r from-gray-900 to-gray-800 border-b border-white/10 z-40">
+      <div className="h-full px-4 lg:px-6 flex items-center justify-between gap-3">
         {/* Left: Page Title */}
-        <div className="flex items-center gap-2 lg:gap-4">
+        <div className="flex min-w-0 items-center gap-2 lg:gap-3">
           {/* Mobile menu button */}
           <button
             onClick={() => setSidebarOpen && setSidebarOpen(!sidebarOpen)}
-            className="lg:hidden p-2 rounded-lg hover:bg-white/10 transition-colors"
+            className="lg:hidden shrink-0 p-2 rounded-lg text-white hover:bg-white/10 transition-colors"
           >
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
-          
-          <div>
-            <h1 className="text-base lg:text-xl font-bold text-white">{getPageTitle()}</h1>
-            <div className="hidden md:flex items-center gap-2 text-sm text-gray-400 mt-0.5">
+
+          <div className="min-w-0">
+            <h1 className="truncate text-base lg:text-lg font-bold leading-tight text-white">{getPageTitle()}</h1>
+            <div className="hidden md:flex items-center gap-1.5 text-xs text-gray-400 mt-1">
               {/* min-h + negative margin: 44px hit area, unchanged visual height */}
-              <Link href="/admin/dashboard" className="hover:text-white transition inline-flex items-center min-h-11 -my-3 px-1 -mx-1">
+              <Link href="/admin/dashboard" className="hover:text-white transition inline-flex items-center min-h-11 -my-4 px-1 -mx-1">
                 {t('adminSidebar.adminPanel')}
               </Link>
               <span>/</span>
-              <span className="text-gray-300">{getPageTitle().split(' ')[0]}</span>
+              <span className="truncate text-gray-300">{getPageTitle().split(' ')[0]}</span>
             </div>
           </div>
         </div>
 
         {/* Right: Simple Controls */}
-        <div className="flex items-center gap-2 lg:gap-3">
+        <div className="flex shrink-0 items-center gap-1.5 lg:gap-2">
           {/* Language Selector - Hidden on mobile */}
           <button
             onClick={toggleLanguage}
-            className="hidden sm:flex px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-200 group items-center gap-2"
+            className="hidden sm:flex h-10 px-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-200 group items-center gap-2"
             title={language === 'en' ? tr('Switch to Indonesian', 'Ganti ke Bahasa Indonesia') : tr('Switch to English', 'Ganti ke English')}
           >
             <Globe className="w-4 h-4 text-gray-400 group-hover:text-white transition-all" />
@@ -393,9 +397,9 @@ export default function AdminHeader({ sidebarOpen, setSidebarOpen }: { sidebarOp
 
           {/* Notifications */}
           <div className="relative">
-            <button 
+            <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-200 relative group"
+              className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-200 relative group"
             >
               <Bell className="w-4 h-4 lg:w-5 lg:h-5 text-gray-400 group-hover:text-white transition-all" />
               {unreadCount > 0 && (
@@ -492,21 +496,21 @@ export default function AdminHeader({ sidebarOpen, setSidebarOpen }: { sidebarOp
 
           {/* Priority hint */}
           {unreadCount > 0 && (
-            <div className="hidden xl:flex items-center gap-2 px-2 py-1 rounded-md bg-red-500/10 text-red-300 text-xs">
+            <div className="hidden xl:flex items-center gap-2 px-2.5 h-10 rounded-lg bg-red-500/10 text-red-300 text-xs">
               <AlertTriangle className="w-3.5 h-3.5" />
               <span>{tr('{count} urgent items', '{count} item penting', { count: unreadCount })}</span>
             </div>
           )}
 
           {/* Divider - Hidden on mobile */}
-          <div className="hidden sm:block h-8 w-px bg-white/10"></div>
+          <div className="hidden sm:block h-8 w-px bg-white/10 mx-1"></div>
 
           {/* Admin Profile */}
-          <div className="flex items-center gap-2 lg:gap-3">
-            <div className="w-8 h-8 lg:w-9 lg:h-9 bg-linear-to-br from-white to-gray-200 text-gray-900 flex items-center justify-center font-bold text-sm rounded-full ring-2 ring-white/20 hover:ring-white/40 transition-all duration-200">
+          <div className="flex items-center gap-2 lg:gap-2.5">
+            <div className="w-9 h-9 shrink-0 bg-linear-to-br from-white to-gray-200 text-gray-900 flex items-center justify-center font-bold text-sm rounded-full ring-2 ring-white/20 hover:ring-white/40 transition-all duration-200">
               {adminName.charAt(0).toUpperCase()}
             </div>
-            <div className="hidden lg:block">
+            <div className="hidden lg:block leading-tight">
               <p className="text-sm font-semibold text-white">
                 {tr('Hello', 'Halo')}, {adminName.length > 15 ? adminName.substring(0, 15) + '...' : adminName}
               </p>
@@ -517,7 +521,7 @@ export default function AdminHeader({ sidebarOpen, setSidebarOpen }: { sidebarOp
           {/* Logout */}
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 px-2 lg:px-3 py-2 rounded-lg bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-all duration-200 group"
+            className="flex h-10 items-center gap-2 px-2.5 lg:px-3 rounded-lg bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-all duration-200 group"
             title={t('admin.logout')}
           >
             <LogOut className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />

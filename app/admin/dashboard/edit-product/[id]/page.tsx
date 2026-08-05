@@ -8,11 +8,17 @@ import { useLanguage } from '@/lib/i18n'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import MultiImageUpload from '@/components/MultiImageUpload'
+import ProductColorsEditor, {
+  findColorDraftProblems,
+  makeColorDraft,
+  type ColorDraft,
+} from '@/components/ProductColorsEditor'
 import ProductPrice from '@/components/ProductPrice'
 import Notification from '@/components/Notification'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import { getErrorMessage } from '@/lib/errors'
 import { describeSalePriceDraft } from '@/lib/price'
+import { productColorService } from '@/lib/product-colors'
 
 interface Category {
   id: string
@@ -47,6 +53,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     hs_code: '',
     images: [] as string[]
   })
+  const [colors, setColors] = useState<ColorDraft[]>([])
 
   useEffect(() => {
     loadCategories()
@@ -84,7 +91,19 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
       // Load product images
       const images = await productService.getProductImages(productId)
       const imageUrls = (images || []).map((img: { image_url: string }) => img.image_url)
-      
+
+      const colorRows = await productColorService.getColorsForProduct(productId)
+      setColors(
+        colorRows.map((row) =>
+          makeColorDraft({
+            name: row.name,
+            name_id: row.name_id || '',
+            hex_code: row.hex_code || '#111111',
+            image_url: row.image_url || '',
+          })
+        )
+      )
+
       setProduct(data)
       setFormData({
         name: data.name,
@@ -133,6 +152,22 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
       return
     }
 
+    // Blank or repeated colour names are rejected by the unique index anyway;
+    // catching them here explains why instead of surfacing a Postgres error.
+    const colorProblems = findColorDraftProblems(colors)
+    if (colorProblems.hasProblem) {
+      setNotification({
+        type: 'error',
+        message: colorProblems.hasBlankName
+          ? tr('Fill in every color name before saving.', 'Isi semua nama warna sebelum menyimpan.')
+          : tr(
+              'Two colors share the same name. Color names must be unique.',
+              'Ada dua warna dengan nama sama. Nama warna harus unik.'
+            ),
+      })
+      return
+    }
+
     setSaving(true)
 
     try {
@@ -159,6 +194,16 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
       if (formData.images.length > 0) {
         await productService.saveProductImages(productId, formData.images)
       }
+
+      await productColorService.saveProductColors(
+        productId,
+        colors.map((color) => ({
+          name: color.name,
+          name_id: color.name_id || null,
+          hex_code: color.hex_code || null,
+          image_url: color.image_url || null,
+        }))
+      )
 
       setNotification({ type: 'success', message: tr('Product updated successfully!', 'Produk berhasil diperbarui!') })
       setTimeout(() => {
@@ -540,6 +585,12 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               initialImages={formData.images}
             />
           </div>
+
+          <ProductColorsEditor
+            value={colors}
+            onChange={setColors}
+            galleryImages={formData.images}
+          />
 
           <div className="flex gap-4 pt-4">
             <button

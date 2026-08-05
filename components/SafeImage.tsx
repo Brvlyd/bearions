@@ -14,6 +14,14 @@ interface SafeImageProps {
   priority?: boolean
   category?: string
   sizes?: string
+  /**
+   * How the bitmap fills its box. Set as an inline style because that is what
+   * next/image itself does — a Tailwind `object-contain` class on the same
+   * element loses to it — so anything but 'cover' has to be asked for here.
+   */
+  objectFit?: 'cover' | 'contain'
+  /** Fires with the loaded <img>, so callers can read naturalWidth/Height. */
+  onLoad?: (image: HTMLImageElement) => void
 }
 
 /**
@@ -30,6 +38,8 @@ export default function SafeImage({
   priority = false,
   category,
   sizes,
+  objectFit = 'cover',
+  onLoad,
 }: SafeImageProps) {
   const [imageSrc, setImageSrc] = useState<string>(getImageUrl(src))
   const [hasError, setHasError] = useState(false)
@@ -57,6 +67,7 @@ export default function SafeImage({
     alt: alt || 'Product image',
     className: `${className} ${hasError ? 'opacity-75' : ''}`,
     onError: handleError,
+    onLoad: onLoad ? (event: React.SyntheticEvent<HTMLImageElement>) => onLoad(event.currentTarget) : undefined,
     unoptimized: true,
     priority,
     sizes: sizes || '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw',
@@ -72,7 +83,7 @@ export default function SafeImage({
         <Image
           {...imageProps}
           fill
-          style={{ objectFit: 'cover' }}
+          style={{ objectFit }}
         />
       </div>
     )
@@ -84,7 +95,7 @@ export default function SafeImage({
         {...imageProps}
         width={width}
         height={height}
-        style={{ objectFit: 'cover', width: '100%', height: 'auto' }}
+        style={{ objectFit, width: '100%', height: 'auto' }}
       />
     )
   }
@@ -95,7 +106,7 @@ export default function SafeImage({
       <Image
         {...imageProps}
         fill
-        style={{ objectFit: 'cover' }}
+        style={{ objectFit }}
       />
     </div>
   )

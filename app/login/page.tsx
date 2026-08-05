@@ -107,19 +107,27 @@ function LoginPageContent() {
       
       setRedirecting(true)
 
-      // Greeting doubles as the "session is saved" pause the old fixed 800ms
-      // timeout used to provide — dismissing it takes at least that long.
-      const displayName = result.profile?.full_name?.trim() || email.split('@')[0]
-      await alertDialog(
-        language === 'en'
-          ? `Hello ${displayName}, welcome to Bearion!`
-          : `Halo ${displayName}, selamat datang di Bearion!`,
-        {
-          title: language === 'en' ? 'Welcome!' : 'Selamat Datang!',
-          variant: 'success',
-          okText: language === 'en' ? 'Continue' : 'Lanjut',
-        }
-      )
+      if (result.role === 'admin') {
+        // Admins sign in to get work done, several times a day — a greeting
+        // they have to dismiss first is friction, not welcome.
+        //
+        // For customers that dialog doubled as the "session is saved" pause the
+        // old fixed 800ms timeout used to provide, so skipping it here needs the
+        // real thing in its place: read the session back before navigating away.
+        await authService.getSession()
+      } else {
+        const displayName = result.profile?.full_name?.trim() || email.split('@')[0]
+        await alertDialog(
+          language === 'en'
+            ? `Hello ${displayName}, welcome to Bearion!`
+            : `Halo ${displayName}, selamat datang di Bearion!`,
+          {
+            title: language === 'en' ? 'Welcome!' : 'Selamat Datang!',
+            variant: 'success',
+            okText: language === 'en' ? 'Continue' : 'Lanjut',
+          }
+        )
+      }
 
       if (result.role === 'admin' || result.role === 'user') {
         window.location.href = getDashboardPath(result.role)

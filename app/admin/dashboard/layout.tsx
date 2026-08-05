@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useLanguage } from '@/lib/i18n'
 import Link from 'next/link'
 import { authService } from '@/lib/auth'
-import { Package, BarChart3, Users, ShoppingCart, X, Image, Images, Info, CreditCard, Settings, Truck, Gift } from 'lucide-react'
+import { Package, BarChart3, Users, ShoppingCart, X, Image, Images, Info, CreditCard, Settings, Truck, Gift, Mail } from 'lucide-react'
 import AdminHeader from '@/components/AdminHeader'
 import LoadingSpinner from '@/components/LoadingSpinner'
 
@@ -71,21 +71,22 @@ export default function AdminLayout({
       <aside className={`fixed left-0 top-0 h-full w-64 flex flex-col bg-linear-to-b from-gray-900 via-gray-900 to-black text-white shadow-2xl z-50 transition-transform duration-300 lg:translate-x-0 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
-        {/* Logo Section */}
-        <div className="shrink-0 p-6 border-b border-white/10">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-12 h-12 bg-white text-black flex items-center justify-center font-bold text-xl rounded-lg transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-lg">
+        {/* Logo Section — h-18 is the header's height, so the two bottom
+            borders line up instead of stepping at the sidebar edge. */}
+        <div className="shrink-0 h-18 px-4 border-b border-white/10 flex items-center">
+          <div className="flex w-full items-center justify-between gap-2">
+            <Link href="/" className="flex min-w-0 items-center gap-2.5 group">
+              <div className="w-10 h-10 shrink-0 bg-white text-black flex items-center justify-center font-bold text-lg rounded-lg transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-lg">
                 B
               </div>
-              <div>
-                <span className="text-xl font-bold block transition-all duration-300 group-hover:text-gray-300">BEARION</span>
-                <span className="text-xs text-gray-400">{t('adminSidebar.adminPanel')}</span>
+              <div className="min-w-0 leading-tight">
+                <span className="text-lg font-bold block truncate transition-all duration-300 group-hover:text-gray-300">BEARION</span>
+                <span className="text-xs text-gray-400 block truncate">{t('adminSidebar.adminPanel')}</span>
               </div>
             </Link>
-            <button 
+            <button
               onClick={() => setSidebarOpen(false)}
-              className="lg:hidden p-2 hover:bg-white/10 rounded-lg transition-colors"
+              className="lg:hidden shrink-0 p-2 hover:bg-white/10 rounded-lg transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -100,7 +101,7 @@ export default function AdminLayout({
           
           <Link
             href="/admin/dashboard"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group relative ${
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group relative ${
               isActiveRoute('/admin/dashboard')
                 ? 'bg-white/10 text-white shadow-lg'
                 : 'hover:bg-white/5 text-gray-300 hover:text-white'
@@ -117,7 +118,7 @@ export default function AdminLayout({
 
           <Link
             href="/admin/dashboard/products"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group relative ${
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group relative ${
               isActiveRoute('/admin/dashboard/products')
                 ? 'bg-white/10 text-white shadow-lg'
                 : 'hover:bg-white/5 text-gray-300 hover:text-white'
@@ -134,7 +135,7 @@ export default function AdminLayout({
 
           <Link
             href="/admin/dashboard/orders"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group relative ${
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group relative ${
               pathname?.startsWith('/admin/dashboard/orders')
                 ? 'bg-white/10 text-white shadow-lg'
                 : 'hover:bg-white/5 text-gray-300 hover:text-white'
@@ -151,7 +152,7 @@ export default function AdminLayout({
 
           <Link
             href="/admin/dashboard/users"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group relative ${
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group relative ${
               pathname?.startsWith('/admin/dashboard/users')
                 ? 'bg-white/10 text-white shadow-lg'
                 : 'hover:bg-white/5 text-gray-300 hover:text-white'
@@ -168,7 +169,7 @@ export default function AdminLayout({
 
           <Link
             href="/admin/dashboard/landing-page"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group relative ${
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group relative ${
               pathname?.startsWith('/admin/dashboard/landing-page')
                 ? 'bg-white/10 text-white shadow-lg'
                 : 'hover:bg-white/5 text-gray-300 hover:text-white'
@@ -185,7 +186,7 @@ export default function AdminLayout({
 
           <Link
             href="/admin/dashboard/community"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group relative ${
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group relative ${
               pathname?.startsWith('/admin/dashboard/community')
                 ? 'bg-white/10 text-white shadow-lg'
                 : 'hover:bg-white/5 text-gray-300 hover:text-white'
@@ -202,7 +203,7 @@ export default function AdminLayout({
 
           <Link
             href="/admin/dashboard/about"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group relative ${
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group relative ${
               pathname?.startsWith('/admin/dashboard/about')
                 ? 'bg-white/10 text-white shadow-lg'
                 : 'hover:bg-white/5 text-gray-300 hover:text-white'
@@ -218,8 +219,25 @@ export default function AdminLayout({
           </Link>
 
           <Link
+            href="/admin/dashboard/contact"
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group relative ${
+              pathname?.startsWith('/admin/dashboard/contact')
+                ? 'bg-white/10 text-white shadow-lg'
+                : 'hover:bg-white/5 text-gray-300 hover:text-white'
+            }`}
+          >
+            {pathname?.startsWith('/admin/dashboard/contact') && (
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full"></span>
+            )}
+            <Mail className={`w-5 h-5 transition-all duration-200 ${
+              pathname?.startsWith('/admin/dashboard/contact') ? 'scale-110' : 'group-hover:scale-110'
+            }`} />
+            <span className="font-medium">{language === 'en' ? 'Contact Page' : 'Halaman Kontak'}</span>
+          </Link>
+
+          <Link
             href="/admin/dashboard/promotions"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group relative ${
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group relative ${
               pathname?.startsWith('/admin/dashboard/promotions')
                 ? 'bg-white/10 text-white shadow-lg'
                 : 'hover:bg-white/5 text-gray-300 hover:text-white'
@@ -236,7 +254,7 @@ export default function AdminLayout({
 
           <Link
             href="/admin/dashboard/shipping"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group relative ${
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group relative ${
               pathname?.startsWith('/admin/dashboard/shipping')
                 ? 'bg-white/10 text-white shadow-lg'
                 : 'hover:bg-white/5 text-gray-300 hover:text-white'
@@ -253,7 +271,7 @@ export default function AdminLayout({
 
           <Link
             href="/admin/dashboard/payment-methods"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group relative ${
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group relative ${
               pathname?.startsWith('/admin/dashboard/payment-methods')
                 ? 'bg-white/10 text-white shadow-lg'
                 : 'hover:bg-white/5 text-gray-300 hover:text-white'
@@ -270,7 +288,7 @@ export default function AdminLayout({
 
           <Link
             href="/admin/dashboard/site-settings"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group relative ${
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group relative ${
               pathname?.startsWith('/admin/dashboard/site-settings')
                 ? 'bg-white/10 text-white shadow-lg'
                 : 'hover:bg-white/5 text-gray-300 hover:text-white'
@@ -304,7 +322,7 @@ export default function AdminLayout({
       <AdminHeader sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       {/* Main Content */}
-      <div className="lg:ml-64 pt-16">
+      <div className="lg:ml-64 pt-18">
         <main className="p-4 lg:p-8">{children}</main>
       </div>
     </div>

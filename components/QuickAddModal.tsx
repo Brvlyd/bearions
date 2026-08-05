@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Minus, Plus, ShoppingCart, X } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n'
 import { cartService } from '@/lib/cart'
 import { supabase, type Product } from '@/lib/supabase'
-import { PRODUCT_COLOR_OPTIONS, PRODUCT_SIZE_OPTIONS, productColorLabel } from '@/lib/product-options'
+import { PRODUCT_SIZE_OPTIONS } from '@/lib/product-options'
+import { productColorService, resolveColorOptions, type ProductColor } from '@/lib/product-colors'
 import ProductPrice from './ProductPrice'
 import SafeImage from './SafeImage'
 
@@ -28,8 +29,42 @@ export default function QuickAddModal({ product, image, onClose }: QuickAddModal
   const [adding, setAdding] = useState(false)
   const [added, setAdded] = useState(false)
   const [error, setError] = useState('')
+  const [colorRows, setColorRows] = useState<ProductColor[] | null>(null)
 
   const productName = language === 'id' && product.name_id ? product.name_id : product.name || ''
+
+  // Same source as the detail page, so quick-add can never offer a colour the
+  // product is not actually sold in.
+  const colorOptions = useMemo(
+    () => resolveColorOptions(colorRows, language),
+    [colorRows, language]
+  )
+
+  useEffect(() => {
+    let cancelled = false
+
+    productColorService
+      .getColorsForProduct(product.id)
+      .then((rows) => {
+        if (!cancelled) setColorRows(rows)
+      })
+      .catch((loadError) => {
+        console.error('Failed to load product colors:', loadError)
+        if (!cancelled) setColorRows([])
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [product.id])
+
+  // The fallback list is on screen while the real colours load, so a fast
+  // shopper can pick one this product does not come in. Drop it rather than
+  // send a colour the store cannot fulfil to the cart.
+  useEffect(() => {
+    if (!selectedColor) return
+    if (!colorOptions.some((color) => color.name === selectedColor)) setSelectedColor('')
+  }, [colorOptions, selectedColor])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -143,19 +178,28 @@ export default function QuickAddModal({ product, image, onClose }: QuickAddModal
 
             <div>
               <h3 className="text-sm font-semibold mb-2 text-black">{t('product.color')}</h3>
-              <div className="flex flex-wrap gap-2">
-                {PRODUCT_COLOR_OPTIONS.map((color) => (
+              {/* Scrolls once the list gets long, so the modal keeps its Add to
+                  Cart button reachable however many colours a product has. */}
+              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto overscroll-contain pr-1">
+                {colorOptions.map((color) => (
                   <button
-                    key={color}
+                    key={color.name}
                     type="button"
-                    onClick={() => setSelectedColor(color)}
-                    className={`px-3.5 py-1.5 border-2 rounded-lg font-semibold transition text-sm ${
-                      selectedColor === color
+                    onClick={() => setSelectedColor(color.name)}
+                    title={color.label}
+                    aria-pressed={selectedColor === color.name}
+                    className={`inline-flex max-w-full items-center gap-2 rounded-lg border-2 px-3 py-1.5 text-sm font-semibold transition ${
+                      selectedColor === color.name
                         ? 'border-black bg-black text-white'
                         : 'border-gray-300 text-black hover:border-black'
                     }`}
                   >
-                    {productColorLabel(color, language)}
+                    <span
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5 shrink-0 rounded-full border border-black/15"
+                      style={{ backgroundColor: color.hex || '#e5e7eb' }}
+                    />
+                    <span className="truncate">{color.label}</span>
                   </button>
                 ))}
               </div>
