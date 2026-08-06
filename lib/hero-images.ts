@@ -27,6 +27,51 @@ export const HERO_DESKTOP_SIZE_GUIDE = [
 
 export const HERO_MOBILE_SIZE_GUIDE = { ratio: '9:16', size: '1080 x 1920 px', width: 1080, height: 1920 }
 
+/**
+ * Where the images end up. 'fullscreen' is the landing hero, which fills the
+ * viewport, so portrait crops are right. 'banner' is the strip above the
+ * community gallery — a wide, short box — where a 9:16 upload gets cropped down
+ * to a sliver of its middle. The two need different guidance and different
+ * crop ratios, which is the whole reason this distinction exists.
+ */
+export type HeroImageVariant = 'fullscreen' | 'banner'
+
+export type HeroSizeGuide = {
+  count: number
+  ratio: string
+  size: string
+  width: number
+  height: number
+}
+
+/**
+ * Banner cell ratios, derived from the rendered box: max-w-6xl (1152px) wide by
+ * h-96 (384px) tall, split by the same grid `getHeroGridColumnsClass` produces.
+ */
+export const HERO_BANNER_DESKTOP_SIZE_GUIDE: HeroSizeGuide[] = [
+  { count: 1, ratio: '3:1', size: '2304 x 768 px', width: 2304, height: 768 },
+  { count: 2, ratio: '3:2', size: '1728 x 1152 px', width: 1728, height: 1152 },
+  { count: 3, ratio: '1:1', size: '1152 x 1152 px', width: 1152, height: 1152 },
+  { count: 4, ratio: '3:1', size: '1728 x 576 px', width: 1728, height: 576 },
+  { count: 5, ratio: '2:1', size: '1152 x 576 px', width: 1152, height: 576 },
+  { count: 6, ratio: '2:1', size: '1152 x 576 px', width: 1152, height: 576 },
+]
+
+/** Mobile banner box is ~full width by h-56 (224px): a wide strip, not a portrait. */
+export const HERO_BANNER_MOBILE_SIZE_GUIDE: HeroSizeGuide = {
+  count: 1,
+  ratio: '16:9',
+  size: '1600 x 900 px',
+  width: 1600,
+  height: 900,
+}
+
+export const getHeroDesktopSizeGuides = (variant: HeroImageVariant): HeroSizeGuide[] =>
+  variant === 'banner' ? HERO_BANNER_DESKTOP_SIZE_GUIDE : HERO_DESKTOP_SIZE_GUIDE
+
+export const getHeroMobileSizeGuide = (variant: HeroImageVariant) =>
+  variant === 'banner' ? HERO_BANNER_MOBILE_SIZE_GUIDE : HERO_MOBILE_SIZE_GUIDE
+
 export function getHeroGridColumnsClass(count: number): string {
   if (count <= 1) return 'grid-cols-1'
   if (count === 2) return 'grid-cols-1 md:grid-cols-2'

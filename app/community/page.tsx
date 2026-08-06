@@ -96,7 +96,10 @@ export default function CommunityPage() {
     window.addEventListener('keydown', handleEscape)
 
     return () => {
-      document.body.style.overflow = 'auto'
+      // Cleared, not forced to 'auto': the page's own overflow rules should
+      // come back, otherwise closing the lightbox leaves an inline override
+      // on <body> that outlives it.
+      document.body.style.overflow = ''
       window.removeEventListener('keydown', handleEscape)
     }
   }, [activePost])
@@ -193,15 +196,29 @@ export default function CommunityPage() {
   const { desktop: heroDesktopImages, mobile: heroMobileImages } = splitHeroImagesByDevice(heroImages)
   const hasHeroBanner = heroDesktopImages.length > 0 || heroMobileImages.length > 0
 
+  // The banner is optional per device: with only a mobile photo uploaded, the
+  // desktop half used to render an empty grey box the width of the page. The
+  // box now follows the images — it is dropped entirely on a device that has
+  // none, rather than falling back to a placeholder gradient.
+  const heroBannerVisibility =
+    heroDesktopImages.length === 0
+      ? 'md:hidden'
+      : heroMobileImages.length === 0
+        ? 'hidden md:block'
+        : ''
+
   return (
     <div className="min-h-screen bg-white pt-20">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {hasHeroBanner && (
-          <div className="relative w-full h-56 sm:h-72 md:h-96 rounded-2xl overflow-hidden border border-gray-200 mb-8">
+          <div
+            className={`relative w-full h-56 sm:h-72 md:h-96 rounded-2xl overflow-hidden border border-gray-200 mb-8 ${heroBannerVisibility}`}
+          >
             <HeroBackground
               desktopImages={heroDesktopImages}
               mobileImages={heroMobileImages}
               alt={language === 'en' ? 'Community banner' : 'Banner komunitas'}
+              emptyFallback="none"
             />
           </div>
         )}
@@ -296,6 +313,9 @@ export default function CommunityPage() {
           />
 
           <div
+            // The backdrop button sits behind this box, so without this the
+            // padding around the photo swallowed the click instead of closing.
+            onClick={closeModal}
             className={`relative w-full max-w-5xl max-h-[92vh] transition-all duration-200 ${
               modalReady ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
             }`}

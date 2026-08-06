@@ -10,9 +10,6 @@ interface ColorPreviewModalProps {
   color: ColorOption
   productName: string
   category?: string
-  /** True when this colour is already the selected one on the page behind. */
-  selected: boolean
-  onConfirm: () => void
   onClose: () => void
 }
 
@@ -20,13 +17,15 @@ interface ColorPreviewModalProps {
  * Shows the garment in the colour the shopper just tapped. Opened only for
  * colours that actually have a photo — a colour without one selects silently
  * rather than popping an empty frame.
+ *
+ * Preview only, no confirm button: tapping the swatch has already applied the
+ * colour by the time this opens, so a button here would have nothing left to
+ * do but close — which the X, the backdrop and Escape all already do.
  */
 export default function ColorPreviewModal({
   color,
   productName,
   category,
-  selected,
-  onConfirm,
   onClose,
 }: ColorPreviewModalProps) {
   const { tr } = useLanguage()
@@ -81,19 +80,12 @@ export default function ColorPreviewModal({
               <p className="truncate font-semibold text-black">{color.label}</p>
               <p className="truncate text-sm text-gray-500">{productName}</p>
             </div>
-          </div>
-
-          <div className="px-4 pb-4">
-            <button
-              type="button"
-              onClick={onConfirm}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-black py-3 font-semibold text-white transition hover:bg-gray-800"
-            >
-              <Check className="h-4 w-4" />
-              {selected
-                ? tr('Keep this color', 'Pakai warna ini')
-                : tr('Choose this color', 'Pilih warna ini')}
-            </button>
+            {/* Says out loud what the tap already did, so closing the preview
+                doesn't feel like cancelling the choice. */}
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-black px-3 py-1.5 text-xs font-semibold text-white">
+              <Check className="h-3.5 w-3.5" />
+              {tr('Selected', 'Terpilih')}
+            </span>
           </div>
         </div>
       </div>

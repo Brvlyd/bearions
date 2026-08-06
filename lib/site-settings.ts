@@ -39,6 +39,25 @@ export const LOGO_DISPLAY_WIDTH = Math.round(
   (LOGO_DISPLAY_HEIGHT * LOGO_NATURAL_WIDTH) / LOGO_NATURAL_HEIGHT
 )
 
+/**
+ * Length at which Google starts truncating the two lines of a search result.
+ * Advisory only — the CMS warns, it does not block, because a longer title
+ * still works, it just gets an ellipsis.
+ */
+export const SEARCH_TITLE_RECOMMENDED_MAX = 60
+export const SEARCH_DESCRIPTION_RECOMMENDED_MAX = 160
+
+/**
+ * The brand on its own, for places that name the store rather than the page:
+ * og:site_name, structured data, the site name line in a search result. Titles
+ * are usually written "Bearion - Modern Fashion Store", so anything after a
+ * dash separator is a tagline, not the name.
+ */
+export const getSiteName = (siteTitle: string) => {
+  const [name] = siteTitle.split(/\s[-–—|]\s/)
+  return name?.trim() || siteTitle.trim()
+}
+
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   id: 1,
   site_title: 'Bearion - Modern Fashion Store',

@@ -11,11 +11,15 @@ import {
   LOGO_ASPECT_RATIO,
   LOGO_NATURAL_HEIGHT,
   LOGO_NATURAL_WIDTH,
+  SEARCH_DESCRIPTION_RECOMMENDED_MAX,
+  SEARCH_TITLE_RECOMMENDED_MAX,
+  getSiteName,
   loadSiteSettings,
   parseSiteSettingsError,
   resolveDarkBgLogoUrl,
   resolveFaviconLink,
 } from '@/lib/site-settings'
+import { getPublicSiteOrigin } from '@/lib/site-url'
 
 type Message = {
   type: 'success' | 'error'
@@ -32,8 +36,10 @@ type SiteSettingsFormState = {
   contact_email: string | null
 }
 
-// Placeholder domain shown in the browser-tab mockup; not user-facing copy.
-const PREVIEW_DOMAIN = 'bearion.example.com'
+// The live storefront address, so both previews show the real result rather
+// than a made-up one.
+const SITE_ORIGIN = getPublicSiteOrigin()
+const PREVIEW_DOMAIN = SITE_ORIGIN.replace(/^https?:\/\//, '')
 
 const MAX_FAVICON_SIZE = 1024 * 1024
 const ALLOWED_FAVICON_TYPES = [
@@ -56,7 +62,9 @@ const ALLOWED_LOGO_TYPES = [
 ]
 
 const REFERENCE_LOGO_ASPECT = LOGO_NATURAL_WIDTH / LOGO_NATURAL_HEIGHT
-const FAVICON_EXPORT_SIZE = 512
+// Google only accepts a search-result icon that is square with a side length in
+// multiples of 48px, so exports land on 480 (48 x 10) rather than 512.
+const FAVICON_EXPORT_SIZE = 480
 
 // Vector and .ico files have no single raster size to edit, so they skip the editor.
 const isRasterEditable = (file: File) =>
@@ -116,8 +124,8 @@ export default function AdminSiteSettingsPage() {
     pageTitle: language === 'en' ? 'Site Settings' : 'Pengaturan Situs',
     pageSubtitle:
       language === 'en'
-        ? 'Change the navbar logo, browser tab name and icon shown to every visitor.'
-        : 'Ubah logo navbar, nama dan ikon tab browser yang dilihat semua pengunjung.',
+        ? 'Change the navbar logo, the browser tab name and icon, and the title, description and icon shown when the store appears in Google.'
+        : 'Ubah logo navbar, nama dan ikon tab browser, serta judul, deskripsi dan ikon yang tampil saat toko muncul di Google.',
     setupRequired: language === 'en' ? 'Setup required' : 'Perlu setup',
     setupHelp:
       language === 'en'
@@ -155,14 +163,20 @@ export default function AdminSiteSettingsPage() {
     tabName: language === 'en' ? 'Tab Name' : 'Nama Tab',
     tabNameHint:
       language === 'en'
-        ? 'Shown in the browser tab and in search results.'
-        : 'Ditampilkan di tab browser dan pada hasil pencarian.',
+        ? 'Shown in the browser tab and as the blue headline in Google results. Anything after a dash is treated as a tagline, so "Bearion - Modern Fashion Store" makes the site name "Bearion".'
+        : 'Ditampilkan di tab browser dan sebagai judul biru di hasil Google. Bagian setelah tanda strip dianggap tagline, jadi "Bearion - Modern Fashion Store" membuat nama situsnya "Bearion".',
     tabNamePlaceholder: DEFAULT_SITE_SETTINGS.site_title,
     description: language === 'en' ? 'Site Description' : 'Deskripsi Situs',
     descriptionHint:
       language === 'en'
-        ? 'Used as the meta description when the site is shared or indexed.'
-        : 'Dipakai sebagai meta description saat situs dibagikan atau diindeks.',
+        ? 'The grey line under the title in search results, and the text shown when the link is shared to WhatsApp or Instagram.'
+        : 'Baris abu-abu di bawah judul pada hasil pencarian, sekaligus teks yang muncul saat link dibagikan ke WhatsApp atau Instagram.',
+    lengthCounter: (current: number, max: number) =>
+      language === 'en' ? `${current}/${max} characters` : `${current}/${max} karakter`,
+    lengthWarning: (max: number) =>
+      language === 'en'
+        ? `Over ${max} characters — Google will cut the rest off with "...".`
+        : `Lebih dari ${max} karakter — Google akan memotong sisanya dengan "...".`,
     tabIcon: language === 'en' ? 'Tab Icon (Favicon)' : 'Ikon Tab (Favicon)',
     faviconUrl: language === 'en' ? 'Icon URL' : 'URL Ikon',
     chooseIcon: language === 'en' ? 'Upload icon' : 'Unggah ikon',
@@ -199,6 +213,12 @@ export default function AdminSiteSettingsPage() {
       language === 'en'
         ? 'Open tabs refresh automatically after saving.'
         : 'Tab yang terbuka akan menyesuaikan otomatis setelah disimpan.',
+    searchPreviewTitle:
+      language === 'en' ? 'Google Search Preview' : 'Preview Hasil Pencarian Google',
+    searchPreviewHint:
+      language === 'en'
+        ? 'The site itself updates the moment you save. Google re-reads it on its own schedule, so the result above may keep showing the old text for a few days — request a re-crawl in Google Search Console to speed it up.'
+        : 'Situsnya langsung berubah begitu disimpan. Google membacanya ulang sesuai jadwalnya sendiri, jadi hasil di atas bisa tetap menampilkan teks lama beberapa hari — minta crawl ulang di Google Search Console kalau mau lebih cepat.',
     untitled: language === 'en' ? 'Untitled' : 'Tanpa Judul',
     adjustSize: language === 'en' ? 'Adjust size' : 'Atur ukuran',
     logoEditorTitle: language === 'en' ? 'Adjust navbar logo' : 'Sesuaikan logo navbar',
@@ -562,6 +582,17 @@ export default function AdminSiteSettingsPage() {
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-black"
               />
               <p className="text-xs text-gray-500 mt-2">{text.tabNameHint}</p>
+              <p
+                className={`text-xs mt-1 ${
+                  form.site_title.trim().length > SEARCH_TITLE_RECOMMENDED_MAX
+                    ? 'text-yellow-700'
+                    : 'text-gray-400'
+                }`}
+              >
+                {text.lengthCounter(form.site_title.trim().length, SEARCH_TITLE_RECOMMENDED_MAX)}
+                {form.site_title.trim().length > SEARCH_TITLE_RECOMMENDED_MAX &&
+                  ` — ${text.lengthWarning(SEARCH_TITLE_RECOMMENDED_MAX)}`}
+              </p>
             </div>
 
             <div>
@@ -574,6 +605,20 @@ export default function AdminSiteSettingsPage() {
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-black"
               />
               <p className="text-xs text-gray-500 mt-2">{text.descriptionHint}</p>
+              <p
+                className={`text-xs mt-1 ${
+                  form.site_description.trim().length > SEARCH_DESCRIPTION_RECOMMENDED_MAX
+                    ? 'text-yellow-700'
+                    : 'text-gray-400'
+                }`}
+              >
+                {text.lengthCounter(
+                  form.site_description.trim().length,
+                  SEARCH_DESCRIPTION_RECOMMENDED_MAX
+                )}
+                {form.site_description.trim().length > SEARCH_DESCRIPTION_RECOMMENDED_MAX &&
+                  ` — ${text.lengthWarning(SEARCH_DESCRIPTION_RECOMMENDED_MAX)}`}
+              </p>
             </div>
 
             <div className="pt-4 border-t border-gray-200 space-y-4">
@@ -741,18 +786,46 @@ export default function AdminSiteSettingsPage() {
             </div>
 
             <div className="bg-white border border-gray-200 rounded-b-lg rounded-tr-lg p-4">
-              <div className="flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 mb-4">
+              <div className="flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5">
                 <Globe className="w-3.5 h-3.5 text-gray-400" />
                 <span className="text-xs text-gray-500 truncate">{PREVIEW_DOMAIN}</span>
               </div>
-              <p className="text-sm font-semibold text-black truncate">
-                {form.site_title.trim() || text.untitled}
-              </p>
-              <p className="text-xs text-gray-600 mt-1 line-clamp-2">{form.site_description}</p>
             </div>
           </div>
 
           <p className="text-xs text-gray-500 mt-3">{text.previewHint}</p>
+
+          {/* Mirrors a Google result: icon + site name + address on one line,
+              then the blue headline and the grey summary. Same three fields as
+              above, so the client can see what a search will look like before
+              saving. */}
+          <h3 className="text-lg font-semibold text-black mt-8 mb-4">{text.searchPreviewTitle}</h3>
+
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <div className="flex items-center gap-2.5 mb-2">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full border border-gray-200 bg-white">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previewFavicon.href}
+                  alt={language === 'en' ? 'Favicon preview' : 'Pratinjau favicon'}
+                  className="h-5 w-5 object-contain"
+                />
+              </span>
+              <span className="min-w-0 leading-tight">
+                <span className="block truncate text-xs font-medium text-black">
+                  {getSiteName(form.site_title.trim() || text.untitled)}
+                </span>
+                <span className="block truncate text-xs text-gray-500">{PREVIEW_DOMAIN}</span>
+              </span>
+            </div>
+
+            <p className="text-lg text-[#1a0dab] leading-snug line-clamp-1">
+              {form.site_title.trim() || text.untitled}
+            </p>
+            <p className="text-sm text-gray-600 mt-1 line-clamp-2">{form.site_description}</p>
+          </div>
+
+          <p className="text-xs text-gray-500 mt-3">{text.searchPreviewHint}</p>
         </div>
       </div>
 

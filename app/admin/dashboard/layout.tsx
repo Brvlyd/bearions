@@ -8,6 +8,8 @@ import { authService } from '@/lib/auth'
 import { Package, BarChart3, Users, ShoppingCart, X, Image, Images, Info, CreditCard, Settings, Truck, Gift, Mail } from 'lucide-react'
 import AdminHeader from '@/components/AdminHeader'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import { useSiteSettings } from '@/components/SiteSettingsProvider'
+import { LOGO_ASPECT_RATIO, resolveDarkBgLogoUrl } from '@/lib/site-settings'
 
 export default function AdminLayout({
   children,
@@ -17,6 +19,11 @@ export default function AdminLayout({
   const router = useRouter()
   const pathname = usePathname()
   const { t, language } = useLanguage()
+  const siteSettings = useSiteSettings()
+  // Same mark the storefront header uses: the white variant of the bundled
+  // logo, or the CMS upload once one is set. The sidebar is black, so the
+  // black default artwork would be invisible here.
+  const logoSrc = resolveDarkBgLogoUrl(siteSettings.logo_url, siteSettings.updated_at)
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -75,14 +82,17 @@ export default function AdminLayout({
             borders line up instead of stepping at the sidebar edge. */}
         <div className="shrink-0 h-18 px-4 border-b border-white/10 flex items-center">
           <div className="flex w-full items-center justify-between gap-2">
-            <Link href="/" className="flex min-w-0 items-center gap-2.5 group">
-              <div className="w-10 h-10 shrink-0 bg-white text-black flex items-center justify-center font-bold text-lg rounded-lg transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-lg">
-                B
-              </div>
-              <div className="min-w-0 leading-tight">
-                <span className="text-lg font-bold block truncate transition-all duration-300 group-hover:text-gray-300">BEARION</span>
-                <span className="text-xs text-gray-400 block truncate">{t('adminSidebar.adminPanel')}</span>
-              </div>
+            <Link href="/" className="flex min-w-0 items-center gap-3 group">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={logoSrc}
+                alt={siteSettings.site_title}
+                style={{ aspectRatio: LOGO_ASPECT_RATIO }}
+                className="h-11 w-auto shrink-0 object-contain transition-transform duration-300 group-hover:scale-105"
+              />
+              <span className="min-w-0 border-l border-white/15 pl-3 text-xs text-gray-400 leading-tight">
+                {t('adminSidebar.adminPanel')}
+              </span>
             </Link>
             <button
               onClick={() => setSidebarOpen(false)}
@@ -94,7 +104,7 @@ export default function AdminLayout({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+        <nav className="flex-1 overflow-y-auto scrollbar-dark p-4 space-y-1">
           <p className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
             {t('adminSidebar.mainMenu')}
           </p>

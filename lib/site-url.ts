@@ -16,6 +16,22 @@ export const getSiteOrigin = (fallbackOrigin = '') => {
   return trimTrailingSlash(fallbackOrigin.trim())
 }
 
+/**
+ * The live storefront origin. bearions.store 308-redirects to the www host, so
+ * that is the canonical one search engines should be pointed at.
+ */
+export const DEFAULT_SITE_ORIGIN = 'https://www.bearions.store'
+
+/**
+ * Origin used for anything a crawler or another site reads: canonical links,
+ * Open Graph URLs, robots.txt, sitemap.xml. Unlike `getSiteOrigin` this never
+ * falls back to the current request's host — a preview deployment must not
+ * publish itself as the canonical site — so it resolves to the production
+ * domain whenever NEXT_PUBLIC_SITE_URL is unset.
+ */
+export const getPublicSiteOrigin = () =>
+  getSiteOrigin() || DEFAULT_SITE_ORIGIN
+
 /** Origin of the browser currently running, used as the fallback on the client. */
 export const getBrowserOrigin = () =>
   typeof window !== 'undefined' ? window.location.origin : ''

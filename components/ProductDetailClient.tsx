@@ -321,11 +321,6 @@ export default function ProductDetailClient({
           color={previewColor}
           productName={productName}
           category={product.category}
-          selected={selectedColor === previewColor.name}
-          onConfirm={() => {
-            setSelectedColor(previewColor.name)
-            setPreviewColorName(null)
-          }}
           onClose={() => setPreviewColorName(null)}
         />
       )}

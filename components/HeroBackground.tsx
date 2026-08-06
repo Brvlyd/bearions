@@ -19,37 +19,53 @@ type Props = {
   desktopImages: HeroImageRow[]
   mobileImages: HeroImageRow[]
   alt: string
+  /**
+   * What a device with no images uploaded shows. 'gradient' keeps the placeholder
+   * (the landing hero always needs something behind its CTA); 'none' renders
+   * nothing at all, for surfaces where an empty grey box would just look broken.
+   */
+  emptyFallback?: 'gradient' | 'none'
 }
 
-export default function HeroBackground({ desktopImages, mobileImages, alt }: Props) {
+export default function HeroBackground({
+  desktopImages,
+  mobileImages,
+  alt,
+  emptyFallback = 'gradient',
+}: Props) {
   const desktopCount = Math.max(desktopImages.length, 1)
   const gridClass = getHeroGridColumnsClass(desktopCount)
   const mobileImage = mobileImages[0] || null
+  const showPlaceholder = emptyFallback === 'gradient'
 
   return (
     <>
-      <div className={`absolute inset-0 hidden md:grid ${gridClass} auto-rows-fr gap-0`}>
-        {(desktopImages.length > 0 ? desktopImages : [null]).map((image, index) => (
-          <div
-            key={image?.id || `fallback-${index}`}
-            className={`relative overflow-hidden bg-linear-to-br ${FALLBACK_GRADIENTS[index % FALLBACK_GRADIENTS.length]}`}
-          >
-            {image?.image_url && (
-              <img
-                src={getImageUrl(image.image_url)}
-                alt={`${alt} ${index + 1}`}
-                className="w-full h-full object-cover"
-              />
-            )}
-          </div>
-        ))}
-      </div>
+      {(desktopImages.length > 0 || showPlaceholder) && (
+        <div className={`absolute inset-0 hidden md:grid ${gridClass} auto-rows-fr gap-0`}>
+          {(desktopImages.length > 0 ? desktopImages : [null]).map((image, index) => (
+            <div
+              key={image?.id || `fallback-${index}`}
+              className={`relative overflow-hidden bg-linear-to-br ${FALLBACK_GRADIENTS[index % FALLBACK_GRADIENTS.length]}`}
+            >
+              {image?.image_url && (
+                <img
+                  src={getImageUrl(image.image_url)}
+                  alt={`${alt} ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
-      <div className={`absolute inset-0 md:hidden overflow-hidden bg-linear-to-br ${FALLBACK_GRADIENTS[0]}`}>
-        {mobileImage?.image_url && (
-          <img src={getImageUrl(mobileImage.image_url)} alt={alt} className="w-full h-full object-cover" />
-        )}
-      </div>
+      {(mobileImage || showPlaceholder) && (
+        <div className={`absolute inset-0 md:hidden overflow-hidden bg-linear-to-br ${FALLBACK_GRADIENTS[0]}`}>
+          {mobileImage?.image_url && (
+            <img src={getImageUrl(mobileImage.image_url)} alt={alt} className="w-full h-full object-cover" />
+          )}
+        </div>
+      )}
     </>
   )
 }

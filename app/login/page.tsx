@@ -5,14 +5,13 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { authService, getDashboardPath } from '@/lib/auth'
 import Link from 'next/link'
 import { useLanguage } from '@/lib/i18n'
-import { useDialog } from '@/lib/dialog'
+import { markWelcomeAfterLogin } from '@/lib/welcome-intro'
 import LoadingSpinner from '@/components/LoadingSpinner'
 
 function LoginPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { t, language } = useLanguage()
-  const { alertDialog } = useDialog()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -107,30 +106,18 @@ function LoginPageContent() {
       
       setRedirecting(true)
 
-      if (result.role === 'admin') {
-        // Admins sign in to get work done, several times a day — a greeting
-        // they have to dismiss first is friction, not welcome.
-        //
-        // For customers that dialog doubled as the "session is saved" pause the
-        // old fixed 800ms timeout used to provide, so skipping it here needs the
-        // real thing in its place: read the session back before navigating away.
-        await authService.getSession()
-      } else {
-        const displayName = result.profile?.full_name?.trim() || email.split('@')[0]
-        await alertDialog(
-          language === 'en'
-            ? `Hello ${displayName}, welcome to Bearion!`
-            : `Halo ${displayName}, selamat datang di Bearion!`,
-          {
-            title: language === 'en' ? 'Welcome!' : 'Selamat Datang!',
-            variant: 'success',
-            okText: language === 'en' ? 'Continue' : 'Lanjut',
-          }
-        )
-      }
+      // Both roles leave via a full page load, so read the session back first —
+      // that is what guarantees it is persisted before we navigate away. It
+      // replaces the pause the old welcome dialog provided incidentally.
+      await authService.getSession()
 
-      if (result.role === 'admin' || result.role === 'user') {
+      if (result.role === 'admin') {
         window.location.href = getDashboardPath(result.role)
+      } else if (result.role === 'user') {
+        // Customers are welcomed by the logo animation on the landing page now,
+        // rather than by a dialog they have to dismiss before they get anywhere.
+        markWelcomeAfterLogin()
+        window.location.href = '/'
       } else {
         setError(t('login.errorRoleDetermination'))
         await authService.logout()

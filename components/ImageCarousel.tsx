@@ -128,14 +128,31 @@ export default function ImageCarousel({ images, alt, autoPlay = true, interval =
     )
   }
 
-  // Rest state is a soft frosted disc; hover firms it up. Kept visible at all
-  // times on touch, where there is no hover to reveal it with.
+  // Rest state is the bare chevron with no plate behind it, so the control
+  // covers as little of the photo as possible. Kept visible at all times on
+  // touch, where there is no hover to reveal it with.
   const navButton =
-    'absolute top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-10 h-10 rounded-full ' +
-    'bg-white/70 text-black shadow-lg shadow-black/10 ring-1 ring-black/5 backdrop-blur-md ' +
-    'transition-all duration-200 hover:bg-white hover:scale-105 active:scale-95 ' +
-    'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-black ' +
+    'group/nav absolute top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-10 h-10 rounded-full ' +
+    'text-black transition-[opacity,transform] duration-200 active:scale-90 ' +
+    'focus-visible:outline-hidden ' +
     'md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100'
+
+  // Its own layer rather than the button's own background: that way the disc
+  // can grow into place while the chevron does its nudge, and the press
+  // shrink applies to both without fighting the button's -translate-y.
+  const navPlate =
+    'absolute inset-0 rounded-full bg-white/80 shadow-lg shadow-black/10 ring-1 ring-black/5 backdrop-blur-md ' +
+    'scale-50 opacity-0 transition-all duration-200 ease-out ' +
+    'group-hover/nav:scale-100 group-hover/nav:opacity-100 ' +
+    'group-focus-visible/nav:scale-100 group-focus-visible/nav:opacity-100 ' +
+    'group-focus-visible/nav:ring-2 group-focus-visible/nav:ring-black ' +
+    'group-active/nav:bg-white'
+
+  // The white halo is what keeps a bare black chevron legible on a dark photo;
+  // once the plate is behind it the halo is no longer doing any work.
+  const navIcon =
+    'relative w-5 h-5 transition-[transform,filter] duration-200 ' +
+    'drop-shadow-[0_0_3px_rgba(255,255,255,0.9)] group-hover/nav:drop-shadow-none'
 
   return (
     <div className="relative w-full h-full group bg-white">
@@ -165,7 +182,8 @@ export default function ImageCarousel({ images, alt, autoPlay = true, interval =
         aria-label={tr('Previous image', 'Gambar sebelumnya')}
         type="button"
       >
-        <ChevronLeft className="w-5 h-5" />
+        <span aria-hidden className={navPlate} />
+        <ChevronLeft className={`${navIcon} group-hover/nav:-translate-x-0.5`} />
       </button>
 
       <button
@@ -175,7 +193,8 @@ export default function ImageCarousel({ images, alt, autoPlay = true, interval =
         aria-label={tr('Next image', 'Gambar berikutnya')}
         type="button"
       >
-        <ChevronRight className="w-5 h-5" />
+        <span aria-hidden className={navPlate} />
+        <ChevronRight className={`${navIcon} group-hover/nav:translate-x-0.5`} />
       </button>
 
       {/* Dots Indicator */}

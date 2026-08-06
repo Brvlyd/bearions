@@ -512,8 +512,9 @@ export default function AdminCommunityGalleryPage() {
         <HeroImageManager
           table="community_page_images"
           storagePathPrefix="community-hero"
+          variant="banner"
           heading="Banner Halaman Community"
-          subheading="Foto latar di bagian atas halaman Community (di atas galeri post), beda untuk desktop dan mobile. Kosongkan kalau tidak mau pakai banner."
+          subheading="Foto di kotak lebar bagian atas halaman Community (di atas galeri post), diatur terpisah untuk desktop dan HP. Kosongkan kalau tidak mau pakai banner."
         />
       </div>
 

@@ -8,11 +8,12 @@ import { getErrorMessage } from '@/lib/errors'
 import ImageEditorModal from '@/components/ImageEditorModal'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import {
-  HERO_DESKTOP_SIZE_GUIDE,
-  HERO_MOBILE_SIZE_GUIDE,
   MAX_HERO_DESKTOP_IMAGES,
+  getHeroDesktopSizeGuides,
+  getHeroMobileSizeGuide,
   type HeroImageDevice,
   type HeroImageRow,
+  type HeroImageVariant,
 } from '@/lib/hero-images'
 
 // Shared admin manager for both landing_page_images and community_page_images:
@@ -40,9 +41,22 @@ type Props = {
   storagePathPrefix: string
   heading: string
   subheading: string
+  /**
+   * Shape of the slot on the public page. 'fullscreen' fills the viewport
+   * (landing hero), 'banner' is the wide strip above the community gallery.
+   * Drives the recommended sizes, the preview shape and the crop ratio, so
+   * what the admin frames here is what visitors actually see.
+   */
+  variant?: HeroImageVariant
 }
 
-export default function HeroImageManager({ table, storagePathPrefix, heading, subheading }: Props) {
+export default function HeroImageManager({
+  table,
+  storagePathPrefix,
+  heading,
+  subheading,
+  variant = 'fullscreen',
+}: Props) {
   const [device, setDevice] = useState<HeroImageDevice>('desktop')
   const [images, setImages] = useState<HeroImageRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -72,10 +86,17 @@ export default function HeroImageManager({ table, storagePathPrefix, heading, su
 
   const desktopImages = images.filter((image) => image.device !== 'mobile')
   const mobileImage = images.find((image) => image.device === 'mobile')
+  const desktopSizeGuides = getHeroDesktopSizeGuides(variant)
+  const mobileSizeGuide = getHeroMobileSizeGuide(variant)
   const activeDesktopGuide =
-    HERO_DESKTOP_SIZE_GUIDE.find((guide) => guide.count === Math.max(1, desktopImages.length)) ||
-    HERO_DESKTOP_SIZE_GUIDE[0]
-  const activeSizeGuide = device === 'mobile' ? HERO_MOBILE_SIZE_GUIDE : activeDesktopGuide
+    desktopSizeGuides.find((guide) => guide.count === Math.max(1, desktopImages.length)) ||
+    desktopSizeGuides[0]
+  const activeSizeGuide = device === 'mobile' ? mobileSizeGuide : activeDesktopGuide
+  // The banner crops to a fixed box, so the editor locks to that ratio and the
+  // slot preview is drawn in it. The landing hero's cells stretch with the
+  // viewport, so there it stays a free crop against a rough preview shape.
+  const isBanner = variant === 'banner'
+  const previewAspect = (guide: { width: number; height: number }) => guide.width / guide.height
 
   const handleUpload = async (targetDevice: HeroImageDevice, position: number, file: File) => {
     const key = `${targetDevice}-${position}`
@@ -180,6 +201,7 @@ export default function HeroImageManager({ table, storagePathPrefix, heading, su
   const renderSlot = (targetDevice: HeroImageDevice, position: number, image: HeroImageRow | undefined, label: string) => {
     const key = `${targetDevice}-${position}`
     const isUploading = uploadingKey === key
+    const slotGuide = targetDevice === 'mobile' ? mobileSizeGuide : activeDesktopGuide
 
     return (
       <div key={key} className="border-2 border-gray-200 rounded-lg p-6 bg-white">
@@ -187,8 +209,9 @@ export default function HeroImageManager({ table, storagePathPrefix, heading, su
 
         <div
           className={`${
-            targetDevice === 'mobile' ? 'aspect-9/16 max-w-56 mx-auto' : 'aspect-3/4'
+            isBanner ? '' : targetDevice === 'mobile' ? 'aspect-9/16 max-w-56 mx-auto' : 'aspect-3/4'
           } bg-gray-100 rounded-lg mb-4 overflow-hidden relative`}
+          style={isBanner ? { aspectRatio: previewAspect(slotGuide) } : undefined}
         >
           {image?.image_url ? (
             <img src={getImageUrl(image.image_url)} alt={label} className="w-full h-full object-cover" />
@@ -300,10 +323,25 @@ export default function HeroImageManager({ table, storagePathPrefix, heading, su
         </button>
       </div>
 
+      {/* Desktop and mobile are stored separately, and for a banner an empty
+          device simply has no banner. Said out loud here because the admin only
+          ever looks at one tab at a time. */}
+      {isBanner && (desktopImages.length === 0 || !mobileImage) && (
+        <div className="mb-6 p-4 rounded-lg bg-yellow-50 border border-yellow-200 text-sm text-yellow-900">
+          {desktopImages.length === 0 && !mobileImage
+            ? 'Belum ada foto banner sama sekali, jadi halaman tampil tanpa banner.'
+            : desktopImages.length === 0
+              ? 'Belum ada foto untuk Desktop, jadi banner hanya muncul di HP. Upload di tab Desktop kalau mau tampil juga di komputer.'
+              : 'Belum ada foto untuk Mobile, jadi banner hanya muncul di komputer. Upload di tab Mobile kalau mau tampil juga di HP.'}
+        </div>
+      )}
+
       {device === 'desktop' ? (
         <>
           <p className="text-sm text-gray-600 mb-4">
-            Bisa upload 1 sampai 6 foto untuk tampilan desktop/PC. Layout otomatis menyesuaikan jumlah foto.
+            {isBanner
+              ? 'Bisa upload 1 sampai 6 foto untuk tampilan desktop/PC. Foto disusun berdampingan mengisi kotak banner, jadi makin banyak foto makin sempit tiap fotonya.'
+              : 'Bisa upload 1 sampai 6 foto untuk tampilan desktop/PC. Layout otomatis menyesuaikan jumlah foto.'}
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {DESKTOP_SLOTS.map((position) =>
@@ -314,9 +352,13 @@ export default function HeroImageManager({ table, storagePathPrefix, heading, su
       ) : (
         <>
           <p className="text-sm text-gray-600 mb-4">
-            Khusus HP hanya bisa 1 foto — foto ini dipakai penuh sebagai latar saat halaman dibuka dari perangkat mobile.
+            {isBanner
+              ? 'Khusus HP hanya bisa 1 foto — foto ini mengisi kotak banner yang lebar dan pendek, jadi pakai foto landscape (melebar), bukan foto potret.'
+              : 'Khusus HP hanya bisa 1 foto — foto ini dipakai penuh sebagai latar saat halaman dibuka dari perangkat mobile.'}
           </p>
-          <div className="max-w-sm">{renderSlot('mobile', 1, mobileImage, 'Foto Mobile')}</div>
+          <div className={isBanner ? 'max-w-md' : 'max-w-sm'}>
+            {renderSlot('mobile', 1, mobileImage, 'Foto Mobile')}
+          </div>
         </>
       )}
 
@@ -348,7 +390,7 @@ export default function HeroImageManager({ table, storagePathPrefix, heading, su
                   </tr>
                 </thead>
                 <tbody>
-                  {HERO_DESKTOP_SIZE_GUIDE.map((guide) => (
+                  {desktopSizeGuides.map((guide) => (
                     <tr key={guide.count} className="border-b border-gray-100 last:border-b-0">
                       <td className="py-2 pr-4 text-gray-900">{guide.count} foto</td>
                       <td className="py-2 pr-4 text-gray-700">{guide.ratio}</td>
@@ -361,7 +403,8 @@ export default function HeroImageManager({ table, storagePathPrefix, heading, su
           </>
         ) : (
           <p className="text-sm text-gray-700">
-            Rasio {HERO_MOBILE_SIZE_GUIDE.ratio} (potret), sekitar {HERO_MOBILE_SIZE_GUIDE.size} — mengisi penuh layar HP.
+            Rasio {mobileSizeGuide.ratio} ({isBanner ? 'melebar' : 'potret'}), sekitar {mobileSizeGuide.size} —{' '}
+            {isBanner ? 'pas untuk kotak banner di HP.' : 'mengisi penuh layar HP.'}
           </p>
         )}
       </div>
@@ -371,6 +414,7 @@ export default function HeroImageManager({ table, storagePathPrefix, heading, su
         file={editorTarget?.file || null}
         sourceUrl={editorTarget?.sourceUrl || null}
         defaultFit="cover"
+        aspectLock={isBanner ? previewAspect(activeSizeGuide) : null}
         recommendedWidth={activeSizeGuide.width}
         recommendedHeight={activeSizeGuide.height}
         title={
