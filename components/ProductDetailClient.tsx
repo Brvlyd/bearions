@@ -2,9 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, ShoppingCart, Plus, Minus, ImageIcon } from 'lucide-react'
+import { ArrowLeft, ShoppingCart, Plus, Minus } from 'lucide-react'
 import ImageCarousel from '@/components/ImageCarousel'
-import ColorPreviewModal from '@/components/ColorPreviewModal'
 import { Product } from '@/lib/supabase'
 import { useLanguage } from '@/lib/i18n'
 import { cartService } from '@/lib/cart'
@@ -34,24 +33,51 @@ export default function ProductDetailClient({
   const [quantity, setQuantity] = useState(1)
   const [selectedSize, setSelectedSize] = useState<string>('')
   const [selectedColor, setSelectedColor] = useState<string>('')
-  const [previewColorName, setPreviewColorName] = useState<string | null>(null)
+  const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [addingToCart, setAddingToCart] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const [images] = useState<string[]>(initialImages)
 
   const colorOptions = useMemo(
     () => resolveColorOptions(initialColors, language),
     [initialColors, language]
   )
-  const previewColor = colorOptions.find((color) => color.name === previewColorName) || null
+
+  /**
+   * The gallery, plus a slot for every colour photo that is not already in it.
+   *
+   * An admin can point a colour at one of the product's own images or upload a
+   * separate one; only the first kind is in `initialImages`. Appending the rest
+   * means tapping any photographed colour always has somewhere to go, and the
+   * shopper can still reach that photo afterwards with the arrows.
+   */
+  const { carouselImages, imageIndexByColor } = useMemo(() => {
+    const list = [...initialImages]
+    const indexByColor = new Map<string, number>()
+
+    colorOptions.forEach((color) => {
+      if (!color.imageUrl) return
+
+      const existing = list.indexOf(color.imageUrl)
+      if (existing !== -1) {
+        indexByColor.set(color.name, existing)
+        return
+      }
+
+      indexByColor.set(color.name, list.length)
+      list.push(color.imageUrl)
+    })
+
+    return { carouselImages: list, imageIndexByColor: indexByColor }
+  }, [initialImages, colorOptions])
 
   const handleColorClick = (name: string) => {
     setSelectedColor(name)
 
-    // The popup is the point of the swatch, but a colour the admin has not
-    // photographed has nothing to show — that one just selects.
-    const option = colorOptions.find((color) => color.name === name)
-    if (option?.imageUrl) setPreviewColorName(name)
+    // Show the garment in the colour they just picked. A colour the admin never
+    // photographed has nothing to show, so the gallery stays where it is rather
+    // than jumping to an unrelated photo.
+    const target = imageIndexByColor.get(name)
+    if (target !== undefined) setActiveImageIndex(target)
   }
 
   const productName = language === 'id' && product.name_id ? product.name_id : product.name || ''
@@ -142,8 +168,14 @@ export default function ProductDetailClient({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
           <div className="w-full max-w-xl mx-auto">
             <div className="aspect-square bg-white rounded-lg overflow-hidden relative">
-              {images.length > 0 ? (
-                <ImageCarousel images={images} alt={productName} autoPlay={false} />
+              {carouselImages.length > 0 ? (
+                <ImageCarousel
+                  images={carouselImages}
+                  alt={productName}
+                  autoPlay={false}
+                  activeIndex={activeImageIndex}
+                  onActiveIndexChange={setActiveImageIndex}
+                />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400">
                   {tr('No Image', 'Tidak Ada Gambar')}
@@ -244,14 +276,6 @@ export default function ProductDetailClient({
                           style={{ backgroundColor: color.hex || '#e5e7eb' }}
                         />
                         <span className="truncate">{color.label}</span>
-                        {color.imageUrl && (
-                          <ImageIcon
-                            aria-hidden="true"
-                            className={`h-3.5 w-3.5 shrink-0 ${
-                              selectedColor === color.name ? 'text-white/70' : 'text-gray-400'
-                            }`}
-                          />
-                        )}
                       </button>
                     ))}
                   </div>
@@ -259,8 +283,8 @@ export default function ProductDetailClient({
                   {colorOptions.some((color) => color.imageUrl) && (
                     <p className="mt-2 text-xs text-gray-500">
                       {tr(
-                        'Tap a color to see this product in it.',
-                        'Klik warna untuk melihat produk dalam warna tersebut.'
+                        'Tap a color to show it in the photo.',
+                        'Klik warna untuk menampilkannya di foto.'
                       )}
                     </p>
                   )}
@@ -315,15 +339,6 @@ export default function ProductDetailClient({
           </div>
         </div>
       </div>
-
-      {previewColor && (
-        <ColorPreviewModal
-          color={previewColor}
-          productName={productName}
-          category={product.category}
-          onClose={() => setPreviewColorName(null)}
-        />
-      )}
     </div>
   )
 }

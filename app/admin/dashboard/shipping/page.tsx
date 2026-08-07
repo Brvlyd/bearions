@@ -100,7 +100,7 @@ const explainStatus = (
       tone: 'bad',
       title: 'Kunci API Biteship ditolak',
       detail:
-        'Biteship menolak kunci API yang terpasang. Kemungkinan kuncinya salah ketik, sudah dihapus, atau diganti. Hubungi developer untuk memperbarui.',
+        'Biteship menolak kunci API yang terpasang, jadi ongkir memakai Tabel Tarif Sendiri di bawah dan lacak paket otomatis tidak jalan. Isi saldo tidak menolong di kasus ini. Kalau membuat kunci baru di dashboard Biteship juga tetap ditolak, berarti bukan kuncinya yang bermasalah melainkan akun Biteship-nya belum aktif untuk pemakaian API — hubungi dukungan Biteship untuk mengaktifkannya. Sampai itu beres, toko tetap jalan normal dengan Tabel Tarif Sendiri.',
     }
   }
 

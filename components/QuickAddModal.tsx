@@ -40,6 +40,14 @@ export default function QuickAddModal({ product, image, onClose }: QuickAddModal
     [colorRows, language]
   )
 
+  // Picking a colour swaps the photo for the one the admin assigned to it, the
+  // same way the detail page does. A colour with no photo of its own keeps the
+  // card's image rather than blanking the preview.
+  const previewImage =
+    colorOptions.find((color) => color.name === selectedColor)?.imageUrl ||
+    image ||
+    product.image_url
+
   useEffect(() => {
     let cancelled = false
 
@@ -138,15 +146,15 @@ export default function QuickAddModal({ product, image, onClose }: QuickAddModal
               Click is swallowed because it reads as part of the popup, so it
               must not dismiss a half-filled form the way the backdrop does. */}
           <div
-            className="hidden lg:block w-72 shrink-0 aspect-square rounded-xl overflow-hidden bg-gray-50 border border-gray-200 shadow-2xl"
+            className="hidden lg:block w-80 xl:w-96 2xl:w-[28rem] shrink-0 aspect-square max-h-[80vh] rounded-xl overflow-hidden bg-gray-50 border border-gray-200 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <SafeImage
-              src={image || product.image_url}
+              src={previewImage}
               alt={productName}
               fill
               category={product.category}
-              sizes="18rem"
+              sizes="(min-width: 1536px) 28rem, (min-width: 1280px) 24rem, 20rem"
             />
           </div>
 
@@ -161,7 +169,7 @@ export default function QuickAddModal({ product, image, onClose }: QuickAddModal
               {/* Redundant once the large preview is beside the panel, so it
                   only carries the identity job at the widths that lack one. */}
               <div className="w-14 h-14 rounded-lg overflow-hidden bg-gray-50 border border-gray-200 shrink-0 relative lg:hidden">
-                <SafeImage src={image || product.image_url} alt={productName} fill category={product.category} />
+                <SafeImage src={previewImage} alt={productName} fill category={product.category} />
               </div>
               <div className="min-w-0 flex-1">
                 <h2 className="font-semibold text-black truncate">{productName}</h2>

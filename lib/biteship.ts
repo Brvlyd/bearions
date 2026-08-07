@@ -39,10 +39,25 @@ export type BiteshipResult<T> =
   | { ok: true; data: T }
   | { ok: false; reason: BiteshipFailureReason; message: string }
 
-const classifyError = (body: { error?: string; code?: number } | null): BiteshipFailureReason => {
+const classifyError = (
+  status: number,
+  body: { error?: string; code?: number } | null
+): BiteshipFailureReason => {
   const message = (body?.error || '').toLowerCase()
 
-  if (body?.code === 40000001 || message.includes('authentication')) return 'unauthorized'
+  // Key errors arrive under more than one shape: 40000001 for a malformed key,
+  // 40101002 ("No account found with associated key") for one that belongs to
+  // no live account — what a stale or test key looks like — and neither of
+  // those says "authentication". The HTTP status is the only signal that is
+  // always right, so it is checked first. Without it a dead key is classified
+  // as a transient 'error' and the admin panel tells the owner to retry
+  // forever, when the real fix is replacing the key.
+  if (status === 401 || status === 403) return 'unauthorized'
+  if (body?.code === 40000001 || body?.code === 40101002) return 'unauthorized'
+  if (message.includes('authentication') || message.includes('no account found')) {
+    return 'unauthorized'
+  }
+
   if (message.includes('balance')) return 'insufficient_balance'
 
   return 'error'
@@ -78,7 +93,7 @@ async function biteshipFetch<T>(
     // Biteship signals failure through `success: false` as often as through the
     // status code, so neither alone is enough to trust the body.
     if (!response.ok || payload?.success === false) {
-      const reason = classifyError(payload)
+      const reason = classifyError(response.status, payload)
       const message = payload?.error || `Biteship ${path} returned ${response.status}`
       console.error(`Biteship ${path} failed [${reason}]: ${message}`)
       return { ok: false, reason, message }

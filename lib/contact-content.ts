@@ -26,6 +26,12 @@ export type ContactContent = {
   note: string
   note_id: string
   form_enabled: boolean
+  /**
+   * Where form submissions are delivered. Comma-separated for several inboxes;
+   * empty means the CONTACT_RECEIVER_EMAIL env var still decides, which is what
+   * every store did before this field existed.
+   */
+  form_recipient: string
 }
 
 export const DEFAULT_CONTACT_CONTENT: ContactContent = {
@@ -47,6 +53,7 @@ export const DEFAULT_CONTACT_CONTENT: ContactContent = {
   note: '',
   note_id: '',
   form_enabled: true,
+  form_recipient: '',
 }
 
 const text = (value: unknown, fallback: string) =>
@@ -81,8 +88,23 @@ export const normalizeContactContent = (
     // has no such column, and a store that silently loses its contact form is
     // worse than one showing it.
     form_enabled: row.contact_form_enabled !== false,
+    form_recipient: text(row.contact_form_recipient, ''),
   }
 }
+
+export const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+
+/**
+ * Splits the recipient field into addresses. Commas, semicolons and newlines are
+ * all accepted because the admin types this by hand or pastes it from wherever
+ * the list already lives; blank entries are dropped so a trailing comma cannot
+ * turn into an empty recipient at send time.
+ */
+export const parseEmailList = (raw: string): string[] =>
+  raw
+    .split(/[,;\n]/)
+    .map((entry) => entry.trim())
+    .filter(Boolean)
 
 /**
  * Reads the contact content. Missing columns (migration not applied yet) are

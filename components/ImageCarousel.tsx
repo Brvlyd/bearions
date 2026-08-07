@@ -11,6 +11,13 @@ interface ImageCarouselProps {
   autoPlay?: boolean
   interval?: number
   category?: string
+  /**
+   * Drives the carousel from the outside — pass it together with
+   * `onActiveIndexChange` so the arrows and dots keep working. Omit both to let
+   * the carousel own its position, which is what a standalone gallery wants.
+   */
+  activeIndex?: number
+  onActiveIndexChange?: (index: number) => void
 }
 
 /** Gap between a control and the edge of the photo it sits on. */
@@ -45,9 +52,17 @@ function useRenderedImageInset(
   }, [frame.width, frame.height, natural])
 }
 
-export default function ImageCarousel({ images, alt, autoPlay = true, interval = 3000, category }: ImageCarouselProps) {
+export default function ImageCarousel({
+  images,
+  alt,
+  autoPlay = true,
+  interval = 3000,
+  category,
+  activeIndex,
+  onActiveIndexChange,
+}: ImageCarouselProps) {
   const { tr } = useLanguage()
-  const [requestedIndex, setRequestedIndex] = useState(0)
+  const [ownIndex, setOwnIndex] = useState(0)
   const frameRef = useRef<HTMLDivElement>(null)
   const [frame, setFrame] = useState<Size>({ width: 0, height: 0 })
   // Keyed by URL, not position: a shorter or reordered image list then reuses
@@ -55,20 +70,44 @@ export default function ImageCarousel({ images, alt, autoPlay = true, interval =
   // an already-seen photo does not make the controls jump.
   const [naturalSizes, setNaturalSizes] = useState<Record<string, Size>>({})
 
+  const isControlled = activeIndex !== undefined
+  const requestedIndex = isControlled ? activeIndex : ownIndex
+
   // Wrapping here rather than in the setters means a list that shrinks under
   // us (different product, colour variant) can never point past its end.
-  const currentIndex = images.length > 0 ? requestedIndex % images.length : 0
+  const currentIndex =
+    images.length > 0 ? ((requestedIndex % images.length) + images.length) % images.length : 0
   const currentImageUrl = images[currentIndex]
+
+  const goTo = useCallback(
+    (next: number) => {
+      if (images.length === 0) return
+      const wrapped = ((next % images.length) + images.length) % images.length
+      // The owner of the index gets told either way; only an uncontrolled
+      // carousel moves itself, or the two would fight over the position.
+      if (!isControlled) setOwnIndex(wrapped)
+      onActiveIndexChange?.(wrapped)
+    },
+    [images.length, isControlled, onActiveIndexChange]
+  )
+
+  // Read through a ref so advancing does not have to be a dependency of the
+  // interval below — otherwise every step would tear down and restart it,
+  // and the slide would never actually get its full `interval` on screen.
+  const currentIndexRef = useRef(currentIndex)
+  useEffect(() => {
+    currentIndexRef.current = currentIndex
+  }, [currentIndex])
 
   useEffect(() => {
     if (!autoPlay || images.length <= 1) return
 
     const timer = setInterval(() => {
-      setRequestedIndex((prev) => (prev + 1) % images.length)
+      goTo(currentIndexRef.current + 1)
     }, interval)
 
     return () => clearInterval(timer)
-  }, [autoPlay, images.length, interval])
+  }, [autoPlay, images.length, interval, goTo])
 
   useEffect(() => {
     const node = frameRef.current
@@ -98,13 +137,9 @@ export default function ImageCarousel({ images, alt, autoPlay = true, interval =
 
   const inset = useRenderedImageInset(frame, naturalSizes[currentImageUrl] ?? null)
 
-  const goToPrevious = () => {
-    setRequestedIndex((prev) => (prev - 1 + images.length) % images.length)
-  }
+  const goToPrevious = () => goTo(currentIndex - 1)
 
-  const goToNext = () => {
-    setRequestedIndex((prev) => (prev + 1) % images.length)
-  }
+  const goToNext = () => goTo(currentIndex + 1)
 
   if (images.length === 0) {
     return (
@@ -131,8 +166,13 @@ export default function ImageCarousel({ images, alt, autoPlay = true, interval =
   // Rest state is the bare chevron with no plate behind it, so the control
   // covers as little of the photo as possible. Kept visible at all times on
   // touch, where there is no hover to reveal it with.
+  //
+  // Taller than it is wide: the extra height is hit area, which costs nothing
+  // visually while the plate is hidden but makes the control far easier to
+  // catch with a thumb without widening the strip of photo it sits over.
   const navButton =
-    'group/nav absolute top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-10 h-10 rounded-full ' +
+    'group/nav absolute top-1/2 -translate-y-1/2 z-10 flex items-center justify-center ' +
+    'w-12 h-20 sm:w-14 sm:h-28 rounded-full ' +
     'text-black transition-[opacity,transform] duration-200 active:scale-90 ' +
     'focus-visible:outline-hidden ' +
     'md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100'
@@ -151,8 +191,8 @@ export default function ImageCarousel({ images, alt, autoPlay = true, interval =
   // The white halo is what keeps a bare black chevron legible on a dark photo;
   // once the plate is behind it the halo is no longer doing any work.
   const navIcon =
-    'relative w-5 h-5 transition-[transform,filter] duration-200 ' +
-    'drop-shadow-[0_0_3px_rgba(255,255,255,0.9)] group-hover/nav:drop-shadow-none'
+    'relative w-7 h-7 sm:w-8 sm:h-8 transition-[transform,filter] duration-200 ' +
+    'drop-shadow-[0_0_4px_rgba(255,255,255,0.9)] group-hover/nav:drop-shadow-none'
 
   return (
     <div className="relative w-full h-full group bg-white">
@@ -205,7 +245,7 @@ export default function ImageCarousel({ images, alt, autoPlay = true, interval =
         {images.map((_, index) => (
           <button
             key={index}
-            onClick={() => setRequestedIndex(index)}
+            onClick={() => goTo(index)}
             type="button"
             className={`h-1.5 rounded-full transition-all duration-300 ${
               index === currentIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/60 hover:bg-white/90'

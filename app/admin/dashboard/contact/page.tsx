@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   Clock,
   ExternalLink,
+  Inbox,
   Instagram,
   Mail,
   MapPin,
@@ -18,7 +19,9 @@ import { supabase } from '@/lib/supabase'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import {
   DEFAULT_CONTACT_CONTENT,
+  isEmail,
   loadContactContent,
+  parseEmailList,
   toWhatsAppLink,
   type ContactContent,
 } from '@/lib/contact-content'
@@ -78,9 +81,22 @@ export default function AdminContactPage() {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
+  const recipients = parseEmailList(form.form_recipient)
+  const invalidRecipients = recipients.filter((email) => !isEmail(email))
+
   const handleSave = async () => {
     if (!form.email.trim()) {
       setMessage({ type: 'error', text: 'Email wajib diisi — itu satu-satunya cara pembeli membalas kalau form dimatikan.' })
+      return
+    }
+
+    // Menyimpan alamat yang salah tulis berarti pesan pembeli hilang tanpa ada
+    // yang tahu, jadi dicegat di sini, bukan nanti waktu ada pesan masuk.
+    if (invalidRecipients.length > 0) {
+      setMessage({
+        type: 'error',
+        text: `Email tujuan belum benar: ${invalidRecipients.join(', ')}. Perbaiki dulu, kalau tidak pesan pembeli tidak akan sampai.`,
+      })
       return
     }
 
@@ -109,6 +125,9 @@ export default function AdminContactPage() {
           contact_note: form.note.trim() || null,
           contact_note_id: form.note_id.trim() || null,
           contact_form_enabled: form.form_enabled,
+          // Disimpan sudah rapi supaya yang dibaca server sama persis dengan
+          // daftar yang barusan ditampilkan di layar.
+          contact_form_recipient: recipients.join(', ') || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', 1)
@@ -429,8 +448,45 @@ export default function AdminContactPage() {
       <section className="rounded-lg border border-gray-200 bg-white p-5">
         <h2 className="text-lg font-semibold text-black mb-1">Form Pesan</h2>
         <p className="text-sm text-gray-600 mb-4">
-          Form tempat pembeli menulis pesan. Pesan yang masuk dikirim ke email toko di atas.
+          Form tempat pembeli menulis pesan. Setiap pesan yang dikirim pembeli masuk sebagai email
+          ke alamat tujuan di bawah ini.
         </p>
+
+        <div className="mb-4">
+          <label className={labelClass}>
+            <span className="inline-flex items-center gap-1.5">
+              <Inbox className="w-4 h-4" /> Email tujuan pesan masuk
+            </span>
+          </label>
+          <input
+            type="text"
+            value={form.form_recipient}
+            onChange={(e) => update('form_recipient', e.target.value)}
+            placeholder="email@tokoanda.com"
+            className={inputClass}
+          />
+          {invalidRecipients.length > 0 ? (
+            <p className="text-xs text-red-600 mt-1">
+              Ini belum seperti alamat email: {invalidRecipients.join(', ')}. Kalau disimpan begini,
+              pesan pembeli tidak akan sampai.
+            </p>
+          ) : recipients.length > 0 ? (
+            <p className={hintClass}>
+              Pesan dari form akan dikirim ke {recipients.join(', ')}. Balasan Anda langsung menuju
+              alamat pembeli, bukan ke sini.
+            </p>
+          ) : (
+            <p className={hintClass}>
+              Sekarang masih memakai alamat bawaan yang dipasang waktu toko dibuat. Isi kolom ini
+              kalau ingin pesan masuk ke email lain.
+            </p>
+          )}
+          <p className={hintClass}>
+            Boleh lebih dari satu alamat — pisahkan dengan koma, semuanya akan menerima salinan yang
+            sama. Alamat ini tidak ditampilkan di halaman kontak, jadi tidak harus sama dengan email
+            toko di atas.
+          </p>
+        </div>
 
         <label className="flex items-start gap-3 rounded-lg border border-gray-200 p-3 cursor-pointer hover:bg-gray-50">
           <input

@@ -210,8 +210,8 @@ export default function ProductColorsEditor({
 
       <p className="text-sm text-gray-600 mb-4">
         {tr(
-          'Each color can carry a photo of this product in that color. On the product page, tapping a color selects it and opens that photo. Leave this empty to keep the shared default color list.',
-          'Setiap warna bisa punya foto produk ini dalam warna tersebut. Di halaman produk, saat warna diklik, warna itu terpilih dan fotonya muncul. Kosongkan untuk memakai daftar warna bawaan.'
+          'Each color can carry a photo of this product in that color. On the product page, tapping a color selects it and switches the main photo to that image. Leave this empty to keep the shared default color list.',
+          'Setiap warna bisa punya foto produk ini dalam warna tersebut. Di halaman produk, saat warna diklik, warna itu terpilih dan foto utamanya langsung ganti ke gambar tersebut. Kosongkan untuk memakai daftar warna bawaan.'
         )}
       </p>
 
